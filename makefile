@@ -5,8 +5,8 @@ BUILDDIR := $(PROJDIR)/build
 
 # Target executable
 TARGET = nbm
-CFLAGS = 
-LDLIBS = 
+CFLAGS = -g -Wall -Werror -O3
+LDLIBS = -lm
 
 # Compiler and compiler options
 CC = clang
@@ -16,12 +16,12 @@ VERBOSE = TRUE
 
 # Create the list of directories
 DIRS = download output parser 
-SOURCEDIRS = $(foreach dir, $(DIRS), $(realpath $(addprefix $(SOURCEDIR)/, $(dir))))
+SOURCEDIRS = $(foreach dir, $(DIRS), $(addprefix $(SOURCEDIR)/, $(dir)))
 SOURCEDIRS += $(SOURCEDIR)
-TARGETDIRS = $(foreach dir, $(DIRS), $(realpath $(addprefix $(BUILDDIR)/, $(dir))))
+TARGETDIRS = $(foreach dir, $(DIRS), $(addprefix $(BUILDDIR)/, $(dir)))
 TARGETDIRS += $(BUILDDIR)
 
-# Generate the compiler includes parameters.
+# Generate the compiler includes parameters for project generated header files.
 INCLUDES = $(foreach dir, $(DIRS), $(addprefix -I, $(dir)))
 
 # Add this list to the VPATH, the place make will look for the source files
@@ -52,7 +52,7 @@ endif
 
 # Define function that will generate each rule
 define generateRules
-$(1)/%.o: %.c
+$(1)/%.o: %.c makefile
 	@echo Building $$@
 	$(HIDE)$(CC) -c $$(INCLUDES) $$(CFLAGS) -o $$(subst /,$$(PSEP),$$@) $$(subst /,$$(PSEP),$$<) -MMD
 endef
@@ -61,7 +61,7 @@ endef
 
 all: makefile directories $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) makefile
 	$(HIDE)echo Linking $@
 	$(HIDE)$(CC) $(OBJS) $(LDLIBS) -o $(TARGET)
 
