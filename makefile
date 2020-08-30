@@ -34,15 +34,6 @@ SOURCES = $(foreach dir, $(SOURCEDIRS), $(wildcard $(dir)/*.c))
 OBJS := $(subst $(SOURCEDIR), $(BUILDDIR), $(SOURCES:.c=.o))
 DEPS = $(OBJS:.o=.d)
 
-RM = rm -rf
-RMDIR = rm -rf
-MKDIR = mkdir -p
-ERRIGNORE = 2>/dev/null
-SEP=/
-
-# Remove space after separator
-PSEP = $(strip $(SEP))
-
 # Hide or not the calls depending on VERBOSE
 ifeq ($(VERBOSE),TRUE)
 	HIDE = 
@@ -54,7 +45,7 @@ endif
 define generateRules
 $(1)/%.o: %.c makefile
 	@echo Building $$@
-	$(HIDE)$(CC) -c $$(INCLUDES) $$(CFLAGS) -o $$(subst /,$$(PSEP),$$@) $$(subst /,$$(PSEP),$$<) -MMD
+	$(HIDE)$(CC) -c $$(INCLUDES) $$(CFLAGS) -o $$@ $$< -MMD
 endef
 
 .PHONY: all clean directories
@@ -62,7 +53,7 @@ endef
 all: makefile directories $(TARGET)
 
 $(TARGET): $(OBJS) makefile
-	$(HIDE)echo Linking $@
+	@echo Linking $@
 	$(HIDE)$(CC) $(OBJS) $(LDLIBS) -o $(TARGET)
 
 -include $(DEPS)
@@ -71,11 +62,11 @@ $(TARGET): $(OBJS) makefile
 $(foreach targetdir, $(TARGETDIRS), $(eval $(call generateRules, $(targetdir))))
 
 directories:
-	$(HIDE)echo Creating directory $<
-	$(HIDE)$(MKDIR) $(subst /,$(PSEP),$(TARGETDIRS)) $(ERRIGNORE)
+	@echo Creating directory $<
+	$(HIDE)mkdir -p $(TARGETDIRS) 2>/dev/null
 
 clean:
-	$(HIDE)$(RMDIR) $(subst /,$(PSEP),$(TARGETDIRS)) $(ERRIGNORE)
-	$(HIDE)$(RM) $(TARGET) $(ERRIGNORE)
-	@echo Cleaning done !
+	$(HIDE)rm -rf $(TARGETDIRS) 2>/dev/null
+	$(HIDE)rm -rf $(TARGET) 2>/dev/null
+	@echo Cleaning done!
 
