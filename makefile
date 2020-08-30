@@ -5,8 +5,13 @@ BUILDDIR := $(PROJDIR)/build
 
 # Target executable
 TARGET = nbm
-CFLAGS = -g -Wall -Werror -O3
+CFLAGS = -g -Wall -Werror -O3 -std=c11
 LDLIBS = -lm
+
+# -------------------------------------------------------------------------------------------------
+CFLAGS += `curl-config --cflags`
+LDLIBS += `curl-config --libs`
+# -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options
 CC = clang
