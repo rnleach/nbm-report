@@ -55,12 +55,14 @@ main(int argc, char *argv[argc + 1])
 
     struct OptArgs opt_args = parse_cmd_line(argc, argv);
 
-    char *string_data = retrieve_data_for_site(opt_args.site);
-    Stopif(!string_data, exit(EXIT_FAILURE), "Null data retrieved.");
+    struct RawNbmData *raw_nbm_data = retrieve_data_for_site(opt_args.site);
+    Stopif(!raw_nbm_data, exit(EXIT_FAILURE), "Null data retrieved.");
 
-    printf("Hello world, we're going to try to get NBM data for site %s.\n", opt_args.site);
-    printf("We got:\n%s\n", string_data);
+    struct tm init_time = raw_nbm_data_init_time(raw_nbm_data);
+    printf(
+        "Hello world, we downloaded NBM point data for site %s (%s) at initialization time %s.\n",
+        opt_args.site, raw_nbm_data_site(raw_nbm_data), asctime(&init_time));
 
-    free(string_data);
+    free_raw_nbm_data(&raw_nbm_data);
     program_finalization();
 }
