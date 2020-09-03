@@ -1,5 +1,5 @@
-#include "../utils.h"
 #include "download.h"
+#include "../utils.h"
 
 #include <assert.h>
 #include <ctype.h>
