@@ -1,5 +1,5 @@
-#include "parser.h"
 #include "../utils.h"
+#include "parser.h"
 
 #include <assert.h>
 #include <csv.h>
@@ -104,7 +104,6 @@ column_callback(void *data, size_t sz, void *state)
         // Handle all the other columns as doubles.
         double val;
         if (sz == 0) {
-            printf("Found empty\n");
             val = NAN;
         } else {
             val = strtod(txt, 0);
