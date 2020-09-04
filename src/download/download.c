@@ -87,6 +87,8 @@ calc_init_time()
     }
     time_t init_secs = now_secs + shift_hours * 3600;
     struct tm *init_time = gmtime(&init_secs);
+    init_time->tm_sec = 0;
+    init_time->tm_min = 0;
 
     return *init_time;
 }
@@ -131,18 +133,14 @@ build_download_url(char const site[static 1], struct RawNbmData *data)
     strcpy(data->site, site);
     to_uppercase(data->site);
 
-    struct tm init_time = calc_init_time();
-    init_time.tm_sec = 0;
-    init_time.tm_min = 0;
+    data->init_time = calc_init_time();
 
-    int year = init_time.tm_year + 1900;
-    int month = init_time.tm_mon + 1;
-    int day = init_time.tm_mday;
-    int hour = init_time.tm_hour;
+    int year = data->init_time.tm_year + 1900;
+    int month = data->init_time.tm_mon + 1;
+    int day = data->init_time.tm_mday;
+    int hour = data->init_time.tm_hour;
 
     sprintf(url, "%s%4d/%02d/%02d/NBM/%02d/%s.csv", base_url, year, month, day, hour, data->site);
-
-    data->init_time = init_time;
 
     return url;
 }
