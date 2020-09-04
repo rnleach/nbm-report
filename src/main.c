@@ -7,8 +7,8 @@
 #include <curl/curl.h>
 
 // Program developed headers
-#include "download/download.h"
-#include "parser/parser.h"
+#include "download.h"
+#include "parser.h"
 #include "utils.h"
 
 static void

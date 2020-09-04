@@ -2,7 +2,7 @@
 #ifndef _NBM_REPORT_PARSER_H_
 #define _NBM_REPORT_PARSER_H_
 
-#include "../download/download.h"
+#include "download.h"
 
 struct NBMData;
 

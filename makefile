@@ -1,11 +1,12 @@
 # Directory layout.
 PROJDIR := $(realpath $(CURDIR)/)
 SOURCEDIR := $(PROJDIR)/src
+OBJDIR := $(PROJDIR)/obj
 BUILDDIR := $(PROJDIR)/build
 
 # Target executable
-TARGET = nbm
-CFLAGS = -g -Wall -Werror -O3 -std=c11
+TARGET = $(BUILDDIR)/nbm
+CFLAGS = -g -Wall -Werror -O3 -std=c11 -I$(SOURCEDIR)
 LDLIBS = -lm
 
 # -------------------------------------------------------------------------------------------------
@@ -27,24 +28,14 @@ CC = clang
 # Show commands make uses
 VERBOSE = TRUE
 
-# Create the list of directories
-DIRS = download output parser 
-SOURCEDIRS = $(foreach dir, $(DIRS), $(addprefix $(SOURCEDIR)/, $(dir)))
-SOURCEDIRS += $(SOURCEDIR)
-TARGETDIRS = $(foreach dir, $(DIRS), $(addprefix $(BUILDDIR)/, $(dir)))
-TARGETDIRS += $(BUILDDIR)
-
-# Generate the compiler includes parameters for project generated header files.
-INCLUDES = $(foreach dir, $(DIRS), $(addprefix -I, $(dir)))
-
 # Add this list to the VPATH, the place make will look for the source files
-VPATH = $(SOURCEDIRS)
+VPATH = $(SOURCEDIR)
 
 # Create a list of *.c files in DIRS
-SOURCES = $(foreach dir, $(SOURCEDIRS), $(wildcard $(dir)/*.c))
+SOURCES = $(wildcard $(SOURCEDIR)/*.c)
 
 # Define object files for all sources, and dependencies for all objects
-OBJS := $(subst $(SOURCEDIR), $(BUILDDIR), $(SOURCES:.c=.o))
+OBJS := $(subst $(SOURCEDIR), $(OBJDIR), $(SOURCES:.c=.o))
 DEPS = $(OBJS:.o=.d)
 
 # Hide or not the calls depending on VERBOSE
@@ -53,13 +44,6 @@ ifeq ($(VERBOSE),TRUE)
 else
 	HIDE = @
 endif
-
-# Define function that will generate each rule
-define generateRules
-$(1)/%.o: %.c makefile
-	@echo Building $$@
-	$(HIDE)$(CC) -c $$(INCLUDES) $$(CFLAGS) -o $$@ $$< -MMD
-endef
 
 .PHONY: all clean directories
 
@@ -72,14 +56,16 @@ $(TARGET): $(OBJS) makefile
 -include $(DEPS)
 
 # Generate rules
-$(foreach targetdir, $(TARGETDIRS), $(eval $(call generateRules, $(targetdir))))
+$(OBJDIR)/%.o: $(SOURCEDIR)/%.c makefile
+	@echo Building $@
+	$(HIDE)$(CC) -c $(CFLAGS) -o $@ $< -MMD
 
 directories:
 	@echo Creating directory $<
-	$(HIDE)mkdir -p $(TARGETDIRS) 2>/dev/null
+	$(HIDE)mkdir -p $(OBJDIR) 2>/dev/null
+	$(HIDE)mkdir -p $(BUILDDIR) 2>/dev/null
 
 clean:
-	$(HIDE)rm -rf $(TARGETDIRS) 2>/dev/null
-	$(HIDE)rm -rf $(TARGET) 2>/dev/null
+	$(HIDE)rm -rf $(TARGET) $(OBJDIR) $(BUILDDIR) 2>/dev/null
 	@echo Cleaning done!
 

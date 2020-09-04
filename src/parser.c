@@ -1,5 +1,5 @@
-#include "../utils.h"
 #include "parser.h"
+#include "utils.h"
 
 #include <assert.h>
 #include <csv.h>
