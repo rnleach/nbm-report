@@ -71,7 +71,7 @@ init_parser_state(char *text_data, struct tm init_time, char const *site)
                             .init_time = timegm(&init_time),
                             .num_cols = cols - 1, // First column is stored in .valid_times
                             .num_rows = rows - 1, // First row is stored in .col_names
-                            .col_names = calloc(cols, sizeof(char *)),
+                            .col_names = calloc(cols - 1, sizeof(char *)),
                             .valid_times = calloc(rows, sizeof(time_t)),
                             .vals = calloc((rows - 1) * (cols - 1), sizeof(double))};
 
@@ -81,8 +81,9 @@ init_parser_state(char *text_data, struct tm init_time, char const *site)
 static void
 parse_column_header(char *col_name, size_t col_name_len, struct NBMData *nbm, size_t col)
 {
-    nbm->col_names[col] = calloc(col_name_len + 1, sizeof(char));
-    strncpy(nbm->col_names[col], col_name, col_name_len + 1);
+    assert(col > 0);
+    nbm->col_names[col - 1] = calloc(col_name_len + 1, sizeof(char));
+    strncpy(nbm->col_names[col - 1], col_name, col_name_len + 1);
 }
 
 static void
@@ -94,7 +95,9 @@ column_callback(void *data, size_t sz, void *state)
 
     if (st->row == 0) {
         // Parse the column titles.
-        parse_column_header(txt, sz, nbm, st->col);
+        if (st->col > 0) {
+            parse_column_header(txt, sz, nbm, st->col);
+        }
     } else if (st->col == 0) {
         // Handle valid time column
         struct tm vtime = {.tm_isdst = -1};
