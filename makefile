@@ -13,6 +13,10 @@ LDLIBS = -lm
 # enable some time functions for POSIX
 CFLAGS += -D_DEFAULT_SOURCE -D_XOPEN_SOURCE
 
+# glib
+CFLAGS += `pkg-config --cflags glib-2.0`
+LDLIBS += `pkg-config --libs glib-2.0`
+
 # cURL library
 CFLAGS += `curl-config --cflags`
 LDLIBS += `curl-config --libs`

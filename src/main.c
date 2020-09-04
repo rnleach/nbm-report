@@ -9,6 +9,7 @@
 // Program developed headers
 #include "download.h"
 #include "parser.h"
+#include "printer.h"
 #include "utils.h"
 
 static void
@@ -65,9 +66,9 @@ main(int argc, char *argv[argc + 1])
     assert(!raw_nbm_data);
     Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
 
-    // Do output
+    show_daily_summary(parsed_nbm_data);
 
-    free_nbm_data(&parsed_nbm_data);
+    nbm_data_free(&parsed_nbm_data);
     assert(!parsed_nbm_data);
     program_finalization();
 }

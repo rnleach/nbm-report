@@ -9,6 +9,11 @@
 #include <string.h>
 #include <time.h>
 
+/*-------------------------------------------------------------------------------------------------
+ *                                           NBMData
+ *-----------------------------------------------------------------------------------------------*/
+// The main way to create one of these is via parse_raw_nbm_data(), which is at the bottom of the
+// file.
 struct NBMData {
     char *site;
     time_t init_time;
@@ -23,7 +28,7 @@ struct NBMData {
 };
 
 void
-free_nbm_data(struct NBMData **ptrptr)
+nbm_data_free(struct NBMData **ptrptr)
 {
     struct NBMData *ptr = *ptrptr;
 
@@ -41,6 +46,68 @@ free_nbm_data(struct NBMData **ptrptr)
     return;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                     NBMDataRowIterator
+ *-----------------------------------------------------------------------------------------------*/
+struct NBMDataRowIterator {
+    int col_num;
+    size_t curr_row;
+    struct NBMData const *src;
+};
+
+struct NBMDataRowIterator *
+nbm_data_rows(struct NBMData const *nbm, char const *col_name)
+{
+    int found_col_num = -1;
+    for (int col_num = 0; col_num < nbm->num_cols; col_num++) {
+        if (strcmp(col_name, nbm->col_names[col_num]) == 0) {
+            found_col_num = col_num;
+            break;
+        }
+    }
+    Stopif(found_col_num < 0, return 0, "No such column: %s", col_name);
+
+    struct NBMDataRowIterator *it = malloc(sizeof(struct NBMDataRowIterator));
+    *it = (struct NBMDataRowIterator){.curr_row = 0, .col_num = found_col_num, .src = nbm};
+    return it;
+}
+
+void
+nbm_data_row_iterator_free(struct NBMDataRowIterator **ptrptr)
+{
+    free(*ptrptr);
+    *ptrptr = 0;
+}
+
+struct NBMDataRowIteratorValueView
+nbm_data_row_iterator_next(struct NBMDataRowIterator *it)
+{
+    struct NBMDataRowIteratorValueView view = {0};
+
+    size_t next_row = it->curr_row;
+    double *vals = it->src->vals;
+    double *val = 0;
+    while (next_row < it->src->num_rows) {
+        size_t index = next_row * it->src->num_cols + it->col_num;
+        val = &vals[index];
+        if (!isnan(*val)) {
+            break;
+        }
+        next_row++;
+    }
+
+    if (next_row < it->src->num_rows) {
+        view.value = val;
+        view.valid_time = &it->src->valid_times[next_row];
+        it->curr_row = next_row + 1;
+    }
+
+    return view;
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                           CSVParserState - internal only
+ *-----------------------------------------------------------------------------------------------*/
 struct CSVParserState {
     int row;
     int col;
@@ -83,7 +150,7 @@ parse_column_header(char *col_name, size_t col_name_len, struct NBMData *nbm, si
 {
     assert(col > 0);
     nbm->col_names[col - 1] = calloc(col_name_len + 1, sizeof(char));
-    strncpy(nbm->col_names[col - 1], col_name, col_name_len + 1);
+    strncpy(nbm->col_names[col - 1], col_name, col_name_len);
 }
 
 static void
@@ -159,6 +226,9 @@ do_parsing(struct csv_parser *parser, struct RawNbmData *raw)
     return state.nbm_data;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                             Other module functions in the public API.
+ *-----------------------------------------------------------------------------------------------*/
 struct NBMData *
 parse_raw_nbm_data(struct RawNbmData *raw)
 {
