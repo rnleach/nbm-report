@@ -9,8 +9,16 @@ CFLAGS = -g -Wall -Werror -O3 -std=c11
 LDLIBS = -lm
 
 # -------------------------------------------------------------------------------------------------
+# enable some time functions for POSIX
+CFLAGS += -D_DEFAULT_SOURCE -D_XOPEN_SOURCE
+
+# cURL library
 CFLAGS += `curl-config --cflags`
 LDLIBS += `curl-config --libs`
+
+# libcsv3 library
+CFLAGS +=
+LDLIBS += -lcsv
 # -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options
