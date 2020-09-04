@@ -6,10 +6,20 @@
 
 struct NBMData;
 struct NBMDataRowIterator;
+struct NBMDataRowIteratorWind;
 
 struct NBMDataRowIteratorValueView {
     time_t *valid_time;
     double *value;
+};
+
+struct NBMDataRowIteratorWindValueView {
+    time_t *valid_time;
+    double *wspd;
+    double *wspd_std;
+    double *wdir;
+    double *gust;
+    double *gust_std;
 };
 
 /** Parse the raw text data into a \c NBMData structure. */
@@ -36,5 +46,24 @@ void nbm_data_row_iterator_free(struct NBMDataRowIterator **);
  * object are set to null.
  */
 struct NBMDataRowIteratorValueView nbm_data_row_iterator_next(struct NBMDataRowIterator *);
+
+/** Get an iterator over the winds.
+ *
+ * \param nbm the NBM data to query.
+ *
+ * \returns an iterator over the rows of wind data.
+ */
+struct NBMDataRowIteratorWind *nbm_data_rows_wind(struct NBMData const *nbm);
+
+/** Free memory associated with the iterator and nullify the pointer. */
+void nbm_data_row_wind_iterator_free(struct NBMDataRowIteratorWind **);
+
+/** Get the next values in the iterator.
+ *
+ * If there are no more values, the all of the pointers in the \c NBMDataRowIteratorWindValueView
+ * object are set to null.
+ */
+struct NBMDataRowIteratorWindValueView
+nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *);
 
 #endif

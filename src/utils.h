@@ -30,4 +30,22 @@ change_in_kelvin_to_change_in_fahrenheit(double dk)
     return 9.0 / 5.0 * dk;
 }
 
+inline double
+id_func(double val)
+{
+    return val;
+}
+
+inline double
+mps_to_mph(double val)
+{
+    return 2.23694 * val;
+}
+
+inline double
+dmax(double v1, double v2)
+{
+    return v1 > v2 ? v1 : v2;
+}
+
 #endif

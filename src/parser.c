@@ -106,6 +106,115 @@ nbm_data_row_iterator_next(struct NBMDataRowIterator *it)
 }
 
 /*-------------------------------------------------------------------------------------------------
+ *                                   NBMDataRowIteratorWind
+ *-----------------------------------------------------------------------------------------------*/
+struct NBMDataRowIteratorWind {
+    int wspd_col_num;
+    int wspd_std_col_num;
+    int wgst_col_num;
+    int wgst_std_col_num;
+    int wdir_col_num;
+
+    size_t curr_row;
+    struct NBMData const *src;
+};
+
+struct NBMDataRowIteratorWind *
+nbm_data_rows_wind(struct NBMData const *nbm)
+{
+    int found_wspd_col_num = -1;
+    int found_wspd_std_col_num = -1;
+    int found_wgst_col_num = -1;
+    int found_wgst_std_col_num = -1;
+    int found_wdir_col_num = -1;
+    for (int col_num = 0; col_num < nbm->num_cols; col_num++) {
+        if (strcmp("WIND_10 m above ground", nbm->col_names[col_num]) == 0) {
+            found_wspd_col_num = col_num;
+        }
+
+        if (strcmp("WIND_10 m above ground_ens std dev", nbm->col_names[col_num]) == 0) {
+            found_wspd_std_col_num = col_num;
+        }
+
+        if (strcmp("GUST_10 m above ground", nbm->col_names[col_num]) == 0) {
+            found_wgst_col_num = col_num;
+        }
+
+        if (strcmp("GUST_10 m above ground_ens std dev", nbm->col_names[col_num]) == 0) {
+            found_wgst_std_col_num = col_num;
+        }
+
+        if (strcmp("WDIR_10 m above ground", nbm->col_names[col_num]) == 0) {
+            found_wdir_col_num = col_num;
+        }
+    }
+    Stopif(found_wdir_col_num < 0 || found_wspd_col_num < 0 || found_wgst_col_num < 0 ||
+               found_wspd_std_col_num < 0 || found_wgst_std_col_num < 0,
+           return 0, "Missing wind column.");
+
+    struct NBMDataRowIteratorWind *it = malloc(sizeof(struct NBMDataRowIteratorWind));
+    *it = (struct NBMDataRowIteratorWind){.curr_row = 0,
+                                          .src = nbm,
+                                          .wspd_col_num = found_wspd_col_num,
+                                          .wgst_col_num = found_wgst_col_num,
+                                          .wspd_std_col_num = found_wspd_std_col_num,
+                                          .wgst_std_col_num = found_wgst_std_col_num,
+                                          .wdir_col_num = found_wdir_col_num};
+
+    return it;
+}
+
+void
+nbm_data_row_wind_iterator_free(struct NBMDataRowIteratorWind **ptrptr)
+{
+    free(*ptrptr);
+    *ptrptr = 0;
+}
+
+struct NBMDataRowIteratorWindValueView
+nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *it)
+{
+    struct NBMDataRowIteratorWindValueView view = {0};
+
+    size_t next_row = it->curr_row;
+    double *vals = it->src->vals;
+    double *spd_val = 0;
+    double *spd_std_val = 0;
+    double *gst_val = 0;
+    double *gst_std_val = 0;
+    double *dir_val = 0;
+    while (next_row < it->src->num_rows) {
+        size_t row_offset = next_row * it->src->num_cols;
+        size_t index_spd = row_offset + it->wspd_col_num;
+        size_t index_spd_std = row_offset + it->wspd_std_col_num;
+        size_t index_gst = row_offset + it->wgst_col_num;
+        size_t index_gst_std = row_offset + it->wgst_std_col_num;
+        size_t index_dir = row_offset + it->wdir_col_num;
+        spd_val = &vals[index_spd];
+        spd_std_val = &vals[index_spd_std];
+        gst_val = &vals[index_gst];
+        gst_std_val = &vals[index_gst_std];
+        dir_val = &vals[index_dir];
+        if (!(isnan(*spd_val) || isnan(*spd_std_val) || isnan(*gst_val) || isnan(*gst_std_val) ||
+              isnan(*dir_val))) {
+            break;
+        }
+        next_row++;
+    }
+
+    if (next_row < it->src->num_rows) {
+        view.valid_time = &it->src->valid_times[next_row];
+        view.wspd = spd_val;
+        view.wspd_std = spd_std_val;
+        view.wdir = dir_val;
+        view.gust = gst_val;
+        view.gust_std = gst_std_val;
+        it->curr_row = next_row + 1;
+    }
+
+    return view;
+}
+/*-------------------------------------------------------------------------------------------------
  *                                           CSVParserState - internal only
  *-----------------------------------------------------------------------------------------------*/
 struct CSVParserState {
@@ -176,7 +285,11 @@ column_callback(void *data, size_t sz, void *state)
         if (sz == 0) {
             val = NAN;
         } else {
-            val = strtod(txt, 0);
+#define MAX_CHARS_CELL 100
+            char buf[MAX_CHARS_CELL] = {0};
+            assert(sz < MAX_CHARS_CELL);
+            memcpy(buf, data, sz);
+            val = strtod(buf, 0);
         }
         nbm->vals[nbm->num_cols * (st->row - 1) + (st->col - 1)] = val;
     }
