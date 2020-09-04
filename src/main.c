@@ -1,4 +1,5 @@
 // standard lib
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,6 +8,7 @@
 
 // Program developed headers
 #include "download/download.h"
+#include "parser/parser.h"
 #include "utils.h"
 
 static void
@@ -58,11 +60,14 @@ main(int argc, char *argv[argc + 1])
     struct RawNbmData *raw_nbm_data = retrieve_data_for_site(opt_args.site);
     Stopif(!raw_nbm_data, exit(EXIT_FAILURE), "Null data retrieved.");
 
-    struct tm init_time = raw_nbm_data_init_time(raw_nbm_data);
-    printf(
-        "Hello world, we downloaded NBM point data for site %s (%s) at initialization time %s.\n",
-        opt_args.site, raw_nbm_data_site(raw_nbm_data), asctime(&init_time));
-
+    struct NBMData *parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
     free_raw_nbm_data(&raw_nbm_data);
+    assert(!raw_nbm_data);
+    Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
+
+    // Do output
+
+    free_nbm_data(&parsed_nbm_data);
+    assert(!parsed_nbm_data);
     program_finalization();
 }
