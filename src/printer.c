@@ -17,17 +17,11 @@
  * matches NBM timing anyway.
  * */
 static time_t
-summary_date(time_t const *valid_time, bool is_rh)
+summary_date(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (is_rh) {
-        if (tmp.tm_hour <= 18) {
-            tmp.tm_mday--;
-        }
-    } else {
-        if (tmp.tm_hour <= 12) {
-            tmp.tm_mday--;
-        }
+    if (tmp.tm_hour <= 18) {
+        tmp.tm_mday--;
     }
 
     tmp.tm_isdst = -1;
@@ -51,6 +45,8 @@ struct DailySummary {
     double max_wind_gust;
     double max_wind_gust_std;
     double max_wind_dir;
+    double min_rh;
+    double max_rh;
 };
 
 static bool
@@ -58,7 +54,8 @@ daily_summary_any_nan(struct DailySummary const *sum)
 {
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
-           isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir);
+           isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir) ||
+           isnan(sum->max_rh) || isnan(sum->min_rh);
 }
 
 static struct DailySummary
@@ -72,7 +69,21 @@ daily_summary_new()
                                  .max_wind_std = NAN,
                                  .max_wind_gust = NAN,
                                  .max_wind_gust_std = NAN,
-                                 .max_wind_dir = NAN};
+                                 .max_wind_dir = NAN,
+                                 .max_rh = NAN,
+                                 .min_rh = NAN};
+}
+
+static double *
+daily_summary_access_min_rh(struct DailySummary *sum)
+{
+    return &sum->min_rh;
+}
+
+static double *
+daily_summary_access_max_rh(struct DailySummary *sum)
+{
+    return &sum->max_rh;
 }
 
 static double *
@@ -109,7 +120,8 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     if (*vt == 0)
         return false;
 
-    if (daily_summary_any_nan(val)) return false;
+    if (daily_summary_any_nan(val))
+        return false;
 
     char buf[MAX_ROW_LEN] = {0};
     char *nxt = &buf[0];
@@ -122,7 +134,7 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std));
+    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std * 10.0) / 10.0);
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 9;
 
@@ -130,14 +142,19 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std));
+    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std * 10.0) / 10.0);
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 9;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_dir));
+    num_printed =
+        snprintf(nxt, end - nxt, " %3.0lf%%/%3.0lf%%", round(sum->min_rh), round(sum->max_rh));
+    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
+    nxt += 10;
+
+    num_printed = snprintf(nxt, end - nxt, "  %03.0lf", round(sum->max_wind_dir));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
            sum->max_wind_dir);
-    nxt += 4;
+    nxt += 5;
 
     num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_mph));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
@@ -160,6 +177,16 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     printf("%s\n", buf);
 
     return false;
+}
+
+static void
+daily_summary_print_header()
+{
+    printf("\n%-15s %-12s %-12s %-9s  %-3s %-9s %-9s", "  Date  ", "  Max T  ", "  Min T  ",
+           "Mx/Mn RH ", "Dir", "  Spd  ", "  Gst  ");
+    printf("\n%-15s %-12s  %-12s  %-9s  %-3s %-9s %-9s\n", "Day, YYYY-MM-DD", "  °F", "  °F",
+           "  %  ", "deg", "  mph  ", "  mph  ");
+    printf("--------------------------------------------------------------------------------\n");
 }
 
 static int
@@ -186,8 +213,7 @@ extract_daily_value_to_summary(GTree *sums, struct NBMData const *nbm, char cons
     struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
     while (view.valid_time && view.value) {
 
-        bool is_rh = !!strstr(col_name, "RH");
-        time_t date = summary_date(view.valid_time, is_rh);
+        time_t date = summary_date(view.valid_time);
         double x_val = map_fun(*view.value);
 
         struct DailySummary *sum = g_tree_lookup(sums, &date);
@@ -216,7 +242,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
     struct NBMDataRowIteratorWindValueView view = nbm_data_row_wind_iterator_next(it);
     while (view.valid_time) { // If valid time is good, assume everything is.
 
-        time_t date = summary_date(view.valid_time, false);
+        time_t date = summary_date(view.valid_time);
 
         struct DailySummary *sum = g_tree_lookup(sums, &date);
         if (!sum) {
@@ -268,6 +294,12 @@ build_daily_summaries(struct NBMData const *nbm)
                                    change_in_kelvin_to_change_in_fahrenheit,
                                    daily_summary_access_min_t_std);
 
+    extract_daily_value_to_summary(sums, nbm, "MINRH12hr_2 m above ground", id_func,
+                                   daily_summary_access_min_rh);
+
+    extract_daily_value_to_summary(sums, nbm, "MAXRH12hr_2 m above ground", id_func,
+                                   daily_summary_access_max_rh);
+
     extract_max_winds_to_summary(sums, nbm);
 
     return sums;
@@ -280,6 +312,7 @@ show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
 
+    daily_summary_print_header();
     g_tree_foreach(sums, daily_summary_print_as_row, 0);
 
     g_tree_unref(sums);
