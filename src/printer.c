@@ -1,5 +1,5 @@
-#include "printer.h"
 #include "parser.h"
+#include "printer.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -53,6 +53,14 @@ struct DailySummary {
     double max_wind_dir;
 };
 
+static bool
+daily_summary_any_nan(struct DailySummary const *sum)
+{
+    return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
+           isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
+           isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir);
+}
+
 static struct DailySummary
 daily_summary_new()
 {
@@ -101,6 +109,8 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     if (*vt == 0)
         return false;
 
+    if (daily_summary_any_nan(val)) return false;
+
     char buf[MAX_ROW_LEN] = {0};
     char *nxt = &buf[0];
     char *const end = &buf[MAX_ROW_LEN - 1];
@@ -108,41 +118,41 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     strftime(buf, MAX_ROW_LEN, "%a, %Y-%m-%d", gmtime(vt));
     nxt += 15;
 
-    int num_printed = snprintf(nxt, end - nxt, " %3.0lf°", sum->max_t_f);
+    int num_printed = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->max_t_f));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", sum->max_t_std);
+    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 9;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf°", sum->min_t_f);
+    num_printed = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->min_t_f));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", sum->min_t_std);
+    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 9;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", sum->max_wind_dir);
+    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_dir));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
            sum->max_wind_dir);
     nxt += 4;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", sum->max_wind_mph);
+    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_mph));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
     nxt += 4;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", sum->max_wind_std);
+    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_std));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
     nxt += 7;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", sum->max_wind_gust);
+    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_gust));
     Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g %lf",
            sum->max_wind_gust);
     nxt += 4;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", sum->max_wind_gust_std);
+    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_gust_std));
     Stopif(num_printed >= end - nxt, *end = 0,
            "print buffer overflow daily summary gust: g_std %lf", sum->max_wind_gust_std);
     nxt += 7;
