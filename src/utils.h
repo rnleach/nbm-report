@@ -43,9 +43,9 @@ mps_to_mph(double val)
 }
 
 inline double
-dmax(double v1, double v2)
+mm_to_in(double val)
 {
-    return v1 > v2 ? v1 : v2;
+    return val / 25.4;
 }
 
 #endif

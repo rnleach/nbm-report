@@ -11,16 +11,37 @@
 
 #include <glib.h>
 
-/** Convert the times from 12Z one day to 12Z the next to a struct tm valid the first day.
+/** Convert the times from 18Z one day to 18Z the next to a struct tm valid the first day.
  *
- * For a summary, the day runs from 12Z one day to 12Z the next. This works OK for the US, and
- * matches NBM timing anyway.
+ * For a summary, the day runs from 18Z one day to 18Z the next. This works OK for the US, and
+ * matches NBM timing anyway. This works for MaxT/MinT/MaxRH/MinRH.
  * */
 static time_t
-summary_date(time_t const *valid_time)
+summary_date_t_rh(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
     if (tmp.tm_hour <= 18) {
+        tmp.tm_mday--;
+    }
+
+    tmp.tm_isdst = -1;
+    tmp.tm_hour = 0;
+    tmp.tm_min = 0;
+    tmp.tm_sec = 0;
+
+    return timegm(&tmp);
+}
+
+/** Convert the times from 12Z one day to 12Z the next to a struct tm valid the first day.
+ *
+ * For a summary, the day runs from 12Z one day to 12Z the next. This works OK for the US, and
+ * matches NBM timing anyway. This works for wind and precip.
+ * */
+static time_t
+summary_date_wind_precip(time_t const *valid_time)
+{
+    struct tm tmp = *gmtime(valid_time);
+    if (tmp.tm_hour <= 12) {
         tmp.tm_mday--;
     }
 
@@ -47,6 +68,8 @@ struct DailySummary {
     double max_wind_dir;
     double min_rh;
     double max_rh;
+    double precip;
+    double prob_snow;
 };
 
 static bool
@@ -55,23 +78,39 @@ daily_summary_any_nan(struct DailySummary const *sum)
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
            isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir) ||
-           isnan(sum->max_rh) || isnan(sum->min_rh);
+           isnan(sum->max_rh) || isnan(sum->min_rh) || isnan(sum->precip) || isnan(sum->prob_snow);
 }
 
 static struct DailySummary
 daily_summary_new()
 {
-    return (struct DailySummary){.max_t_f = NAN,
-                                 .max_t_std = NAN,
-                                 .min_t_f = NAN,
-                                 .min_t_std = NAN,
-                                 .max_wind_mph = NAN,
-                                 .max_wind_std = NAN,
-                                 .max_wind_gust = NAN,
-                                 .max_wind_gust_std = NAN,
-                                 .max_wind_dir = NAN,
-                                 .max_rh = NAN,
-                                 .min_rh = NAN};
+    return (struct DailySummary){
+        .max_t_f = NAN,
+        .max_t_std = NAN,
+        .min_t_f = NAN,
+        .min_t_std = NAN,
+        .max_wind_mph = NAN,
+        .max_wind_std = NAN,
+        .max_wind_gust = NAN,
+        .max_wind_gust_std = NAN,
+        .max_wind_dir = NAN,
+        .max_rh = NAN,
+        .min_rh = NAN,
+        .precip = NAN,
+        .prob_snow = NAN,
+    };
+}
+
+static double *
+daily_summary_access_prob_snow(struct DailySummary *sum)
+{
+    return &sum->prob_snow;
+}
+
+static double *
+daily_summary_access_precip(struct DailySummary *sum)
+{
+    return &sum->precip;
 }
 
 static double *
@@ -130,49 +169,56 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     strftime(buf, MAX_ROW_LEN, "%a, %Y-%m-%d", gmtime(vt));
     nxt += 15;
 
-    int num_printed = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->max_t_f));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
+    int np = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->max_t_f));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std * 10.0) / 10.0);
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
+    np = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std * 10.0) / 10.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 9;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->min_t_f));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
+    np = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->min_t_f));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 6;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std * 10.0) / 10.0);
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
+    np = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std * 10.0) / 10.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 9;
 
-    num_printed =
-        snprintf(nxt, end - nxt, " %3.0lf%%/%3.0lf%%", round(sum->min_rh), round(sum->max_rh));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
+    np = snprintf(nxt, end - nxt, " %3.0lf%%/%3.0lf%%", round(sum->min_rh), round(sum->max_rh));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
     nxt += 10;
 
-    num_printed = snprintf(nxt, end - nxt, "  %03.0lf", round(sum->max_wind_dir));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
+    np = snprintf(nxt, end - nxt, "  %03.0lf", round(sum->max_wind_dir));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
            sum->max_wind_dir);
     nxt += 5;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_mph));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
+    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_mph));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
     nxt += 4;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_std));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
+    np = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_std));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
     nxt += 7;
 
-    num_printed = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_gust));
-    Stopif(num_printed >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g %lf",
+    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_gust));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g %lf",
            sum->max_wind_gust);
     nxt += 4;
 
-    num_printed = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_gust_std));
-    Stopif(num_printed >= end - nxt, *end = 0,
-           "print buffer overflow daily summary gust: g_std %lf", sum->max_wind_gust_std);
+    np = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_gust_std));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g_std %lf",
+           sum->max_wind_gust_std);
     nxt += 7;
+
+    np = snprintf(nxt, end - nxt, " %4.2lf", round(sum->precip * 100.0) / 100.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary precip");
+    nxt += 5;
+
+    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->prob_snow));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary snow");
+    nxt += 4;
 
     printf("%s\n", buf);
 
@@ -182,11 +228,12 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
 static void
 daily_summary_print_header()
 {
-    printf("\n%-15s %-12s %-12s %-9s  %-3s %-9s %-9s", "  Date  ", "  Max T  ", "  Min T  ",
-           "Mx/Mn RH ", "Dir", "  Spd  ", "  Gst  ");
-    printf("\n%-15s %-12s  %-12s  %-9s  %-3s %-9s %-9s\n", "Day, YYYY-MM-DD", "  °F", "  °F",
-           "  %  ", "deg", "  mph  ", "  mph  ");
-    printf("--------------------------------------------------------------------------------\n");
+    printf("\n%-15s %-12s %-12s %-9s  %-3s %-9s %-9s %-4s %-3s", "  Date  ", "    Max T",
+           "    Min T", " Mx/Mn RH", "Dir", "  Speed", "  Gust", "Rain", "Snw");
+    printf("\n%-15s %-12s  %-12s  %-9s  %-3s %-9s %-9s %-4s %-3s\n", "Day, YYYY-MM-DD", "    °F",
+           "    °F", "  %  ", "deg", "   mph", "  mph", " in ", "Prb");
+    printf(
+        "-------------------------------------------------------------------------------------\n");
 }
 
 static int
@@ -213,7 +260,7 @@ extract_daily_value_to_summary(GTree *sums, struct NBMData const *nbm, char cons
     struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
     while (view.valid_time && view.value) {
 
-        time_t date = summary_date(view.valid_time);
+        time_t date = summary_date_t_rh(view.valid_time);
         double x_val = map_fun(*view.value);
 
         struct DailySummary *sum = g_tree_lookup(sums, &date);
@@ -242,7 +289,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
     struct NBMDataRowIteratorWindValueView view = nbm_data_row_wind_iterator_next(it);
     while (view.valid_time) { // If valid time is good, assume everything is.
 
-        time_t date = summary_date(view.valid_time);
+        time_t date = summary_date_wind_precip(view.valid_time);
 
         struct DailySummary *sum = g_tree_lookup(sums, &date);
         if (!sum) {
@@ -275,6 +322,37 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
     nbm_data_row_wind_iterator_free(&it);
 }
 
+static void
+extract_daily_precip_value_to_summary(GTree *sums, struct NBMData const *nbm, char const *col_name,
+                                      double (*map_fun)(double),
+                                      double *(*extractor_fun)(struct DailySummary *))
+{
+    struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
+    Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
+
+    struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
+    while (view.valid_time && view.value) {
+
+        time_t date = summary_date_wind_precip(view.valid_time);
+        double x_val = map_fun(*view.value);
+
+        struct DailySummary *sum = g_tree_lookup(sums, &date);
+        if (!sum) {
+            time_t *key = malloc(sizeof(time_t));
+            *key = date;
+            sum = malloc(sizeof(struct DailySummary));
+            *sum = daily_summary_new();
+            g_tree_insert(sums, key, sum);
+        }
+        double *sum_val = extractor_fun(sum);
+        *sum_val = x_val;
+
+        view = nbm_data_row_iterator_next(it);
+    }
+
+    nbm_data_row_iterator_free(&it);
+}
+
 static GTree *
 build_daily_summaries(struct NBMData const *nbm)
 {
@@ -301,6 +379,12 @@ build_daily_summaries(struct NBMData const *nbm)
                                    daily_summary_access_max_rh);
 
     extract_max_winds_to_summary(sums, nbm);
+
+    extract_daily_precip_value_to_summary(sums, nbm, "APCP24hr_surface", mm_to_in,
+                                          daily_summary_access_precip);
+
+    extract_daily_precip_value_to_summary(sums, nbm, "ASNOW24hr_surface_prob >0.00254", id_func,
+                                          daily_summary_access_prob_snow);
 
     return sums;
 }
