@@ -149,7 +149,7 @@ daily_summary_access_max_t(struct DailySummary *sum)
     return &sum->max_t_f;
 }
 
-#define MAX_ROW_LEN 120
+#define MAX_ROW_LEN 128
 static int
 daily_summary_print_as_row(void *key, void *val, void *user_data)
 {
@@ -166,59 +166,59 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     char *nxt = &buf[0];
     char *const end = &buf[MAX_ROW_LEN - 1];
 
-    strftime(buf, MAX_ROW_LEN, "%a, %Y-%m-%d", gmtime(vt));
+    strftime(buf, MAX_ROW_LEN, "│ %a, %Y-%m-%d ", gmtime(vt));
+    nxt += 20;
+
+    int np = snprintf(nxt, end - nxt, "│ %3.0lf°", round(sum->max_t_f));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
+    nxt += 7;
+
+    np = snprintf(nxt, end - nxt, " ±%4.1lf ", round(sum->max_t_std * 10.0) / 10.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
+    nxt += 8;
+
+    np = snprintf(nxt, end - nxt, "│ %3.0lf°", round(sum->min_t_f));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
+    nxt += 7;
+
+    np = snprintf(nxt, end - nxt, " ±%4.1lf ", round(sum->min_t_std * 10.0) / 10.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
+    nxt += 8;
+
+    np = snprintf(nxt, end - nxt, "│ %3.0lf%% /%3.0lf%% ", round(sum->min_rh), round(sum->max_rh));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
     nxt += 15;
 
-    int np = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->max_t_f));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
-    nxt += 6;
-
-    np = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->max_t_std * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
-    nxt += 9;
-
-    np = snprintf(nxt, end - nxt, " %3.0lf°", round(sum->min_t_f));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
-    nxt += 6;
-
-    np = snprintf(nxt, end - nxt, " (±%4.1lf)", round(sum->min_t_std * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
-    nxt += 9;
-
-    np = snprintf(nxt, end - nxt, " %3.0lf%%/%3.0lf%%", round(sum->min_rh), round(sum->max_rh));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
-    nxt += 10;
-
-    np = snprintf(nxt, end - nxt, "  %03.0lf", round(sum->max_wind_dir));
+    np = snprintf(nxt, end - nxt, "│ %03.0lf ", round(sum->max_wind_dir));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
            sum->max_wind_dir);
-    nxt += 5;
+    nxt += 8;
 
-    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_mph));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
-    nxt += 4;
-
-    np = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_std));
+    np = snprintf(nxt, end - nxt, "│ %3.0lf", round(sum->max_wind_mph));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
     nxt += 7;
 
-    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->max_wind_gust));
+    np = snprintf(nxt, end - nxt, " ±%2.0lf ", round(sum->max_wind_std));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
+    nxt += 6;
+
+    np = snprintf(nxt, end - nxt, "│ %3.0lf", round(sum->max_wind_gust));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g %lf",
            sum->max_wind_gust);
-    nxt += 4;
-
-    np = snprintf(nxt, end - nxt, " (±%2.0lf)", round(sum->max_wind_gust_std));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g_std %lf",
-           sum->max_wind_gust_std);
     nxt += 7;
 
-    np = snprintf(nxt, end - nxt, " %4.2lf", round(sum->precip * 100.0) / 100.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary precip");
-    nxt += 5;
+    np = snprintf(nxt, end - nxt, " ±%2.0lf ", round(sum->max_wind_gust_std));
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g_std %lf",
+           sum->max_wind_gust_std);
+    nxt += 6;
 
-    np = snprintf(nxt, end - nxt, " %3.0lf", round(sum->prob_snow));
+    np = snprintf(nxt, end - nxt, "│ %4.2lf ", round(sum->precip * 100.0) / 100.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary precip");
+    nxt += 9;
+
+    np = snprintf(nxt, end - nxt, "│ %3.0lf │", round(sum->prob_snow));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary snow");
-    nxt += 4;
+    nxt += 10;
 
     printf("%s\n", buf);
 
@@ -228,12 +228,16 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
 static void
 daily_summary_print_header()
 {
-    printf("\n%-15s %-12s %-12s %-9s  %-3s %-9s %-9s %-4s %-3s", "  Date  ", "    Max T",
-           "    Min T", " Mx/Mn RH", "Dir", "  Speed", "  Gust", "Rain", "Snw");
-    printf("\n%-15s %-12s  %-12s  %-9s  %-3s %-9s %-9s %-4s %-3s\n", "Day, YYYY-MM-DD", "    °F",
-           "    °F", "  %  ", "deg", "   mph", "  mph", " in ", "Prb");
-    printf(
-        "-------------------------------------------------------------------------------------\n");
+    printf("┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬──────┬─────┐\n");
+    printf("│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │ Rain │ Snw │\n");
+    printf("│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │  in  │ Prb │\n");
+    printf("╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪══════╪═════╡\n");
+}
+
+static void
+daily_summary_print_footer()
+{
+    printf("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧══════╧═════╛\n");
 }
 
 static int
@@ -398,6 +402,7 @@ show_daily_summary(struct NBMData const *nbm)
 
     daily_summary_print_header();
     g_tree_foreach(sums, daily_summary_print_as_row, 0);
+    daily_summary_print_footer();
 
     g_tree_unref(sums);
 }
