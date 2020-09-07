@@ -228,16 +228,23 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
 static void
 daily_summary_print_header()
 {
-    printf("┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬──────┬─────┐\n");
-    printf("│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │ Rain │ Snw │\n");
-    printf("│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │  in  │ Prb │\n");
-    printf("╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪══════╪═════╡\n");
+    // clang-format off
+    char const *header = 
+        "┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬──────┬─────┐\n"
+        "│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │ Rain │ Snw │\n"
+        "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │  in  │ Prb │\n"
+        "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪══════╪═════╡";
+    // clang-format on
+
+    puts(header);
 }
 
 static void
 daily_summary_print_footer()
 {
-    printf("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧══════╧═════╛\n");
+    // clang-format off
+    puts("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧══════╧═════╛");
+    // clang-format on
 }
 
 static int
