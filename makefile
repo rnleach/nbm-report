@@ -49,7 +49,7 @@ else
 	HIDE = @
 endif
 
-.PHONY: all clean directories
+.PHONY: all clean directories install
 
 all: makefile directories $(TARGET)
 
@@ -72,4 +72,14 @@ directories:
 clean:
 	$(HIDE)rm -rf $(TARGET) $(OBJDIR) $(BUILDDIR) 2>/dev/null
 	@echo Cleaning done!
+
+detected_OS = $(shell uname)
+ifeq ($(detected_OS), Linux)
+	target_dir = ~/usr/bin/
+else
+	target_dir = ~/bin/
+endif
+
+install: $(TARGET)
+	strip $(TARGET) && cp $(TARGET) $(target_dir)
 
