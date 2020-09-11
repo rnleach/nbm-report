@@ -1,7 +1,9 @@
 // standard lib
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 // Third party libs
 #include <curl/curl.h>
@@ -17,12 +19,19 @@ print_usage(char **argv)
 {
     char *progname = argv[0];
 
-    printf("Usage: %s site_id\n\n", progname);
-    printf("e.g. : %s kmso\n", progname);
+    printf("Usage: %s site_id\n", progname);
+    printf("e.g. : %s kmso\n\n", progname);
+    printf("Options:\n");
+    printf("   -s show summary of snow forecast.\n");
+    printf("   -r show summary of rain / liquid equivalent forecast.\n");
+    printf("   -n do not show main summary.\n");
 }
 
 struct OptArgs {
     char *site;
+    bool show_summary;
+    bool show_rain;
+    bool show_snow;
 };
 
 static struct OptArgs
@@ -31,9 +40,30 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     Stopif(argc < 2, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.\n");
     Stopif(argc > 2, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
 
-    struct OptArgs result = {0};
+    struct OptArgs result = {
+        .site = 0, .show_summary = true, .show_rain = false, .show_snow = false};
 
-    result.site = argv[1];
+    int opt;
+    while ((opt = getopt(argc, argv, "srn")) != -1) {
+        switch (opt) {
+        case 's':
+            result.show_snow = true;
+            break;
+        case 'r':
+            result.show_rain = true;
+            break;
+        case 'n':
+            result.show_summary = false;
+            break;
+        default:
+            print_usage(argv);
+            break;
+        }
+    }
+
+    Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.");
+
+    result.site = argv[optind];
 
     return result;
 }
@@ -66,7 +96,8 @@ main(int argc, char *argv[argc + 1])
     assert(!raw_nbm_data);
     Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
 
-    show_daily_summary(parsed_nbm_data);
+    if (opt_args.show_summary)
+        show_daily_summary(parsed_nbm_data);
 
     nbm_data_free(&parsed_nbm_data);
     assert(!parsed_nbm_data);
