@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,8 +64,10 @@ raw_nbm_data_text_len(struct RawNbmData *data)
  * Using the current time, calculate the most recent available inititialization time.
  */
 static struct tm
-calc_init_time()
+calc_init_time(int versions_back)
 {
+
+    static int valid_times[] = {1, 4, 7, 13, 16, 19};
 
     time_t now_secs = time(0);
     struct tm *now = gmtime(&now_secs);
@@ -72,20 +75,26 @@ calc_init_time()
     int hour = now->tm_hour;
     int shift_hours = 0;
 
-    if (hour >= 4 && hour < 9) {
-        shift_hours = 1 - hour;
-    } else if (hour >= 9 && hour < 17) {
-        shift_hours = 7 - hour;
-    } else if (hour >= 17 && hour < 22) {
-        shift_hours = 13 - hour;
-    } else {
-        if (hour < 4) {
-            shift_hours = -24 + 19 - hour;
-        } else {
-            shift_hours = 19 - hour;
+    int found = 0;
+    while (found < versions_back + 1) {
+        int curr_version = hour - shift_hours;
+        // Force current version into range 0-23
+        if (curr_version < 0) {
+            while (curr_version < 0) {
+                curr_version += 24;
+            }
         }
+        for (int i = 0; i < 6; i++) {
+            if (curr_version == valid_times[i]) {
+                found++;
+                break;
+            }
+        }
+        shift_hours++;
     }
-    time_t init_secs = now_secs + shift_hours * 3600;
+    shift_hours--;
+
+    time_t init_secs = now_secs - shift_hours * 3600;
     struct tm *init_time = gmtime(&init_secs);
     init_time->tm_sec = 0;
     init_time->tm_min = 0;
@@ -122,7 +131,7 @@ to_uppercase(char string[static 1])
  * of the \c data struct.
  */
 static char const *
-build_download_url(char const site[static 1], struct RawNbmData *data)
+build_download_url(char const site[static 1], struct RawNbmData *data, int versions_back)
 {
     static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
     static char url[URL_LENGTH] = {0};
@@ -133,7 +142,7 @@ build_download_url(char const site[static 1], struct RawNbmData *data)
     strcpy(data->site, site);
     to_uppercase(data->site);
 
-    data->init_time = calc_init_time();
+    data->init_time = calc_init_time(versions_back);
 
     int year = data->init_time.tm_year + 1900;
     int month = data->init_time.tm_mon + 1;
@@ -175,14 +184,11 @@ retrieve_data_for_site(char const site[static 1])
     struct RawNbmData *data = calloc(1, sizeof(struct RawNbmData));
     assert(data);
 
-    char const *url = build_download_url(site, data);
-    assert(url);
-
     CURL *curl = curl_easy_init();
     Stopif(!curl, return 0, "curl_easy_init failed.");
 
-    CURLcode res = curl_easy_setopt(curl, CURLOPT_URL, url);
-    Stopif(res, return 0, "curl_easy_setopt failed to set the url.");
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+    Stopif(res, return 0, "curl_easy_setopt failed to set fail on error.");
 
     struct buffer buf = {0};
     buf.memory = malloc(1);
@@ -197,9 +203,21 @@ retrieve_data_for_site(char const site[static 1])
     res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
     Stopif(res, free(buf.memory); return 0, "curl_easy_setopt failed to set the user agent.");
 
-    res = curl_easy_perform(curl);
+    int attempt_number = 0;
+    char const *url = 0;
+    do {
+        url = build_download_url(site, data, attempt_number);
+        assert(url);
+        attempt_number++;
+
+        res = curl_easy_setopt(curl, CURLOPT_URL, url);
+        Stopif(res, return 0, "curl_easy_setopt failed to set the url.");
+        res = curl_easy_perform(curl);
+    } while (res && attempt_number <= 20);
     Stopif(res, free(buf.memory);
            return 0, "curl_easy_perform failed: %s", curl_easy_strerror(res));
+
+    printf("Successfully downloaded: %s\n", url);
 
     curl_easy_cleanup(curl);
 
