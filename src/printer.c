@@ -74,7 +74,7 @@ struct DailySummary {
 };
 
 static bool
-daily_summary_any_nan(struct DailySummary const *sum)
+daily_summary_printable(struct DailySummary const *sum)
 {
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
@@ -167,7 +167,7 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     if (*vt == 0)
         return false;
 
-    if (daily_summary_any_nan(val))
+    if (daily_summary_printable(val))
         return false;
 
     char buf[MAX_ROW_LEN] = {0};
