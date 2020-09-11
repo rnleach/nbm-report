@@ -70,6 +70,7 @@ struct DailySummary {
     double max_rh;
     double precip;
     double prob_snow;
+    double prob_ltg;
 };
 
 static bool
@@ -98,7 +99,14 @@ daily_summary_new()
         .min_rh = NAN,
         .precip = NAN,
         .prob_snow = NAN,
+        .prob_ltg = NAN,
     };
+}
+
+static double *
+daily_summary_access_prob_ltg(struct DailySummary *sum)
+{
+    return &sum->prob_ltg;
 }
 
 static double *
@@ -149,7 +157,7 @@ daily_summary_access_max_t(struct DailySummary *sum)
     return &sum->max_t_f;
 }
 
-#define MAX_ROW_LEN 128
+#define MAX_ROW_LEN 150
 static int
 daily_summary_print_as_row(void *key, void *val, void *user_data)
 {
@@ -212,6 +220,10 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
            sum->max_wind_gust_std);
     nxt += 6;
 
+    np = snprintf(nxt, end - nxt, "│ %3.0lf ", sum->prob_ltg);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary ltg");
+    nxt += 8;
+
     np = snprintf(nxt, end - nxt, "│ %4.2lf ", round(sum->precip * 100.0) / 100.0);
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary precip");
     nxt += 9;
@@ -219,6 +231,15 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     np = snprintf(nxt, end - nxt, "│ %3.0lf │", round(sum->prob_snow));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary snow");
     nxt += 10;
+
+    // Remove NANs
+    char *c = buf;
+    while (*c) {
+        if ((*c == 'n' || *c == 'a') && c - buf > 10) {
+            *c = ' ';
+        }
+        ++c;
+    }
 
     printf("%s\n", buf);
 
@@ -230,10 +251,10 @@ daily_summary_print_header()
 {
     // clang-format off
     char const *header = 
-        "┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬──────┬─────┐\n"
-        "│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │ Rain │ Snw │\n"
-        "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │  in  │ Prb │\n"
-        "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪══════╪═════╡";
+        "┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬─────┬──────┬─────┐\n"
+        "│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │ Prb │ Rain │ Snw │\n"
+        "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │ Ltg │  in  │ Prb │\n"
+        "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪═════╪══════╪═════╡";
     // clang-format on
 
     puts(header);
@@ -243,7 +264,7 @@ static void
 daily_summary_print_footer()
 {
     // clang-format off
-    puts("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧══════╧═════╛");
+    puts("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧═════╧══════╧═════╛");
     // clang-format on
 }
 
@@ -364,6 +385,38 @@ extract_daily_precip_value_to_summary(GTree *sums, struct NBMData const *nbm, ch
     nbm_data_row_iterator_free(&it);
 }
 
+static void
+extract_daily_max_value_to_summary(GTree *sums, struct NBMData const *nbm, char const *col_name,
+                                   double (*map_fun)(double),
+                                   double *(*extractor_fun)(struct DailySummary *))
+{
+    struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
+    Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
+
+    struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
+    while (view.valid_time && view.value) {
+
+        time_t date = summary_date_wind_precip(view.valid_time);
+        double x_val = map_fun(*view.value);
+
+        struct DailySummary *sum = g_tree_lookup(sums, &date);
+        if (!sum) {
+            time_t *key = malloc(sizeof(time_t));
+            *key = date;
+            sum = malloc(sizeof(struct DailySummary));
+            *sum = daily_summary_new();
+            g_tree_insert(sums, key, sum);
+        }
+        double *sum_val = extractor_fun(sum);
+        if (isnan(*sum_val) || x_val > *sum_val)
+            *sum_val = x_val;
+
+        view = nbm_data_row_iterator_next(it);
+    }
+
+    nbm_data_row_iterator_free(&it);
+}
+
 static GTree *
 build_daily_summaries(struct NBMData const *nbm)
 {
@@ -396,6 +449,9 @@ build_daily_summaries(struct NBMData const *nbm)
 
     extract_daily_precip_value_to_summary(sums, nbm, "ASNOW24hr_surface_prob >0.00254", id_func,
                                           daily_summary_access_prob_snow);
+
+    extract_daily_max_value_to_summary(sums, nbm, "TSTM12hr_surface_probability forecast", id_func,
+                                       daily_summary_access_prob_ltg);
 
     return sums;
 }
