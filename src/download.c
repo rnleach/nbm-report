@@ -67,7 +67,7 @@ static struct tm
 calc_init_time(int versions_back)
 {
 
-    static int valid_times[] = {1, 4, 7, 13, 16, 19};
+    static int valid_times[] = {1, 7, 13, 19};
 
     time_t now_secs = time(0);
     struct tm *now = gmtime(&now_secs);
@@ -84,7 +84,7 @@ calc_init_time(int versions_back)
                 curr_version += 24;
             }
         }
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < sizeof(valid_times) / sizeof(int); i++) {
             if (curr_version == valid_times[i]) {
                 found++;
                 break;
