@@ -12,6 +12,7 @@
 #include "download.h"
 #include "parser.h"
 #include "printer.h"
+#include "raw_nbm_data.h"
 #include "utils.h"
 
 static void
@@ -92,7 +93,7 @@ main(int argc, char *argv[argc + 1])
     Stopif(!raw_nbm_data, exit(EXIT_FAILURE), "Null data retrieved.");
 
     struct NBMData *parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
-    free_raw_nbm_data(&raw_nbm_data);
+    raw_nbm_data_free(&raw_nbm_data);
     assert(!raw_nbm_data);
     Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
 

@@ -1,7 +1,7 @@
+#pragma once
 
-#ifndef _NBM_REPORT_UTILS_H_
-#define _NBM_REPORT_UTILS_H_
-
+#include <assert.h>
+#include <ctype.h>
 #include <stdio.h>
 
 /** Clean error handling. */
@@ -48,4 +48,15 @@ mm_to_in(double val)
     return val / 25.4;
 }
 
-#endif
+/** Uppercase a string. */
+inline void
+to_uppercase(char string[static 1])
+{
+    assert(string);
+
+    char *cur = &string[0];
+    while (*cur) {
+        *cur = toupper(*cur);
+        cur++;
+    }
+}

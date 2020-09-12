@@ -1,5 +1,5 @@
-#include "parser.h"
 #include "printer.h"
+#include "parser.h"
 #include "utils.h"
 
 #include <assert.h>

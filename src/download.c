@@ -1,4 +1,5 @@
 #include "download.h"
+#include "raw_nbm_data.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -12,53 +13,7 @@
 #include <curl/curl.h>
 
 #define URL_LENGTH 256
-
-struct RawNbmData {
-    struct tm init_time;
-    char *site;
-    char *raw_data;
-    size_t raw_data_size;
-};
-
-void
-free_raw_nbm_data(struct RawNbmData **data)
-{
-    assert(data);
-
-    struct RawNbmData *ptr = *data;
-
-    if (ptr) {
-        free(ptr->site);
-        free(ptr->raw_data);
-        free(ptr);
-    }
-
-    *data = 0;
-}
-
-struct tm
-raw_nbm_data_init_time(struct RawNbmData *data)
-{
-    return data->init_time;
-}
-
-char const *
-raw_nbm_data_site(struct RawNbmData *data)
-{
-    return data->site;
-}
-
-char *
-raw_nbm_data_text(struct RawNbmData *data)
-{
-    return data->raw_data;
-}
-
-size_t
-raw_nbm_data_text_len(struct RawNbmData *data)
-{
-    return data->raw_data_size;
-}
+#define MAX_VERSIONS_TO_ATTEMP_DOWNLOADING 20
 
 /**
  * Using the current time, calculate the most recent available inititialization time.
@@ -102,54 +57,34 @@ calc_init_time(int versions_back)
     return *init_time;
 }
 
-/** Uppercase a string. */
-static void
-to_uppercase(char string[static 1])
-{
-    assert(string);
-
-    char *cur = &string[0];
-    while (*cur) {
-        *cur = toupper(*cur);
-        cur++;
-    }
-}
-
 /**
  * Build the URL to retrieve data from into a string.
  *
  * There is a maximum size limit of 255 characters for the URL.
  *
  * \param site is a string with the name of the site.
- *
- * \param data is a struct that contains metadata about the downloaded data. Some of that metadata
- * is populated by this function including the site (to all upper case letters) and the
- * initialization time of the the NBM run corresponding to this URL.
+ * \param data_init_time is the model initialization time desired for download.
  *
  * \returns a pointer to a static string that contains the URL. It is important to NOT free this
  * string since it points to static memory. It also populates the \c site and \c init_time members
  * of the \c data struct.
  */
 static char const *
-build_download_url(char const site[static 1], struct RawNbmData *data, int versions_back)
+build_download_url(char const site[static 1], struct tm data_init_time)
 {
     static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
     static char url[URL_LENGTH] = {0};
     // Clear the memory before starting over
     memset(url, 0, URL_LENGTH);
 
-    data->site = malloc(strlen(site) + 1);
-    strcpy(data->site, site);
-    to_uppercase(data->site);
+    assert(site);
 
-    data->init_time = calc_init_time(versions_back);
+    int year = data_init_time.tm_year + 1900;
+    int month = data_init_time.tm_mon + 1;
+    int day = data_init_time.tm_mday;
+    int hour = data_init_time.tm_hour;
 
-    int year = data->init_time.tm_year + 1900;
-    int month = data->init_time.tm_mon + 1;
-    int day = data->init_time.tm_mday;
-    int hour = data->init_time.tm_hour;
-
-    sprintf(url, "%s%4d/%02d/%02d/NBM/%02d/%s.csv", base_url, year, month, day, hour, data->site);
+    sprintf(url, "%s%4d/%02d/%02d/NBM/%02d/%s.csv", base_url, year, month, day, hour, site);
 
     return url;
 }
@@ -181,8 +116,10 @@ retrieve_data_for_site(char const site[static 1])
 {
     assert(site);
 
-    struct RawNbmData *data = calloc(1, sizeof(struct RawNbmData));
-    assert(data);
+    // Do not free this unless returning an error, it is encapsulated in the return value.
+    char *data_site = malloc(strlen(site) + 1);
+    strcpy(data_site, site);
+    to_uppercase(data_site);
 
     CURL *curl = curl_easy_init();
     Stopif(!curl, return 0, "curl_easy_init failed.");
@@ -198,31 +135,35 @@ retrieve_data_for_site(char const site[static 1])
     Stopif(res, free(buf.memory); return 0, "curl_easy_setopt failed to set the write_callback.");
 
     res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
-    Stopif(res, free(buf.memory); return 0, "curl_easy_setopt failed to set the user data.");
+    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user data.");
 
     res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-    Stopif(res, free(buf.memory); return 0, "curl_easy_setopt failed to set the user agent.");
+    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user agent.");
 
     int attempt_number = 0;
+    struct tm data_init_time = {0};
     char const *url = 0;
     do {
-        url = build_download_url(site, data, attempt_number);
+        data_init_time = calc_init_time(attempt_number);
+        url = build_download_url(data_site, data_init_time);
         assert(url);
+
         attempt_number++;
 
         res = curl_easy_setopt(curl, CURLOPT_URL, url);
-        Stopif(res, return 0, "curl_easy_setopt failed to set the url.");
+        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the url.");
         res = curl_easy_perform(curl);
-    } while (res && attempt_number <= 20);
-    Stopif(res, free(buf.memory);
-           return 0, "curl_easy_perform failed: %s", curl_easy_strerror(res));
+    } while (res && attempt_number <= MAX_VERSIONS_TO_ATTEMP_DOWNLOADING);
+    Stopif(res, goto ERR_RETURN, "curl_easy_perform failed: %s", curl_easy_strerror(res));
 
     printf("Successfully downloaded: %s\n", url);
 
     curl_easy_cleanup(curl);
 
-    data->raw_data = buf.memory;
-    data->raw_data_size = buf.size;
+    return raw_nbm_data_new(data_init_time, data_site, buf.memory, buf.size);
 
-    return data;
+ERR_RETURN:
+    free(buf.memory);
+    free(data_site);
+    return 0;
 }
