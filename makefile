@@ -6,8 +6,8 @@ BUILDDIR := $(PROJDIR)/build
 
 # Target executable
 TARGET = $(BUILDDIR)/nbm
-CFLAGS = -g -Wall -Werror -O3 -std=c11 -I$(SOURCEDIR)
-LDLIBS = -lm
+CFLAGS = -g -flto -Wall -Werror -O3 -std=c11 -I$(SOURCEDIR)
+LDLIBS = -flto -lm
 
 # -------------------------------------------------------------------------------------------------
 # enable some time functions for POSIX
@@ -49,11 +49,11 @@ else
 	HIDE = @
 endif
 
-.PHONY: all clean directories install
+.PHONY: all clean directories 
 
 all: makefile directories $(TARGET)
 
-$(TARGET): $(OBJS) makefile
+$(TARGET): directories makefile $(OBJS) 
 	@echo Linking $@
 	$(HIDE)$(CC) $(OBJS) $(LDLIBS) -o $(TARGET)
 
@@ -70,7 +70,7 @@ directories:
 	$(HIDE)mkdir -p $(BUILDDIR) 2>/dev/null
 
 clean:
-	$(HIDE)rm -rf $(TARGET) $(OBJDIR) $(BUILDDIR) 2>/dev/null
+	$(HIDE)rm -rf $(OBJDIR) $(BUILDDIR) 2>/dev/null
 	@echo Cleaning done!
 
 detected_OS = $(shell uname)
@@ -80,6 +80,6 @@ else
 	target_dir = ~/bin/
 endif
 
-install: $(TARGET)
+install: $(TARGET) makefile
 	strip $(TARGET) && cp $(TARGET) $(target_dir)
 
