@@ -1,5 +1,5 @@
-#include "printer.h"
 #include "parser.h"
+#include "printer.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -282,9 +282,9 @@ time_t_compare_func(void const *a, void const *b, void *user_data)
 }
 
 static void
-extract_daily_value_to_summary(GTree *sums, struct NBMData const *nbm, char const *col_name,
-                               double (*map_fun)(double),
-                               double *(*extractor_fun)(struct DailySummary *))
+extract_daily_t_rh_to_summary(GTree *sums, struct NBMData const *nbm, char const *col_name,
+                              double (*map_fun)(double),
+                              double *(*extractor_fun)(struct DailySummary *))
 {
     struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
     Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
@@ -422,25 +422,25 @@ build_daily_summaries(struct NBMData const *nbm)
 {
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
-    extract_daily_value_to_summary(sums, nbm, "TMAX12hr_2 m above ground", kelvin_to_fahrenheit,
-                                   daily_summary_access_max_t);
+    extract_daily_t_rh_to_summary(sums, nbm, "TMAX12hr_2 m above ground", kelvin_to_fahrenheit,
+                                  daily_summary_access_max_t);
 
-    extract_daily_value_to_summary(sums, nbm, "TMAX12hr_2 m above ground_ens std dev",
-                                   change_in_kelvin_to_change_in_fahrenheit,
-                                   daily_summary_access_max_t_std);
+    extract_daily_t_rh_to_summary(sums, nbm, "TMAX12hr_2 m above ground_ens std dev",
+                                  change_in_kelvin_to_change_in_fahrenheit,
+                                  daily_summary_access_max_t_std);
 
-    extract_daily_value_to_summary(sums, nbm, "TMIN12hr_2 m above ground", kelvin_to_fahrenheit,
-                                   daily_summary_access_min_t);
+    extract_daily_t_rh_to_summary(sums, nbm, "TMIN12hr_2 m above ground", kelvin_to_fahrenheit,
+                                  daily_summary_access_min_t);
 
-    extract_daily_value_to_summary(sums, nbm, "TMIN12hr_2 m above ground_ens std dev",
-                                   change_in_kelvin_to_change_in_fahrenheit,
-                                   daily_summary_access_min_t_std);
+    extract_daily_t_rh_to_summary(sums, nbm, "TMIN12hr_2 m above ground_ens std dev",
+                                  change_in_kelvin_to_change_in_fahrenheit,
+                                  daily_summary_access_min_t_std);
 
-    extract_daily_value_to_summary(sums, nbm, "MINRH12hr_2 m above ground", id_func,
-                                   daily_summary_access_min_rh);
+    extract_daily_t_rh_to_summary(sums, nbm, "MINRH12hr_2 m above ground", id_func,
+                                  daily_summary_access_min_rh);
 
-    extract_daily_value_to_summary(sums, nbm, "MAXRH12hr_2 m above ground", id_func,
-                                   daily_summary_access_max_rh);
+    extract_daily_t_rh_to_summary(sums, nbm, "MAXRH12hr_2 m above ground", id_func,
+                                  daily_summary_access_max_rh);
 
     extract_max_winds_to_summary(sums, nbm);
 
