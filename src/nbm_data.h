@@ -1,6 +1,4 @@
-
-#ifndef _NBM_REPORT_PARSER_H_
-#define _NBM_REPORT_PARSER_H_
+#pragma once
 
 #include "download.h"
 
@@ -22,7 +20,10 @@ struct NBMDataRowIteratorWindValueView {
     double *gust_std;
 };
 
-/** Parse the raw text data into a \c NBMData structure. */
+/** Parse the raw text data into a \c NBMData structure.
+ *
+ * The resulting object will need to be freed with \c nbm_data_free().
+ **/
 struct NBMData *parse_raw_nbm_data(struct RawNbmData *);
 
 /** Free memory associated with an \c NBMData object, and nullify the pointer. */
@@ -66,4 +67,3 @@ void nbm_data_row_wind_iterator_free(struct NBMDataRowIteratorWind **);
 struct NBMDataRowIteratorWindValueView
 nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *);
 
-#endif
