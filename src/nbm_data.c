@@ -46,6 +46,13 @@ nbm_data_free(struct NBMData **ptrptr)
     return;
 }
 
+double
+nbm_data_age(struct NBMData const *ptr)
+{
+    time_t now = time(0);
+    return difftime(now, ptr->init_time);
+}
+
 /*-------------------------------------------------------------------------------------------------
  *                                     NBMDataRowIterator
  *-----------------------------------------------------------------------------------------------*/

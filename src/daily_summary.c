@@ -455,6 +455,33 @@ build_daily_summaries(struct NBMData const *nbm)
 
     return sums;
 }
+
+static void
+alert_age(struct NBMData const *nbm)
+{
+    double age_secs = nbm_data_age(nbm);
+    int age_hrs = (int)round(age_secs / 3600.0);
+
+    if (age_hrs >= 12) {
+        int age_days = age_hrs / 24;
+        age_hrs -= age_days * 24;
+
+        printf("     *\n");
+        printf("     * OLD NBM DATA - data is: ");
+        if (age_days > 1) {
+            printf("%d days and", age_days);
+        } else if (age_days > 0) {
+            printf("%d day and", age_days);
+        }
+        if (age_hrs > 1) {
+            printf(" %d hours old", age_hrs);
+        } else if (age_hrs > 0) {
+            printf(" %d hour old", age_hrs);
+        }
+        printf("\n");
+        printf("     *\n");
+    }
+}
 /*-------------------------------------------------------------------------------------------------
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
@@ -462,6 +489,8 @@ void
 show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
+
+    alert_age(nbm);
 
     daily_summary_print_header();
     g_tree_foreach(sums, daily_summary_print_as_row, 0);

@@ -29,6 +29,9 @@ struct NBMData *parse_raw_nbm_data(struct RawNbmData *);
 /** Free memory associated with an \c NBMData object, and nullify the pointer. */
 void nbm_data_free(struct NBMData **ptrptr);
 
+/** Get the age of the forecast in seconds. */
+double nbm_data_age(struct NBMData const *);
+
 /** Get an iterator over a column.
  *
  * \param nbm the NBM data to query.
