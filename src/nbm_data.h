@@ -66,4 +66,3 @@ void nbm_data_row_wind_iterator_free(struct NBMDataRowIteratorWind **);
  */
 struct NBMDataRowIteratorWindValueView
 nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *);
-
