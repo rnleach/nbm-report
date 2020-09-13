@@ -94,13 +94,12 @@ main(int argc, char *argv[argc + 1])
 
     struct NBMData *parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
     raw_nbm_data_free(&raw_nbm_data);
-    assert(!raw_nbm_data);
+
     Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
 
     if (opt_args.show_summary)
         show_daily_summary(parsed_nbm_data);
 
     nbm_data_free(&parsed_nbm_data);
-    assert(!parsed_nbm_data);
     program_finalization();
 }
