@@ -1,5 +1,5 @@
 #include "printer.h"
-#include "parser.h"
+#include "nbm_data.h"
 #include "utils.h"
 
 #include <assert.h>

@@ -10,7 +10,7 @@
 
 // Program developed headers
 #include "download.h"
-#include "parser.h"
+#include "nbm_data.h"
 #include "printer.h"
 #include "raw_nbm_data.h"
 #include "utils.h"
