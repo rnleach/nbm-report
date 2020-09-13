@@ -9,9 +9,9 @@
 #include <curl/curl.h>
 
 // Program developed headers
+#include "daily_summary.h"
 #include "download.h"
 #include "nbm_data.h"
-#include "printer.h"
 #include "raw_nbm_data.h"
 #include "utils.h"
 
