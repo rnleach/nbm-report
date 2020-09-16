@@ -39,7 +39,7 @@ static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
     Stopif(argc < 2, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.\n");
-    Stopif(argc > 2, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
+    Stopif(argc > 5, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
 
     struct OptArgs result = {
         .site = 0, .show_summary = true, .show_rain = false, .show_snow = false};
@@ -57,7 +57,9 @@ parse_cmd_line(int argc, char *argv[argc + 1])
             result.show_summary = false;
             break;
         default:
+            fprintf(stderr, "Unknown argument.\n");
             print_usage(argv);
+            exit(EXIT_FAILURE);
             break;
         }
     }
