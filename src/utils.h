@@ -48,6 +48,12 @@ mm_to_in(double val)
     return val / 25.4;
 }
 
+inline double
+m_to_in(double val)
+{
+    return val * 39.37008;
+}
+
 /** Uppercase a string. */
 inline void
 to_uppercase(char string[static 1])
