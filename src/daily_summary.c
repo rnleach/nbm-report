@@ -11,48 +11,6 @@
 
 #include <glib.h>
 
-/** Convert the times from 18Z one day to 18Z the next to a struct tm valid the first day.
- *
- * For a summary, the day runs from 18Z one day to 18Z the next. This works OK for the US, and
- * matches NBM timing anyway. This works for MaxT/MinT/MaxRH/MinRH.
- * */
-static time_t
-summary_date_t_rh(time_t const *valid_time)
-{
-    struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 18) {
-        tmp.tm_mday--;
-    }
-
-    tmp.tm_isdst = -1;
-    tmp.tm_hour = 0;
-    tmp.tm_min = 0;
-    tmp.tm_sec = 0;
-
-    return timegm(&tmp);
-}
-
-/** Convert the times from 12Z one day to 12Z the next to a struct tm valid the first day.
- *
- * For a summary, the day runs from 12Z one day to 12Z the next. This works OK for the US, and
- * matches NBM timing anyway. This works for wind and precip.
- * */
-static time_t
-summary_date_wind_precip(time_t const *valid_time)
-{
-    struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 12) {
-        tmp.tm_mday--;
-    }
-
-    tmp.tm_isdst = -1;
-    tmp.tm_hour = 0;
-    tmp.tm_min = 0;
-    tmp.tm_sec = 0;
-
-    return timegm(&tmp);
-}
-
 /*-------------------------------------------------------------------------------------------------
  *                                        Daily Summary
  *-----------------------------------------------------------------------------------------------*/
@@ -268,6 +226,14 @@ daily_summary_print_footer()
     // clang-format on
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                      Building a Binary Tree of DailySummary Objects
+ * ----------------------------------------------------------------------------------------------*/
+
+/** Compare \c time_t values which are used as keys in the GLib \c Tree.
+ *
+ * Dates are sorted in ascending order.
+ */
 static int
 time_t_compare_func(void const *a, void const *b, void *user_data)
 {
@@ -327,6 +293,55 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
     nbm_data_row_iterator_free(&it);
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                 SummarizeDate implementations.
+ *-----------------------------------------------------------------------------------------------*/
+/** Convert the times from 18Z one day to 18Z the next to a struct tm valid the first day.
+ *
+ * For a summary, the day runs from 18Z one day to 18Z the next. This works OK for the US, and
+ * matches NBM timing anyway. This works for MaxT/MinT/MaxRH/MinRH.
+ * */
+static time_t
+summary_date_t_rh(time_t const *valid_time)
+{
+    struct tm tmp = *gmtime(valid_time);
+    if (tmp.tm_hour <= 18) {
+        tmp.tm_mday--;
+    }
+
+    tmp.tm_isdst = -1;
+    tmp.tm_hour = 0;
+    tmp.tm_min = 0;
+    tmp.tm_sec = 0;
+
+    return timegm(&tmp);
+}
+
+/** Convert the times from 12Z one day to 12Z the next to a struct tm valid the first day.
+ *
+ * For a summary, the day runs from 12Z one day to 12Z the next. This works OK for the US, and
+ * matches NBM timing anyway. This works for wind and precip.
+ */
+static time_t
+summary_date_wind_precip(time_t const *valid_time)
+{
+    struct tm tmp = *gmtime(valid_time);
+    if (tmp.tm_hour <= 12) {
+        tmp.tm_mday--;
+    }
+
+    tmp.tm_isdst = -1;
+    tmp.tm_hour = 0;
+    tmp.tm_min = 0;
+    tmp.tm_sec = 0;
+
+    return timegm(&tmp);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                 Accumulator implementations.
+ *-----------------------------------------------------------------------------------------------*/
+
 // The iterators should only return 1 value a day for these, so just use that single value.
 static double
 accum_daily_rh_t(double acc, double val)
@@ -361,6 +376,15 @@ accum_last(double _acc, double val)
     return val;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                 Extractor and Accumulator implementations.
+ *-----------------------------------------------------------------------------------------------*/
+// The Extractor implementations are up above with the DailySummary struct definition.
+// The Converter implementations are in the utils.h file.
+// TODO: Move converters here.
+
+// Most values can be considered in isolation, or one column at a time, winds are the exception. So
+// winds get their own extractor function.
 static void
 extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
 {
@@ -403,6 +427,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
     nbm_data_row_wind_iterator_free(&it);
 }
 
+/** Build a sorted list (\c Tree) of daily summaries from an \c NBMData object. */
 static GTree *
 build_daily_summaries(struct NBMData const *nbm)
 {
@@ -430,8 +455,6 @@ build_daily_summaries(struct NBMData const *nbm)
     extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", summary_date_t_rh,
                                      id_func, daily_summary_access_max_rh, accum_daily_rh_t);
 
-    extract_max_winds_to_summary(sums, nbm);
-
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", summary_date_wind_precip,
                                      mm_to_in, daily_summary_access_precip, accum_last);
 
@@ -442,9 +465,14 @@ build_daily_summaries(struct NBMData const *nbm)
                                      summary_date_wind_precip, id_func,
                                      daily_summary_access_prob_ltg, accum_max);
 
+    extract_max_winds_to_summary(sums, nbm);
+
     return sums;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                    Quality checks/alerts.
+ *-----------------------------------------------------------------------------------------------*/
 static void
 alert_age(struct NBMData const *nbm)
 {
@@ -471,6 +499,7 @@ alert_age(struct NBMData const *nbm)
         printf("     *\n");
     }
 }
+
 /*-------------------------------------------------------------------------------------------------
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
