@@ -247,6 +247,10 @@ time_t_compare_func(void const *a, void const *b, void *user_data)
     return 0;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *        Extract data from the NBMData object into a sorted list of DailySummary objects.
+ * ----------------------------------------------------------------------------------------------*/
+
 /** Convert the value extracted from the NBM into the desired units. */
 typedef double (*Converter)(double);
 
@@ -262,10 +266,13 @@ typedef time_t (*SummarizeDate)(time_t const *);
 /** How to accumulate values from a day, eg take the first, last, sum, max, min. */
 typedef double (*Accumulator)(double acc, double val);
 
+/** Filter values out for consideration. */
+typedef bool (*SkipFilter)(time_t const *);
+
 static void
 extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
-                                 SummarizeDate date_sum, Converter convert, Extractor extract,
-                                 Accumulator accumulate)
+                                 SkipFilter skip_filter, SummarizeDate date_sum, Converter convert,
+                                 Extractor extract, Accumulator accumulate)
 {
     struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
     Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
@@ -273,24 +280,35 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
     struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
     while (view.valid_time && view.value) {
 
-        time_t date = date_sum(view.valid_time);
-        double x_val = convert(*view.value);
+        if (!skip_filter(view.valid_time)) {
+            time_t date = date_sum(view.valid_time);
+            double x_val = convert(*view.value);
 
-        struct DailySummary *sum = g_tree_lookup(sums, &date);
-        if (!sum) {
-            time_t *key = malloc(sizeof(time_t));
-            *key = date;
-            sum = malloc(sizeof(struct DailySummary));
-            *sum = daily_summary_new();
-            g_tree_insert(sums, key, sum);
+            struct DailySummary *sum = g_tree_lookup(sums, &date);
+            if (!sum) {
+                time_t *key = malloc(sizeof(time_t));
+                *key = date;
+                sum = malloc(sizeof(struct DailySummary));
+                *sum = daily_summary_new();
+                g_tree_insert(sums, key, sum);
+            }
+            double *sum_val = extract(sum);
+            *sum_val = accumulate(*sum_val, x_val);
         }
-        double *sum_val = extract(sum);
-        *sum_val = accumulate(*sum_val, x_val);
 
         view = nbm_data_row_iterator_next(it);
     }
 
     nbm_data_row_iterator_free(&it);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                 SkipFilter implementations.
+ *-----------------------------------------------------------------------------------------------*/
+static bool
+skip_none(time_t const *vt)
+{
+    return false;
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -433,35 +451,39 @@ build_daily_summaries(struct NBMData const *nbm)
 {
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
-    extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground", summary_date_t_rh,
-                                     kelvin_to_fahrenheit, daily_summary_access_max_t,
-                                     accum_daily_rh_t);
+    extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground", skip_none,
+                                     summary_date_t_rh, kelvin_to_fahrenheit,
+                                     daily_summary_access_max_t, accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground_ens std dev",
+    extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground_ens std dev", skip_none,
                                      summary_date_t_rh, change_in_kelvin_to_change_in_fahrenheit,
                                      daily_summary_access_max_t_std, accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground", summary_date_t_rh,
-                                     kelvin_to_fahrenheit, daily_summary_access_min_t,
-                                     accum_daily_rh_t);
+    extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground", skip_none,
+                                     summary_date_t_rh, kelvin_to_fahrenheit,
+                                     daily_summary_access_min_t, accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground_ens std dev",
+    extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground_ens std dev", skip_none,
                                      summary_date_t_rh, change_in_kelvin_to_change_in_fahrenheit,
                                      daily_summary_access_min_t_std, accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", summary_date_t_rh,
-                                     id_func, daily_summary_access_min_rh, accum_daily_rh_t);
+    extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", skip_none,
+                                     summary_date_t_rh, id_func, daily_summary_access_min_rh,
+                                     accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", summary_date_t_rh,
-                                     id_func, daily_summary_access_max_rh, accum_daily_rh_t);
+    extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", skip_none,
+                                     summary_date_t_rh, id_func, daily_summary_access_max_rh,
+                                     accum_daily_rh_t);
 
-    extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", summary_date_wind_precip,
-                                     mm_to_in, daily_summary_access_precip, accum_last);
+    extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", skip_none,
+                                     summary_date_wind_precip, mm_to_in,
+                                     daily_summary_access_precip, accum_last);
 
-    extract_daily_summary_for_column(sums, nbm, "ASNOW6hr_surface", summary_date_wind_precip,
-                                     m_to_in, daily_summary_access_snow, accum_sum);
+    extract_daily_summary_for_column(sums, nbm, "ASNOW6hr_surface", skip_none,
+                                     summary_date_wind_precip, m_to_in, daily_summary_access_snow,
+                                     accum_sum);
 
-    extract_daily_summary_for_column(sums, nbm, "TSTM12hr_surface_probability forecast",
+    extract_daily_summary_for_column(sums, nbm, "TSTM12hr_surface_probability forecast", skip_none,
                                      summary_date_wind_precip, id_func,
                                      daily_summary_access_prob_ltg, accum_max);
 
