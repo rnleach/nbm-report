@@ -39,8 +39,7 @@ daily_summary_printable(struct DailySummary const *sum)
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
            isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir) ||
-           isnan(sum->max_rh) || isnan(sum->min_rh) || isnan(sum->precip) || isnan(sum->snow) ||
-           isnan(sum->mrn_sky) || isnan(sum->aft_sky);
+           isnan(sum->max_rh) || isnan(sum->min_rh);
 }
 
 static struct DailySummary
@@ -200,12 +199,11 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     nxt += 11;
 
     // Remove NANs
-    char *c = buf;
-    while (*c) {
-        if ((*c == 'n' || *c == 'a') && c - buf > 10) {
-            *c = ' ';
-        }
-        ++c;
+    char *c = 0;
+    while ((c = strstr(buf, "nan"))) {
+        c[0] = ' ';
+        c[1] = '-';
+        c[2] = ' ';
     }
 
     printf("%s\n", buf);

@@ -296,12 +296,13 @@ column_callback(void *data, size_t sz, void *state)
             char buf[MAX_CHARS_CELL] = {0};
             assert(sz < MAX_CHARS_CELL);
             memcpy(buf, data, sz);
-            if (strstr("9.999e+20", buf)) {
+            if (strstr(buf, "9.999e+20")) {
                 val = NAN;
             } else {
                 val = strtod(buf, 0);
             }
         }
+
         nbm->vals[nbm->num_cols * (st->row - 1) + (st->col - 1)] = val;
     }
 
