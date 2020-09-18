@@ -1,5 +1,6 @@
 #include "daily_summary.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -42,10 +43,13 @@ daily_summary_printable(struct DailySummary const *sum)
            isnan(sum->max_rh) || isnan(sum->min_rh);
 }
 
-static struct DailySummary
+static void *
 daily_summary_new()
 {
-    return (struct DailySummary){
+    struct DailySummary *new = malloc(sizeof(struct DailySummary));
+    assert(new);
+
+    *new = (struct DailySummary){
         .max_t_f = NAN,
         .max_t_std = NAN,
         .min_t_f = NAN,
@@ -63,71 +67,84 @@ daily_summary_new()
         .mrn_sky = NAN,
         .aft_sky = NAN,
     };
+
+    return (void *)new;
 }
 
 static double *
-daily_summary_access_aft_sky(struct DailySummary *sum)
+daily_summary_access_aft_sky(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->aft_sky;
 }
 
 static double *
-daily_summary_access_mrn_sky(struct DailySummary *sum)
+daily_summary_access_mrn_sky(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->mrn_sky;
 }
 
 static double *
-daily_summary_access_prob_ltg(struct DailySummary *sum)
+daily_summary_access_prob_ltg(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->prob_ltg;
 }
 
 static double *
-daily_summary_access_snow(struct DailySummary *sum)
+daily_summary_access_snow(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->snow;
 }
 
 static double *
-daily_summary_access_precip(struct DailySummary *sum)
+daily_summary_access_precip(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->precip;
 }
 
 static double *
-daily_summary_access_min_rh(struct DailySummary *sum)
+daily_summary_access_min_rh(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->min_rh;
 }
 
 static double *
-daily_summary_access_max_rh(struct DailySummary *sum)
+daily_summary_access_max_rh(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->max_rh;
 }
 
 static double *
-daily_summary_access_min_t_std(struct DailySummary *sum)
+daily_summary_access_min_t_std(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->min_t_std;
 }
 
 static double *
-daily_summary_access_min_t(struct DailySummary *sum)
+daily_summary_access_min_t(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->min_t_f;
 }
 
 static double *
-daily_summary_access_max_t_std(struct DailySummary *sum)
+daily_summary_access_max_t_std(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->max_t_std;
 }
 
 static double *
-daily_summary_access_max_t(struct DailySummary *sum)
+daily_summary_access_max_t(void *sm)
 {
+    struct DailySummary *sum = sm;
     return &sum->max_t_f;
 }
 
@@ -233,232 +250,6 @@ daily_summary_print_footer()
     // clang-format on
 }
 
-/*-------------------------------------------------------------------------------------------------
- *                      Building a Binary Tree of DailySummary Objects
- * ----------------------------------------------------------------------------------------------*/
-
-/** Compare \c time_t values which are used as keys in the GLib \c Tree.
- *
- * Dates are sorted in ascending order.
- */
-static int
-time_t_compare_func(void const *a, void const *b, void *user_data)
-{
-    time_t const *dsa = a;
-    time_t const *dsb = b;
-
-    if (*dsa < *dsb)
-        return -1;
-    if (*dsa > *dsb)
-        return 1;
-    return 0;
-}
-
-/*-------------------------------------------------------------------------------------------------
- *        Extract data from the NBMData object into a sorted list of DailySummary objects.
- * ----------------------------------------------------------------------------------------------*/
-
-/** Convert the value extracted from the NBM into the desired units. */
-typedef double (*Converter)(double);
-
-/** Extract a pointer to the summary value that needs to be updated. */
-typedef double *(*Extractor)(struct DailySummary *);
-
-/** Convert all values in a day to a single \c time_t value so they can be associated in a tree.
- *
- * The period defined as a day may vary between weather elements.
- */
-typedef time_t (*SummarizeDate)(time_t const *);
-
-/** How to accumulate values from a day, eg take the first, last, sum, max, min. */
-typedef double (*Accumulator)(double acc, double val);
-
-/** Filter values out for consideration. */
-typedef bool (*KeepFilter)(time_t const *);
-
-static void
-extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
-                                 KeepFilter filter, SummarizeDate date_sum, Converter convert,
-                                 Extractor extract, Accumulator accumulate)
-{
-    struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
-    Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
-
-    struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
-    while (view.valid_time && view.value) {
-
-        if (filter(view.valid_time)) {
-            time_t date = date_sum(view.valid_time);
-            double x_val = convert(*view.value);
-
-            struct DailySummary *sum = g_tree_lookup(sums, &date);
-            if (!sum) {
-                time_t *key = malloc(sizeof(time_t));
-                *key = date;
-                sum = malloc(sizeof(struct DailySummary));
-                *sum = daily_summary_new();
-                g_tree_insert(sums, key, sum);
-            }
-            double *sum_val = extract(sum);
-            *sum_val = accumulate(*sum_val, x_val);
-        }
-
-        view = nbm_data_row_iterator_next(it);
-    }
-
-    nbm_data_row_iterator_free(&it);
-}
-
-/*-------------------------------------------------------------------------------------------------
- *                                 KeepFilter implementations.
- *-----------------------------------------------------------------------------------------------*/
-static bool
-keep_all(time_t const *vt)
-{
-    return true;
-}
-
-static bool
-keep_aft(time_t const *vt)
-{
-    struct tm tmp = *gmtime(vt);
-    if (tmp.tm_hour < 18 && tmp.tm_hour >= 6) {
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-keep_mrn(time_t const *vt)
-{
-    return !keep_aft(vt);
-}
-
-/*-------------------------------------------------------------------------------------------------
- *                                 SummarizeDate implementations.
- *-----------------------------------------------------------------------------------------------*/
-/** Convert the times from 18Z one day to 18Z the next to a struct tm valid the first day.
- *
- * For a summary, the day runs from 18Z one day to 18Z the next. This works OK for the US, and
- * matches NBM timing anyway. This works for MaxT/MinT/MaxRH/MinRH.
- * */
-static time_t
-summary_date_18z(time_t const *valid_time)
-{
-    struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 18) {
-        tmp.tm_mday--;
-    }
-
-    tmp.tm_isdst = -1;
-    tmp.tm_hour = 0;
-    tmp.tm_min = 0;
-    tmp.tm_sec = 0;
-
-    return timegm(&tmp);
-}
-
-/** Convert the times from 12Z one day to 12Z the next to a struct tm valid the first day.
- *
- * For a summary, the day runs from 12Z one day to 12Z the next. This works OK for the US, and
- * matches NBM timing anyway. This works for wind and precip.
- */
-static time_t
-summary_date_12z(time_t const *valid_time)
-{
-    struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 12) {
-        tmp.tm_mday--;
-    }
-
-    tmp.tm_isdst = -1;
-    tmp.tm_hour = 0;
-    tmp.tm_min = 0;
-    tmp.tm_sec = 0;
-
-    return timegm(&tmp);
-}
-
-/** Convert the times from 06Z one day to 06Z the next to a struct tm valid the first day.
- *
- * For a summary, the day runs from 06Z one day to 06Z the next. This works OK for the US, and
- * matches NBM timing anyway. This works for sky cover and any hourly or six hourly NBM component.
- */
-static time_t
-summary_date_06z(time_t const *valid_time)
-{
-    struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 6) {
-        tmp.tm_mday--;
-    }
-
-    tmp.tm_isdst = -1;
-    tmp.tm_hour = 0;
-    tmp.tm_min = 0;
-    tmp.tm_sec = 0;
-
-    return timegm(&tmp);
-}
-
-/*-------------------------------------------------------------------------------------------------
- *                                 Accumulator implementations.
- *-----------------------------------------------------------------------------------------------*/
-
-// The iterators should only return 1 value a day for these, so just use that single value.
-static double
-accum_daily_rh_t(double acc, double val)
-{
-    assert(isnan(acc));
-    return val;
-}
-
-static double
-accum_sum(double acc, double val)
-{
-    if (isnan(acc)) {
-        return val;
-    }
-
-    return acc + val;
-}
-
-static double
-accum_max(double acc, double val)
-{
-    if (isnan(acc)) {
-        return val;
-    }
-
-    return acc > val ? acc : val;
-}
-
-static double
-accum_last(double _acc, double val)
-{
-    return val;
-}
-
-static double
-accum_avg(double acc, double val)
-{
-    static int count = 0;
-    if (isnan(acc)) {
-        count = 1;
-        return val;
-    }
-
-    count++;
-    return acc * ((count - 1.0) / (double)count) + val / count;
-}
-
-/*-------------------------------------------------------------------------------------------------
- *                                 Extractor and Accumulator implementations.
- *-----------------------------------------------------------------------------------------------*/
-// The Extractor implementations are up above with the DailySummary struct definition.
-// The Converter implementations are in the utils.h file.
-// TODO: Move converters here.
-
 // Most values can be considered in isolation, or one column at a time, winds are the exception. So
 // winds get their own extractor function.
 static void
@@ -476,8 +267,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
         if (!sum) {
             time_t *key = malloc(sizeof(time_t));
             *key = date;
-            sum = malloc(sizeof(struct DailySummary));
-            *sum = daily_summary_new();
+            sum = (struct DailySummary *)daily_summary_new();
             g_tree_insert(sums, key, sum);
         }
         double max_wind_mph = mps_to_mph(*view.wspd);
@@ -510,78 +300,52 @@ build_daily_summaries(struct NBMData const *nbm)
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground", keep_all,
-                                     summary_date_18z, kelvin_to_fahrenheit,
-                                     daily_summary_access_max_t, accum_daily_rh_t);
+                                     summary_date_18z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     daily_summary_new, daily_summary_access_max_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground_ens std dev", keep_all,
                                      summary_date_18z, change_in_kelvin_to_change_in_fahrenheit,
-                                     daily_summary_access_max_t_std, accum_daily_rh_t);
+                                     accum_daily_rh_t, daily_summary_new,
+                                     daily_summary_access_max_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground", keep_all,
-                                     summary_date_18z, kelvin_to_fahrenheit,
-                                     daily_summary_access_min_t, accum_daily_rh_t);
+                                     summary_date_18z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     daily_summary_new, daily_summary_access_min_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground_ens std dev", keep_all,
                                      summary_date_18z, change_in_kelvin_to_change_in_fahrenheit,
-                                     daily_summary_access_min_t_std, accum_daily_rh_t);
+                                     accum_daily_rh_t, daily_summary_new,
+                                     daily_summary_access_min_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", keep_all,
-                                     summary_date_18z, id_func, daily_summary_access_min_rh,
-                                     accum_daily_rh_t);
+                                     summary_date_18z, id_func, accum_daily_rh_t, daily_summary_new,
+                                     daily_summary_access_min_rh);
 
     extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", keep_all,
-                                     summary_date_18z, id_func, daily_summary_access_max_rh,
-                                     accum_daily_rh_t);
+                                     summary_date_18z, id_func, accum_daily_rh_t, daily_summary_new,
+                                     daily_summary_access_max_rh);
 
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_12z,
-                                     mm_to_in, daily_summary_access_precip, accum_last);
+                                     mm_to_in, accum_last, daily_summary_new,
+                                     daily_summary_access_precip);
 
     extract_daily_summary_for_column(sums, nbm, "ASNOW6hr_surface", keep_all, summary_date_12z,
-                                     m_to_in, daily_summary_access_snow, accum_sum);
+                                     m_to_in, accum_sum, daily_summary_new,
+                                     daily_summary_access_snow);
 
     extract_daily_summary_for_column(sums, nbm, "TSTM12hr_surface_probability forecast", keep_all,
-                                     summary_date_12z, id_func, daily_summary_access_prob_ltg,
-                                     accum_max);
+                                     summary_date_12z, id_func, accum_max, daily_summary_new,
+                                     daily_summary_access_prob_ltg);
 
     extract_daily_summary_for_column(sums, nbm, "TCDC_surface", keep_mrn, summary_date_06z, id_func,
-                                     daily_summary_access_mrn_sky, accum_avg);
+                                     accum_avg, daily_summary_new, daily_summary_access_mrn_sky);
 
     extract_daily_summary_for_column(sums, nbm, "TCDC_surface", keep_aft, summary_date_06z, id_func,
-                                     daily_summary_access_aft_sky, accum_avg);
+                                     accum_avg, daily_summary_new, daily_summary_access_aft_sky);
 
     extract_max_winds_to_summary(sums, nbm);
 
     return sums;
-}
-
-/*-------------------------------------------------------------------------------------------------
- *                                    Quality checks/alerts.
- *-----------------------------------------------------------------------------------------------*/
-static void
-alert_age(struct NBMData const *nbm)
-{
-    double age_secs = nbm_data_age(nbm);
-    int age_hrs = (int)round(age_secs / 3600.0);
-
-    if (age_hrs >= 12) {
-        int age_days = age_hrs / 24;
-        age_hrs -= age_days * 24;
-
-        printf("     *\n");
-        printf("     * OLD NBM DATA - data is: ");
-        if (age_days > 1) {
-            printf("%d days and", age_days);
-        } else if (age_days > 0) {
-            printf("%d day and", age_days);
-        }
-        if (age_hrs > 1) {
-            printf(" %d hours old", age_hrs);
-        } else if (age_hrs > 0) {
-            printf(" %d hour old", age_hrs);
-        }
-        printf("\n");
-        printf("     *\n");
-    }
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -591,8 +355,6 @@ void
 show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
-
-    alert_age(nbm);
 
     daily_summary_print_header();
     g_tree_foreach(sums, daily_summary_print_as_row, 0);

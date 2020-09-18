@@ -1,5 +1,6 @@
 // standard lib
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,9 +13,29 @@
 #include "daily_summary.h"
 #include "download.h"
 #include "nbm_data.h"
+#include "precip_summary.h"
 #include "raw_nbm_data.h"
 #include "utils.h"
 
+/*-------------------------------------------------------------------------------------------------
+ *                                    Program Setup and Teardown.
+ *-----------------------------------------------------------------------------------------------*/
+static void
+program_initialization()
+{
+    CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
+    Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
+}
+
+static void
+program_finalization()
+{
+    curl_global_cleanup();
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                    Argument Parsing
+ *-----------------------------------------------------------------------------------------------*/
 static void
 print_usage(char **argv)
 {
@@ -71,19 +92,39 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     return result;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                    Quality checks/alerts.
+ *-----------------------------------------------------------------------------------------------*/
 static void
-program_initialization()
+alert_age(struct NBMData const *nbm)
 {
-    CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
-    Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
+    double age_secs = nbm_data_age(nbm);
+    int age_hrs = (int)round(age_secs / 3600.0);
+
+    if (age_hrs >= 12) {
+        int age_days = age_hrs / 24;
+        age_hrs -= age_days * 24;
+
+        printf("     *\n");
+        printf("     * OLD NBM DATA - data is: ");
+        if (age_days > 1) {
+            printf("%d days and", age_days);
+        } else if (age_days > 0) {
+            printf("%d day and", age_days);
+        }
+        if (age_hrs > 1) {
+            printf(" %d hours old", age_hrs);
+        } else if (age_hrs > 0) {
+            printf(" %d hour old", age_hrs);
+        }
+        printf("\n");
+        printf("     *\n");
+    }
 }
 
-static void
-program_finalization()
-{
-    curl_global_cleanup();
-}
-
+/*-------------------------------------------------------------------------------------------------
+ *                                    Main Program
+ *-----------------------------------------------------------------------------------------------*/
 int
 main(int argc, char *argv[argc + 1])
 {
@@ -96,11 +137,18 @@ main(int argc, char *argv[argc + 1])
 
     struct NBMData *parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
     raw_nbm_data_free(&raw_nbm_data);
-
     Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
+
+    alert_age(parsed_nbm_data);
 
     if (opt_args.show_summary)
         show_daily_summary(parsed_nbm_data);
+
+    if (opt_args.show_rain)
+        show_precip_summary(parsed_nbm_data, 'r');
+
+    if (opt_args.show_snow)
+        show_precip_summary(parsed_nbm_data, 's');
 
     nbm_data_free(&parsed_nbm_data);
     program_finalization();
