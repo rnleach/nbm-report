@@ -32,6 +32,29 @@ typedef bool (*KeepFilter)(time_t const *);
  */
 int time_t_compare_func(void const *a, void const *b, void *user_data);
 
+/** Extract a single value per day from the provided column.
+ *
+ * This is intended to be used on deterministic columns (e.g. precipitation amount) and not a
+ * probability column when there are several columns to describe the cumulative distribution 
+ * function of an element.
+ *
+ * \param sums a GLib tree where the keys are \c time_t types and the values are of the type of
+ * summary you want to populate.
+ * \param nbm is the parsed NBMData.
+ * \param col_name is the column name from the NBM text file to extract data from.
+ * \param filter determines whether to use a value from the NBM based on its valid time.
+ * \param date_sum rounds a \c time_t to a single value that is representative of the day. These
+ * are used as keys for sorting in the tree.
+ * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other 
+ * relavent conversion.
+ * \param accumulate is a stateless function that takes an accumulator variable and the next value
+ * to "accumulate". Examples can be a sum, first, last, max, min, etc. By convention the value NaN
+ * signals that nothing has yet been added to the accumulator.
+ * \param create is a function that creates a new summary of whatever type so that it can be added
+ * to the \c GTree.
+ * \param extractor is a function that retrieves a reference to the value that will eventually be
+ * passed to \c accumulate as the accumulation variable.
+ */
 void extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
                                  KeepFilter filter, SummarizeDate date_sum, Converter convert,
                                  Accumulator accumulate, Creator create, Extractor extract);
