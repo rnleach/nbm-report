@@ -5,8 +5,9 @@
 
 #include <glib.h>
 
-/** Convert the value extracted from the NBM into the desired units. */
-typedef double (*Converter)(double);
+/*-------------------------------------------------------------------------------------------------
+ *                  Helper functions for the various extractor functions
+ *-----------------------------------------------------------------------------------------------*/
 
 /** Create a new summary of a given type as an opaque, typeless pointer. */
 typedef void *(Creator)(void);
@@ -23,14 +24,21 @@ typedef time_t (*SummarizeDate)(time_t const *);
 /** How to accumulate values from a day, eg take the first, last, sum, max, min. */
 typedef double (*Accumulator)(double acc, double val);
 
-/** Filter values out for consideration. */
-typedef bool (*KeepFilter)(time_t const *);
-
 /** Compare \c time_t values which are used as keys in the GLib \c Tree.
  *
  * Dates are sorted in ascending order.
  */
 int time_t_compare_func(void const *a, void const *b, void *user_data);
+
+/*-------------------------------------------------------------------------------------------------
+ *                  Extract values from the NBM and insert them into the summary.
+ *-----------------------------------------------------------------------------------------------*/
+
+/** Convert the value extracted from the NBM into the desired units. */
+typedef double (*Converter)(double);
+
+/** Filter values out for consideration. */
+typedef bool (*KeepFilter)(time_t const *);
 
 /** Extract a single value per day from the provided column.
  *
