@@ -43,7 +43,7 @@ typedef bool (*KeepFilter)(time_t const *);
 /** Extract a single value per day from the provided column.
  *
  * This is intended to be used on deterministic columns (e.g. precipitation amount) and not a
- * probability column when there are several columns to describe the cumulative distribution 
+ * probability column when there are several columns to describe the cumulative distribution
  * function of an element.
  *
  * \param sums a GLib tree where the keys are \c time_t types and the values are of the type of
@@ -53,7 +53,7 @@ typedef bool (*KeepFilter)(time_t const *);
  * \param filter determines whether to use a value from the NBM based on its valid time.
  * \param date_sum rounds a \c time_t to a single value that is representative of the day. These
  * are used as keys for sorting in the tree.
- * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other 
+ * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other
  * relavent conversion.
  * \param accumulate is a stateless function that takes an accumulator variable and the next value
  * to "accumulate". Examples can be a sum, first, last, max, min, etc. By convention the value NaN
@@ -64,8 +64,43 @@ typedef bool (*KeepFilter)(time_t const *);
  * passed to \c accumulate as the accumulation variable.
  */
 void extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
-                                 KeepFilter filter, SummarizeDate date_sum, Converter convert,
-                                 Accumulator accumulate, Creator create, Extractor extract);
+                                      KeepFilter filter, SummarizeDate date_sum, Converter convert,
+                                      Accumulator accumulate, Creator create, Extractor extract);
+
+/*-------------------------------------------------------------------------------------------------
+ *                                  Cumulative Distributions
+ *-----------------------------------------------------------------------------------------------*/
+/** A cumulative distribution function. (CDF) */
+struct CumulativeDistributionFunction;
+
+/** Extract CDF information from some \c NBMData.
+ *
+ * \param nbm is the source to extract the CDF from.
+ * \param col_name_format is a \c printf style format string used to generate the column names of
+ * the columns that contain the CDF information.
+ * \param date_sum maps different \c time_t values to a "representative" value as a way of grouping
+ * them together. For instance taking all values during a given day and mapping them to noon that
+ * day as a value to represent that day.
+ *
+ * \returns a \c GTree* with \c time_t objects as keys and \c CumulativeDistributionFunction
+ * objects as values.
+ *
+ **/
+struct GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format,
+                           SummarizeDate date_sum);
+
+/** Get a probability of exceedence for a given value.
+ *
+ * \param cdf is the function you want to sample.
+ * \param target_val is the value you want to get the probability of exceedence for.
+ *
+ * \returns the probability of matching or exceeding the \c target_val.
+ */
+double interpolate_prob_of_exceedance(struct CumulativeDistributionFunction *cdf,
+                                      double target_val);
+
+/** Free a CDF object. */
+void cumulative_dist_free(struct CumulativeDistributionFunction *);
 
 /*-------------------------------------------------------------------------------------------------
  *                                 KeepFilter implementations.
@@ -118,4 +153,3 @@ double accum_last(double _acc, double val);
 
 /** Average the values. */
 double accum_avg(double acc, double val);
-

@@ -1,5 +1,6 @@
 #include "precip_summary.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -53,9 +54,14 @@ show_precip_summary(struct NBMData const *nbm, char type)
 {
     assert(type == 'r' || type == 's');
 
-    switch(type) {
-        case 'r': show_liquid_summary(nbm); break;
-        case 's': show_snow_summary(nbm); break;
-        default: assert(false);
+    switch (type) {
+    case 'r':
+        show_liquid_summary(nbm);
+        break;
+    case 's':
+        show_snow_summary(nbm);
+        break;
+    default:
+        assert(false);
     }
 }

@@ -12,9 +12,8 @@
 #include <glib.h>
 
 /*-------------------------------------------------------------------------------------------------
- *                      Building a Binary Tree of DailySummary Objects
- * ----------------------------------------------------------------------------------------------*/
-
+ *                         Compare function for soring time_t in ascending order.
+ *-----------------------------------------------------------------------------------------------*/
 int
 time_t_compare_func(void const *a, void const *b, void *user_data)
 {
@@ -28,6 +27,9 @@ time_t_compare_func(void const *a, void const *b, void *user_data)
     return 0;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                             Extract Values for a Daily Summary.
+ *-----------------------------------------------------------------------------------------------*/
 void
 extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
                                  KeepFilter filter, SummarizeDate date_sum, Converter convert,
@@ -58,6 +60,76 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
     }
 
     nbm_data_row_iterator_free(&it);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                    CDF implementations.
+ *-----------------------------------------------------------------------------------------------*/
+
+struct CumulativeDistributionFunction {
+    double *percents;
+    double *values;
+    int size;
+};
+
+static struct CumulativeDistributionFunction *
+cumulative_dist_new()
+{
+    struct CumulativeDistributionFunction *new =
+        calloc(1, sizeof(struct CumulativeDistributionFunction));
+    assert(new);
+    return new;
+}
+
+struct GTree *
+extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum)
+{
+    // TODO
+    assert(false);
+}
+
+double
+interpolate_prob_of_exceedance(struct CumulativeDistributionFunction *cdf, double target_val)
+{
+    double *xs = cdf->values;
+    double *ys = cdf->percents;
+    int sz = cdf->size;
+
+    assert(sz > 1);
+
+    // Bracket the target value
+    int left = 0, right = 0;
+    for (int i = 1; i < sz; i++) {
+        if (xs[i - 1] <= target_val && xs[i] >= target_val) {
+            left = i - 1;
+            right = i;
+            break;
+        }
+    }
+
+    // If unable to bracket the target value, then 100% of data was below value and prob
+    // of exceedance is 0.
+    if (left == right) {
+        return 0.0;
+    }
+
+    // linear interpolation
+    double rise = ys[right] - ys[left];
+    double run = xs[right] - xs[left];
+    assert(run > 0.0);
+
+    double slope = rise / run;
+    double frac = target_val - xs[left];
+
+    return frac * slope + ys[left];
+}
+
+void
+cumulative_dist_free(struct CumulativeDistributionFunction *cdf)
+{
+    free(cdf->percents);
+    free(cdf->values);
+    free(cdf);
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -187,4 +259,3 @@ accum_avg(double acc, double val)
     count++;
     return acc * ((count - 1.0) / (double)count) + val / count;
 }
-
