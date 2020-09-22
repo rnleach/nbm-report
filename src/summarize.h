@@ -71,7 +71,7 @@ void extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, ch
  *                                  Cumulative Distributions
  *-----------------------------------------------------------------------------------------------*/
 /** A cumulative distribution function. (CDF) */
-struct CumulativeDistributionFunction;
+struct CumulativeDistribution;
 
 /** Extract CDF information from some \c NBMData.
  *
@@ -82,7 +82,7 @@ struct CumulativeDistributionFunction;
  * them together. For instance taking all values during a given day and mapping them to noon that
  * day as a value to represent that day.
  *
- * \returns a \c GTree* with \c time_t objects as keys and \c CumulativeDistributionFunction
+ * \returns a \c GTree* with \c time_t objects as keys and \c CumulativeDistribution
  * objects as values.
  *
  **/
@@ -96,11 +96,10 @@ struct GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_forma
  *
  * \returns the probability of matching or exceeding the \c target_val.
  */
-double interpolate_prob_of_exceedance(struct CumulativeDistributionFunction *cdf,
-                                      double target_val);
+double interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target_val);
 
 /** Free a CDF object. */
-void cumulative_dist_free(struct CumulativeDistributionFunction *);
+void cumulative_dist_free(void *);
 
 /*-------------------------------------------------------------------------------------------------
  *                                 KeepFilter implementations.

@@ -1,5 +1,5 @@
-#include "summarize.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -66,30 +66,70 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
  *                                    CDF implementations.
  *-----------------------------------------------------------------------------------------------*/
 
-struct CumulativeDistributionFunction {
+struct CumulativeDistribution {
     double *percents;
     double *values;
     int size;
+    int capacity;
 };
 
-static struct CumulativeDistributionFunction *
+static struct CumulativeDistribution *
 cumulative_dist_new()
 {
-    struct CumulativeDistributionFunction *new =
-        calloc(1, sizeof(struct CumulativeDistributionFunction));
+    struct CumulativeDistribution *new = calloc(1, sizeof(struct CumulativeDistribution));
     assert(new);
+
+    new->percents = calloc(10, sizeof(double));
+    assert(new->percents);
+    new->values = calloc(10, sizeof(double));
+    assert(new->values);
+    new->capacity = 10;
+
     return new;
+}
+
+static bool
+cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percentile, double value)
+{
+    assert(dist->capacity >= dist->size);
+
+    // Expand storage if needed.
+    if (dist->capacity == dist->size) {
+        assert(dist->capacity == 10);
+        dist->percents = realloc(dist->percents, 100 * sizeof(double));
+        dist->values = realloc(dist->values, 100 * sizeof(double));
+        assert(dist->percents);
+        assert(dist->values);
+        dist->capacity = 100;
+    }
+
+    dist->percents[dist->size] = percentile;
+    dist->values[dist->size] = value;
+    dist->size += 1;
+
+    return true;
 }
 
 struct GTree *
 extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum)
 {
+    GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
+
+    // for 1 to 100
+    // Build the column name
+    // Create an iterator, if the pointer is 0, no such column, continue.
+    // Convert time_t using date_sum
+    // Convert value
+    // Get the CDF object from the tree, or create it.
+    // get a reference to the value, replace it.
+    //
+
     // TODO
     assert(false);
 }
 
 double
-interpolate_prob_of_exceedance(struct CumulativeDistributionFunction *cdf, double target_val)
+interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target_val)
 {
     double *xs = cdf->values;
     double *ys = cdf->percents;
@@ -125,8 +165,9 @@ interpolate_prob_of_exceedance(struct CumulativeDistributionFunction *cdf, doubl
 }
 
 void
-cumulative_dist_free(struct CumulativeDistributionFunction *cdf)
+cumulative_dist_free(void *void_cdf)
 {
+    struct CumulativeDistribution *cdf = void_cdf;
     free(cdf->percents);
     free(cdf->values);
     free(cdf);
