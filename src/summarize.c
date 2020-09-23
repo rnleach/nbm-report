@@ -110,22 +110,44 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
     return true;
 }
 
-struct GTree *
+GTree *
 extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
 
-    // for 1 to 100
-    // Build the column name
-    // Create an iterator, if the pointer is 0, no such column, continue.
-    // Convert time_t using date_sum
-    // Convert value
-    // Get the CDF object from the tree, or create it.
-    // get a reference to the value, replace it.
-    //
+    char col_name[256] = {0};
+    for (int i = 1; i <= 99; i++){
+        int num_chars = snprintf(col_name, sizeof(col_name), col_name_format, i);
+        Stopif(num_chars >= sizeof(col_name), goto ERR_RETURN, "error with snprintf, buffer too small.");
+        
+        // Create an iterator, if the pointer is 0, no such column, continue.
+        struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
+        if(!it){
+            // This column doesn't exist, so skip it!
+            continue;
+        }
 
-    // TODO
-    assert(false);
+        struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
+        while (view.valid_time && view.value){
+            time_t date = date_sum(view.valid_time);
+
+            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
+            if (!cd){
+                time_t *key = malloc(sizeof(time_t));
+                *key = date;
+                cd = cumulative_dist_new();
+                g_tree_insert(cdfs, key, cd);
+            }
+
+            cumulative_dist_append_pair(cd, i + 0.0, *view.value);
+        }
+    }
+
+    return cdfs;
+
+ERR_RETURN:
+    g_tree_unref(cdfs);
+    return 0;
 }
 
 double
