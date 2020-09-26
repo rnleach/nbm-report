@@ -73,7 +73,7 @@ nbm_data_rows(struct NBMData const *nbm, char const *col_name)
         }
     }
 
-    if (found_col_num < 0){
+    if (found_col_num < 0) {
         return 0;
     }
 

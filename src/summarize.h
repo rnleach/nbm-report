@@ -89,7 +89,7 @@ struct CumulativeDistribution;
  *
  **/
 GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
-                     Converter convert);
+                    Converter convert);
 
 /** Get a probability of exceedence for a given value.
  *

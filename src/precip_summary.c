@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "precip_summary.h"
+#include "nbm_data.h"
 #include "summarize.h"
 #include "utils.h"
 
