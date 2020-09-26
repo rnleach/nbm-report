@@ -16,7 +16,7 @@
         }                                                                                          \
     }
 
-inline double
+static inline double
 kelvin_to_fahrenheit(double k)
 {
     double c = (k - 273.15);
@@ -24,38 +24,38 @@ kelvin_to_fahrenheit(double k)
     return f;
 }
 
-inline double
+static inline double
 change_in_kelvin_to_change_in_fahrenheit(double dk)
 {
     return 9.0 / 5.0 * dk;
 }
 
-inline double
+static inline double
 id_func(double val)
 {
     return val;
 }
 
-inline double
+static inline double
 mps_to_mph(double val)
 {
     return 2.23694 * val;
 }
 
-inline double
+static inline double
 mm_to_in(double val)
 {
     return val / 25.4;
 }
 
-inline double
+static inline double
 m_to_in(double val)
 {
     return val * 39.37008;
 }
 
 /** Uppercase a string. */
-inline void
+static inline void
 to_uppercase(char string[static 1])
 {
     assert(string);
