@@ -44,15 +44,15 @@ print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
     time_t *vt = key;
     struct CumulativeDistribution *dist = value;
 
-    double prob_001 = interpolate_prob_of_exceedance(dist, 0.01);
-    double prob_005 = interpolate_prob_of_exceedance(dist, 0.05);
-    double prob_010 = interpolate_prob_of_exceedance(dist, 0.10);
-    double prob_025 = interpolate_prob_of_exceedance(dist, 0.25);
-    double prob_050 = interpolate_prob_of_exceedance(dist, 0.50);
-    double prob_075 = interpolate_prob_of_exceedance(dist, 0.75);
-    double prob_100 = interpolate_prob_of_exceedance(dist, 1.0);
-    double prob_150 = interpolate_prob_of_exceedance(dist, 1.5);
-    double prob_200 = interpolate_prob_of_exceedance(dist, 2.0);
+    double prob_001 = round(interpolate_prob_of_exceedance(dist, 0.01));
+    double prob_005 = round(interpolate_prob_of_exceedance(dist, 0.05));
+    double prob_010 = round(interpolate_prob_of_exceedance(dist, 0.10));
+    double prob_025 = round(interpolate_prob_of_exceedance(dist, 0.25));
+    double prob_050 = round(interpolate_prob_of_exceedance(dist, 0.50));
+    double prob_075 = round(interpolate_prob_of_exceedance(dist, 0.75));
+    double prob_100 = round(interpolate_prob_of_exceedance(dist, 1.0));
+    double prob_150 = round(interpolate_prob_of_exceedance(dist, 1.5));
+    double prob_200 = round(interpolate_prob_of_exceedance(dist, 2.0));
 
     char datebuf[32] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d ", gmtime(vt));
@@ -109,16 +109,16 @@ print_row_prob_snow_exceedence(void *key, void *value, void *unused)
     time_t *vt = key;
     struct CumulativeDistribution *dist = value;
 
-    double prob_01 = interpolate_prob_of_exceedance(dist, 0.1);
-    double prob_05 = interpolate_prob_of_exceedance(dist, 0.5);
-    double prob_10 = interpolate_prob_of_exceedance(dist, 1.0);
-    double prob_20 = interpolate_prob_of_exceedance(dist, 2.0);
-    double prob_40 = interpolate_prob_of_exceedance(dist, 4.0);
-    double prob_60 = interpolate_prob_of_exceedance(dist, 6.0);
-    double prob_80 = interpolate_prob_of_exceedance(dist, 8.0);
-    double prob_120 = interpolate_prob_of_exceedance(dist, 12.0);
-    double prob_180 = interpolate_prob_of_exceedance(dist, 18.0);
-    double prob_240 = interpolate_prob_of_exceedance(dist, 24.0);
+    double prob_01 = round(interpolate_prob_of_exceedance(dist, 0.1));
+    double prob_05 = round(interpolate_prob_of_exceedance(dist, 0.5));
+    double prob_10 = round(interpolate_prob_of_exceedance(dist, 1.0));
+    double prob_20 = round(interpolate_prob_of_exceedance(dist, 2.0));
+    double prob_40 = round(interpolate_prob_of_exceedance(dist, 4.0));
+    double prob_60 = round(interpolate_prob_of_exceedance(dist, 6.0));
+    double prob_80 = round(interpolate_prob_of_exceedance(dist, 8.0));
+    double prob_120 = round(interpolate_prob_of_exceedance(dist, 12.0));
+    double prob_180 = round(interpolate_prob_of_exceedance(dist, 18.0));
+    double prob_240 = round(interpolate_prob_of_exceedance(dist, 24.0));
 
     char datebuf[32] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d ", gmtime(vt));

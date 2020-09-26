@@ -184,7 +184,16 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
         return 0.0;
     }
 
-    double cdf_val = (xs[right] - target_val) < (target_val - xs[left]) ? ys[right] : ys[left];
+    double left_x = xs[left];
+    double right_x = xs[right];
+    double left_y = ys[left];
+    double right_y = ys[right];
+
+    double rise = right_y - left_y;
+    double run = right_x - left_x;
+    assert(run > 0.0);
+    double slope = rise / run;
+    double cdf_val = slope * (target_val - left_x) + left_y;
 
     double prob_exc = 100.0 - cdf_val;
     assert(prob_exc >= 0.0);
