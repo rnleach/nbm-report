@@ -72,7 +72,10 @@ nbm_data_rows(struct NBMData const *nbm, char const *col_name)
             break;
         }
     }
-    Stopif(found_col_num < 0, return 0, "No such column: %s", col_name);
+
+    if (found_col_num < 0){
+        return 0;
+    }
 
     struct NBMDataRowIterator *it = malloc(sizeof(struct NBMDataRowIterator));
     *it = (struct NBMDataRowIterator){.curr_row = 0, .col_num = found_col_num, .src = nbm};
