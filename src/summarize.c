@@ -1,5 +1,5 @@
-#include "summarize.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -117,7 +117,7 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
 
 GTree *
 extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
-             KeepFilter filter, Converter convert)
+             Converter convert)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
 
@@ -136,19 +136,17 @@ extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDa
 
         struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
         while (view.valid_time && view.value) {
-            if (filter(view.valid_time)) {
-                time_t date = date_sum(view.valid_time);
+            time_t date = date_sum(view.valid_time);
 
-                struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
-                if (!cd) {
-                    time_t *key = malloc(sizeof(time_t));
-                    *key = date;
-                    cd = cumulative_dist_new();
-                    g_tree_insert(cdfs, key, cd);
-                }
-
-                cumulative_dist_append_pair(cd, i + 0.0, convert(*view.value));
+            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
+            if (!cd) {
+                time_t *key = malloc(sizeof(time_t));
+                *key = date;
+                cd = cumulative_dist_new();
+                g_tree_insert(cdfs, key, cd);
             }
+
+            cumulative_dist_append_pair(cd, i + 0.0, convert(*view.value));
 
             view = nbm_data_row_iterator_next(it);
         }
