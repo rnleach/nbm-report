@@ -148,7 +148,7 @@ daily_summary_access_max_t(void *sm)
     return &sum->max_t_f;
 }
 
-#define MAX_ROW_LEN 150
+#define MAX_ROW_LEN 256
 static int
 daily_summary_print_as_row(void *key, void *val, void *user_data)
 {
@@ -168,17 +168,17 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     strftime(buf, MAX_ROW_LEN, "│ %a, %Y-%m-%d ", gmtime(vt));
     nxt += 20;
 
-    int np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->max_t_f),
-                      round(sum->max_t_std * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
-    nxt += 16;
-
-    np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->min_t_f),
-                  round(sum->min_t_std * 10.0) / 10.0);
+    int np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->min_t_f),
+                      round(sum->min_t_std * 10.0) / 10.0);
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
     nxt += 16;
 
-    np = snprintf(nxt, end - nxt, "│ %3.0lf%% /%3.0lf%% ", round(sum->min_rh), round(sum->max_rh));
+    np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->max_t_f),
+                  round(sum->max_t_std * 10.0) / 10.0);
+    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
+    nxt += 16;
+
+    np = snprintf(nxt, end - nxt, "│ %3.0lf%% /%3.0lf%% ", round(sum->max_rh), round(sum->min_rh));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
     nxt += 15;
 
@@ -234,7 +234,7 @@ daily_summary_print_header()
     // clang-format off
     char const *header = 
         "┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┐\n"
-        "│       Date      │   MaxT    │   MinT    │ Min/Max RH │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
+        "│       Date      │   MinT    │   MaxT    │ Max/Min RH │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
         "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │   sky pct  │ Ltg │  in  │  in  │\n"
         "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪════════════╪═════╪══════╪══════╡";
     // clang-format on
@@ -261,7 +261,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
     struct NBMDataRowIteratorWindValueView view = nbm_data_row_wind_iterator_next(it);
     while (view.valid_time) { // If valid time is good, assume everything is.
 
-        time_t date = summary_date_12z(view.valid_time);
+        time_t date = summary_date_06z(view.valid_time);
 
         struct DailySummary *sum = g_tree_lookup(sums, &date);
         if (!sum) {
@@ -300,41 +300,41 @@ build_daily_summaries(struct NBMData const *nbm)
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground", keep_all,
-                                     summary_date_18z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
                                      daily_summary_new, daily_summary_access_max_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground_ens std dev", keep_all,
-                                     summary_date_18z, change_in_kelvin_to_change_in_fahrenheit,
+                                     summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
                                      accum_daily_rh_t, daily_summary_new,
                                      daily_summary_access_max_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground", keep_all,
-                                     summary_date_18z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
                                      daily_summary_new, daily_summary_access_min_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground_ens std dev", keep_all,
-                                     summary_date_18z, change_in_kelvin_to_change_in_fahrenheit,
+                                     summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
                                      accum_daily_rh_t, daily_summary_new,
                                      daily_summary_access_min_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", keep_all,
-                                     summary_date_18z, id_func, accum_daily_rh_t, daily_summary_new,
+                                     summary_date_06z, id_func, accum_daily_rh_t, daily_summary_new,
                                      daily_summary_access_min_rh);
 
     extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", keep_all,
-                                     summary_date_18z, id_func, accum_daily_rh_t, daily_summary_new,
+                                     summary_date_06z, id_func, accum_daily_rh_t, daily_summary_new,
                                      daily_summary_access_max_rh);
 
-    extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_12z,
+    extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_06z,
                                      mm_to_in, accum_last, daily_summary_new,
                                      daily_summary_access_precip);
 
-    extract_daily_summary_for_column(sums, nbm, "ASNOW6hr_surface", keep_all, summary_date_12z,
+    extract_daily_summary_for_column(sums, nbm, "ASNOW6hr_surface", keep_all, summary_date_06z,
                                      m_to_in, accum_sum, daily_summary_new,
                                      daily_summary_access_snow);
 
     extract_daily_summary_for_column(sums, nbm, "TSTM12hr_surface_probability forecast", keep_all,
-                                     summary_date_12z, id_func, accum_max, daily_summary_new,
+                                     summary_date_06z, id_func, accum_max, daily_summary_new,
                                      daily_summary_access_prob_ltg);
 
     extract_daily_summary_for_column(sums, nbm, "TCDC_surface", keep_mrn, summary_date_06z, id_func,

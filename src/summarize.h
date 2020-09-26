@@ -112,6 +112,10 @@ bool keep_aft(time_t const *vt);
 
 bool keep_mrn(time_t const *vt);
 
+bool keep_eve(time_t const *vt);
+
+bool keep_night(time_t const *vt);
+
 bool keep_00z(time_t const *vt);
 /*-------------------------------------------------------------------------------------------------
  *                                 SummarizeDate implementations.

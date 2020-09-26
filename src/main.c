@@ -43,10 +43,21 @@ print_usage(char **argv)
 
     printf("Usage: %s site_id\n", progname);
     printf("e.g. : %s kmso\n\n", progname);
-    printf("Options:\n");
-    printf("   -s show summary of snow forecast.\n");
-    printf("   -r show summary of rain / liquid equivalent forecast.\n");
-    printf("   -n do not show main summary.\n");
+
+    char *options =
+        "Options:\n"
+        "   -s show summary of snow forecast.\n"
+        "   -r show summary of rain / liquid equivalent forecast.\n"
+        "   -n do not show main summary.\n"
+        "\n\n"
+        "For the purpose of this program, days run from 06Z to 06Z. Ideally, all daily\n"
+        "summary values would cut-off at this time, but some of the variables, such as\n"
+        "24 hour rain or snow, may not line up exactly for every run. In these cases, the\n"
+        "last value for the day will be used. The same goes for any longer range\n"
+        "summaries. If the summary is generated from 6-hrly or less data, then the day\n"
+        "break is consistently 06Z.";
+
+    puts(options);
 }
 
 struct OptArgs {

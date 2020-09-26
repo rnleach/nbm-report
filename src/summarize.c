@@ -1,5 +1,5 @@
-#include "summarize.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -223,17 +223,40 @@ bool
 keep_aft(time_t const *vt)
 {
     struct tm tmp = *gmtime(vt);
-    if (tmp.tm_hour < 18 && tmp.tm_hour >= 6) {
-        return false;
+    if (tmp.tm_hour >= 18) {
+        return true;
     }
-
-    return true;
+    return false;
 }
 
 bool
 keep_mrn(time_t const *vt)
 {
-    return !keep_aft(vt);
+    struct tm tmp = *gmtime(vt);
+    if (tmp.tm_hour < 18 && tmp.tm_hour >= 12) {
+        return true;
+    }
+    return false;
+}
+
+bool
+keep_eve(time_t const *vt)
+{
+    struct tm tmp = *gmtime(vt);
+    if (tmp.tm_hour < 6) {
+        return true;
+    }
+    return false;
+}
+
+bool
+keep_night(time_t const *vt)
+{
+    struct tm tmp = *gmtime(vt);
+    if (tmp.tm_hour < 12 && tmp.tm_hour >= 6) {
+        return true;
+    }
+    return false;
 }
 
 bool
@@ -250,7 +273,7 @@ time_t
 summary_date_18z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 18) {
+    if (tmp.tm_hour == 18) {
         tmp.tm_mday--;
     }
 
@@ -266,7 +289,7 @@ time_t
 summary_date_12z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 12) {
+    if (tmp.tm_hour == 12) {
         tmp.tm_mday--;
     }
 
@@ -282,7 +305,7 @@ time_t
 summary_date_06z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour <= 6) {
+    if (tmp.tm_hour == 6) {
         tmp.tm_mday--;
     }
 

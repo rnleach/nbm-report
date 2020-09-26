@@ -67,7 +67,7 @@ print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
 static void
 show_liquid_summary(struct NBMData const *nbm)
 {
-    GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", summary_date_12z, mm_to_in);
+    GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", summary_date_06z, mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
     print_liquid_precip_header();
     g_tree_foreach(cdfs, print_row_prob_liquid_exceedence, 0);
@@ -133,7 +133,7 @@ print_row_prob_snow_exceedence(void *key, void *value, void *unused)
 static void
 show_snow_summary(struct NBMData const *nbm)
 {
-    GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", summary_date_12z, m_to_in);
+    GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", summary_date_06z, m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
     print_snow_precip_header();
     g_tree_foreach(cdfs, print_row_prob_snow_exceedence, 0);
