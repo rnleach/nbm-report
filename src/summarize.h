@@ -24,6 +24,9 @@ typedef time_t (*SummarizeDate)(time_t const *);
 /** How to accumulate values from a day, eg take the first, last, sum, max, min. */
 typedef double (*Accumulator)(double acc, double val);
 
+/** Convert the value extracted from the NBM into the desired units. */
+typedef double (*Converter)(double);
+
 /** Compare \c time_t values which are used as keys in the GLib \c Tree.
  *
  * Dates are sorted in ascending order.
@@ -33,9 +36,6 @@ int time_t_compare_func(void const *a, void const *b, void *user_data);
 /*-------------------------------------------------------------------------------------------------
  *                  Extract values from the NBM and insert them into the summary.
  *-----------------------------------------------------------------------------------------------*/
-
-/** Convert the value extracted from the NBM into the desired units. */
-typedef double (*Converter)(double);
 
 /** Filter values out for consideration. */
 typedef bool (*KeepFilter)(time_t const *);
@@ -81,13 +81,16 @@ struct CumulativeDistribution;
  * \param date_sum maps different \c time_t values to a "representative" value as a way of grouping
  * them together. For instance taking all values during a given day and mapping them to noon that
  * day as a value to represent that day.
+ * \param filter determines whether to use a value from the NBM based on its valid time.
+ * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other
+ * relavent conversion.
  *
  * \returns a \c GTree* with \c time_t objects as keys and \c CumulativeDistribution
  * objects as values.
  *
  **/
-GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format,
-                           SummarizeDate date_sum);
+GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
+                    KeepFilter filter, Converter convert);
 
 /** Get a probability of exceedence for a given value.
  *
@@ -110,6 +113,7 @@ bool keep_aft(time_t const *vt);
 
 bool keep_mrn(time_t const *vt);
 
+bool keep_00z(time_t const *vt);
 /*-------------------------------------------------------------------------------------------------
  *                                 SummarizeDate implementations.
  *-----------------------------------------------------------------------------------------------*/

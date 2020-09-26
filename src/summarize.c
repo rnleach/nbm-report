@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "summarize.h"
+#include "nbm_data.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -103,43 +103,54 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
         dist->capacity = 100;
     }
 
-    dist->percents[dist->size] = percentile;
-    dist->values[dist->size] = value;
-    dist->size += 1;
+    int last_index = dist->size - 1;
+    if (last_index >= 0 && dist->percents[last_index] == percentile) {
+        dist->values[last_index] = value;
+    } else {
+        dist->percents[dist->size] = percentile;
+        dist->values[dist->size] = value;
+        dist->size += 1;
+    }
 
     return true;
 }
 
 GTree *
-extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum)
+extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
+             KeepFilter filter, Converter convert)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
 
     char col_name[256] = {0};
-    for (int i = 1; i <= 99; i++){
+    for (int i = 1; i <= 99; i++) {
         int num_chars = snprintf(col_name, sizeof(col_name), col_name_format, i);
-        Stopif(num_chars >= sizeof(col_name), goto ERR_RETURN, "error with snprintf, buffer too small.");
-        
+        Stopif(num_chars >= sizeof(col_name), goto ERR_RETURN,
+               "error with snprintf, buffer too small.");
+
         // Create an iterator, if the pointer is 0, no such column, continue.
         struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
-        if(!it){
+        if (!it) {
             // This column doesn't exist, so skip it!
             continue;
         }
 
         struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
-        while (view.valid_time && view.value){
-            time_t date = date_sum(view.valid_time);
+        while (view.valid_time && view.value) {
+            if (filter(view.valid_time)) {
+                time_t date = date_sum(view.valid_time);
 
-            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
-            if (!cd){
-                time_t *key = malloc(sizeof(time_t));
-                *key = date;
-                cd = cumulative_dist_new();
-                g_tree_insert(cdfs, key, cd);
+                struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
+                if (!cd) {
+                    time_t *key = malloc(sizeof(time_t));
+                    *key = date;
+                    cd = cumulative_dist_new();
+                    g_tree_insert(cdfs, key, cd);
+                }
+
+                cumulative_dist_append_pair(cd, i + 0.0, convert(*view.value));
             }
 
-            cumulative_dist_append_pair(cd, i + 0.0, *view.value);
+            view = nbm_data_row_iterator_next(it);
         }
     }
 
@@ -175,15 +186,12 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
         return 0.0;
     }
 
-    // linear interpolation
-    double rise = ys[right] - ys[left];
-    double run = xs[right] - xs[left];
-    assert(run > 0.0);
+    double cdf_val = (xs[right] - target_val) < (target_val - xs[left]) ? ys[right] : ys[left];
 
-    double slope = rise / run;
-    double frac = target_val - xs[left];
-
-    return frac * slope + ys[left];
+    double prob_exc = 100.0 - cdf_val;
+    assert(prob_exc >= 0.0);
+    assert(prob_exc <= 100.0);
+    return prob_exc;
 }
 
 void
@@ -219,6 +227,13 @@ bool
 keep_mrn(time_t const *vt)
 {
     return !keep_aft(vt);
+}
+
+bool
+keep_00z(time_t const *vt)
+{
+    struct tm tmp = *gmtime(vt);
+    return tmp.tm_hour == 0;
 }
 
 /*-------------------------------------------------------------------------------------------------
