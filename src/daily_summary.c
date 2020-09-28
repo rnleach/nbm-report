@@ -229,23 +229,35 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
 }
 
 static void
-daily_summary_print_header(char const *site)
+daily_summary_print_header(char const *site, time_t init_time)
 {
 
+    // Build a title.
+    char title_buf[100] = {0};
+    struct tm init = *gmtime(&init_time);
+    strcpy(title_buf, site);
+    int len = strlen(title_buf);
+    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
+
+    // Calculate white space to center the title.
     int line_len = 115 - 2;
-    char buf[120 + 1] = {0};
-    int len = strlen(site);
+    char header_buf[115 + 1] = {0};
+    len = strlen(title_buf);
     int left = (line_len - len) / 2;
 
-    for (int i = 0; i < left; i++)
-        buf[i] = ' ';
-    strcpy(&buf[left], site);
-    for (int i = left + len; i < line_len; i++)
-        buf[i] = ' ';
+    // Print the white spaces and title.
+    for (int i = 0; i < left; i++) {
+        header_buf[i] = ' ';
+    }
+    strcpy(&header_buf[left], title_buf);
+    for (int i = left + len; i < line_len; i++) {
+        header_buf[i] = ' ';
+    }
 
     // clang-format off
     char const *top_border = 
         "┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐";
+
     char const *header = 
         "├─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┤\n"
         "│       Date      │   MinT    │   MaxT    │ Max/Min RH │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
@@ -254,7 +266,7 @@ daily_summary_print_header(char const *site)
     // clang-format on
 
     puts(top_border);
-    printf("│%s│\n", buf);
+    printf("│%s│\n", header_buf);
     puts(header);
 }
 
@@ -372,7 +384,7 @@ show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
 
-    daily_summary_print_header(nbm_data_site(nbm));
+    daily_summary_print_header(nbm_data_site(nbm), nbm_data_init_time(nbm));
     g_tree_foreach(sums, daily_summary_print_as_row, 0);
     daily_summary_print_footer();
 

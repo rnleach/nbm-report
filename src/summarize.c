@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "summarize.h"
+#include "nbm_data.h"
 #include "utils.h"
 
 #include <assert.h>

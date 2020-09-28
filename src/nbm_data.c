@@ -58,6 +58,12 @@ nbm_data_site(struct NBMData const *ptr)
 {
     return ptr->site;
 }
+
+time_t
+nbm_data_init_time(struct NBMData const *ptr)
+{
+    return ptr->init_time;
+}
 /*-------------------------------------------------------------------------------------------------
  *                                     NBMDataRowIterator
  *-----------------------------------------------------------------------------------------------*/
