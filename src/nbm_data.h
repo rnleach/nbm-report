@@ -32,6 +32,9 @@ void nbm_data_free(struct NBMData **ptrptr);
 /** Get the age of the forecast in seconds. */
 double nbm_data_age(struct NBMData const *);
 
+/** Get the site this data is for. */
+char const *nbm_data_site(struct NBMData const *);
+
 /** Get an iterator over a column.
  *
  * \param nbm the NBM data to query.

@@ -53,6 +53,11 @@ nbm_data_age(struct NBMData const *ptr)
     return difftime(now, ptr->init_time);
 }
 
+char const *
+nbm_data_site(struct NBMData const *ptr)
+{
+    return ptr->site;
+}
 /*-------------------------------------------------------------------------------------------------
  *                                     NBMDataRowIterator
  *-----------------------------------------------------------------------------------------------*/

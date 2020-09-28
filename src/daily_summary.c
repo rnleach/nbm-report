@@ -229,16 +229,32 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
 }
 
 static void
-daily_summary_print_header()
+daily_summary_print_header(char const *site)
 {
+
+    int line_len = 115 - 2;
+    char buf[120 + 1] = {0};
+    int len = strlen(site);
+    int left = (line_len - len) / 2;
+
+    for (int i = 0; i < left; i++)
+        buf[i] = ' ';
+    strcpy(&buf[left], site);
+    for (int i = left + len; i < line_len; i++)
+        buf[i] = ' ';
+
     // clang-format off
+    char const *top_border = 
+        "┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐";
     char const *header = 
-        "┌─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┐\n"
+        "├─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┤\n"
         "│       Date      │   MinT    │   MaxT    │ Max/Min RH │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
         "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │   sky pct  │ Ltg │  in  │  in  │\n"
         "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪════════════╪═════╪══════╪══════╡";
     // clang-format on
 
+    puts(top_border);
+    printf("│%s│\n", buf);
     puts(header);
 }
 
@@ -356,7 +372,7 @@ show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
 
-    daily_summary_print_header();
+    daily_summary_print_header(nbm_data_site(nbm));
     g_tree_foreach(sums, daily_summary_print_as_row, 0);
     daily_summary_print_footer();
 
