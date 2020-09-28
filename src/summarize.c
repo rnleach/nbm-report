@@ -273,7 +273,7 @@ time_t
 summary_date_18z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour == 18) {
+    if (tmp.tm_hour <= 18) {
         tmp.tm_mday--;
     }
 
@@ -289,7 +289,7 @@ time_t
 summary_date_12z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour == 12) {
+    if (tmp.tm_hour <= 12) {
         tmp.tm_mday--;
     }
 
@@ -305,7 +305,7 @@ time_t
 summary_date_06z(time_t const *valid_time)
 {
     struct tm tmp = *gmtime(valid_time);
-    if (tmp.tm_hour == 6) {
+    if (tmp.tm_hour <= 6) {
         tmp.tm_mday--;
     }
 
