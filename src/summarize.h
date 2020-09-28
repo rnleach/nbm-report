@@ -78,9 +78,6 @@ struct CumulativeDistribution;
  * \param nbm is the source to extract the CDF from.
  * \param col_name_format is a \c printf style format string used to generate the column names of
  * the columns that contain the CDF information.
- * \param date_sum maps different \c time_t values to a "representative" value as a way of grouping
- * them together. For instance taking all values during a given day and mapping them to noon that
- * day as a value to represent that day.
  * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other
  * relavent conversion.
  *
@@ -88,8 +85,7 @@ struct CumulativeDistribution;
  * objects as values.
  *
  **/
-GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
-                    Converter convert);
+GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter convert);
 
 /** Get a probability of exceedence for a given value.
  *

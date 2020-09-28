@@ -116,8 +116,7 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
 }
 
 GTree *
-extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDate date_sum,
-             Converter convert)
+extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter convert)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
 
@@ -136,12 +135,11 @@ extract_cdfs(struct NBMData const *nbm, char const *col_name_format, SummarizeDa
 
         struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
         while (view.valid_time && view.value) {
-            time_t date = date_sum(view.valid_time);
 
-            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, &date);
+            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, view.valid_time);
             if (!cd) {
                 time_t *key = malloc(sizeof(time_t));
-                *key = date;
+                *key = *view.valid_time;
                 cd = cumulative_dist_new();
                 g_tree_insert(cdfs, key, cd);
             }
