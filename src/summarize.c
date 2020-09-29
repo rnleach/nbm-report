@@ -67,6 +67,7 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
  *-----------------------------------------------------------------------------------------------*/
 
 struct CumulativeDistribution {
+    double quantile_mapped_value;
     double *percents;
     double *values;
     int size;
@@ -84,6 +85,7 @@ cumulative_dist_new()
     new->values = calloc(10, sizeof(double));
     assert(new->values);
     new->capacity = 10;
+    new->quantile_mapped_value = NAN;
 
     return new;
 }
@@ -116,13 +118,14 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
 }
 
 GTree *
-extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter convert)
+extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format, char const *pm_col_name,
+             Converter convert)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
 
     char col_name[256] = {0};
     for (int i = 1; i <= 99; i++) {
-        int num_chars = snprintf(col_name, sizeof(col_name), col_name_format, i);
+        int num_chars = snprintf(col_name, sizeof(col_name), cdf_col_name_format, i);
         Stopif(num_chars >= sizeof(col_name), goto ERR_RETURN,
                "error with snprintf, buffer too small.");
 
@@ -148,6 +151,26 @@ extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter c
 
             view = nbm_data_row_iterator_next(it);
         }
+
+        nbm_data_row_iterator_free(&it);
+    }
+
+    // Get the probability matched info.
+    struct NBMDataRowIterator *it = nbm_data_rows(nbm, pm_col_name);
+    if (it) {
+        struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
+        while (view.valid_time && view.value) {
+
+            struct CumulativeDistribution *cd = g_tree_lookup(cdfs, view.valid_time);
+            // Skip times we don't have probability information for.
+            if (cd) {
+                cd->quantile_mapped_value = convert(*view.value);
+            }
+
+            view = nbm_data_row_iterator_next(it);
+        }
+
+        nbm_data_row_iterator_free(&it);
     }
 
     return cdfs;
@@ -155,6 +178,12 @@ extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter c
 ERR_RETURN:
     g_tree_unref(cdfs);
     return 0;
+}
+
+double
+cumulative_dist_pm_value(struct CumulativeDistribution const *ptr)
+{
+    return ptr->quantile_mapped_value;
 }
 
 double

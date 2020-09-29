@@ -27,8 +27,8 @@ print_liquid_precip_header(struct NBMData const *nbm)
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
     // Calculate white space to center the title.
-    int line_len = 77 - 2;
-    char header_buf[77 + 1] = {0};
+    int line_len = 84 - 2;
+    char header_buf[84 + 1] = {0};
     len = strlen(title_buf);
     int left = (line_len - len) / 2;
 
@@ -43,12 +43,12 @@ print_liquid_precip_header(struct NBMData const *nbm)
 
     // clang-format off
     char const *top_border = 
-        "┌───────────────────────────────────────────────────────────────────────────┐";
+        "┌──────────────────────────────────────────────────────────────────────────────────┐";
 
     char const *header = 
-        "├─────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
-        "│ 24 Hrs Ending / in. │ 0.01│ 0.05│ 0.10│ 0.25│ 0.50│ 0.75│ 1.00│ 1.50│ 2.00│\n"
-        "╞═════════════════════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
+        "├─────────────────────┬──────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
+        "│ 24 Hrs Ending / in. │Precip│ 0.01│ 0.05│ 0.10│ 0.25│ 0.50│ 0.75│ 1.00│ 1.50│ 2.00│\n"
+        "╞═════════════════════╪══════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
     // clang-format on
 
     puts(top_border);
@@ -61,7 +61,7 @@ print_liquid_precip_footer()
 {
     // clang-format off
     char const *footer = 
-        "╘═════════════════════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
+        "╘═════════════════════╧══════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
     // clang-format on
     puts(footer);
 }
@@ -81,13 +81,21 @@ print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
     double prob_100 = round(interpolate_prob_of_exceedance(dist, 1.0));
     double prob_150 = round(interpolate_prob_of_exceedance(dist, 1.5));
     double prob_200 = round(interpolate_prob_of_exceedance(dist, 2.0));
+    double pm_value = round(cumulative_dist_pm_value(dist) * 100.0) / 100.0;
 
-    char datebuf[32] = {0};
+    char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
-    printf(
-        "│ %s │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │\n",
-        datebuf, prob_001, prob_005, prob_010, prob_025, prob_050, prob_075, prob_100, prob_150,
-        prob_200);
+
+    char linebuf[512] = {0};
+    sprintf(linebuf,
+            "│ %s │ %4.2lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf "
+            "│ %3.0lf │",
+            datebuf, pm_value, prob_001, prob_005, prob_010, prob_025, prob_050, prob_075, prob_100,
+            prob_150, prob_200);
+
+    wipe_nans(linebuf);
+
+    puts(linebuf);
 
     return false;
 }
@@ -95,7 +103,7 @@ print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
 static void
 show_liquid_summary(struct NBMData const *nbm)
 {
-    GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", mm_to_in);
+    GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", "APCP24hr_surface", mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
     print_liquid_precip_header(nbm);
     g_tree_foreach(cdfs, print_row_prob_liquid_exceedence, 0);
@@ -120,8 +128,8 @@ print_snow_precip_header(struct NBMData const *nbm)
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
     // Calculate white space to center the title.
-    int line_len = 83 - 2;
-    char header_buf[83 + 1] = {0};
+    int line_len = 90 - 2;
+    char header_buf[90 + 1] = {0};
     len = strlen(title_buf);
     int left = (line_len - len) / 2;
 
@@ -136,12 +144,12 @@ print_snow_precip_header(struct NBMData const *nbm)
 
     // clang-format off
     char const *top_border = 
-        "┌─────────────────────────────────────────────────────────────────────────────────┐";
+        "┌────────────────────────────────────────────────────────────────────────────────────────┐";
 
     char const *header = 
-        "├─────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
-        "│ 24 Hrs Ending / in. │  0.1│  0.5│  1.0│  2.0│  4.0│  6.0│  8.0│ 12.0│ 18.0│ 24.0│\n"
-        "╞═════════════════════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
+        "├─────────────────────┬──────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
+        "│ 24 Hrs Ending / in. │ Snow │  0.1│  0.5│  1.0│  2.0│  4.0│  6.0│  8.0│ 12.0│ 18.0│ 24.0│\n"
+        "╞═════════════════════╪══════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
     // clang-format on
 
     puts(top_border);
@@ -154,7 +162,7 @@ print_snow_precip_footer()
 {
     // clang-format off
     char const *footer = 
-        "╘═════════════════════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
+        "╘═════════════════════╧══════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
     // clang-format on
     puts(footer);
 }
@@ -175,14 +183,21 @@ print_row_prob_snow_exceedence(void *key, void *value, void *unused)
     double prob_120 = round(interpolate_prob_of_exceedance(dist, 12.0));
     double prob_180 = round(interpolate_prob_of_exceedance(dist, 18.0));
     double prob_240 = round(interpolate_prob_of_exceedance(dist, 24.0));
+    double pm_value = round(cumulative_dist_pm_value(dist) * 10.0) / 10.0;
 
-    char datebuf[32] = {0};
+    char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
-    printf(
-        "│ %s │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ "
-        "%3.0lf │\n",
-        datebuf, prob_01, prob_05, prob_10, prob_20, prob_40, prob_60, prob_80, prob_120, prob_180,
-        prob_240);
+
+    char linebuf[512] = {0};
+    sprintf(linebuf,
+            "│ %s │ %4.1lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf "
+            "│ %3.0lf │ %3.0lf │",
+            datebuf, pm_value, prob_01, prob_05, prob_10, prob_20, prob_40, prob_60, prob_80,
+            prob_120, prob_180, prob_240);
+
+    wipe_nans(linebuf);
+
+    puts(linebuf);
 
     return false;
 }
@@ -190,7 +205,7 @@ print_row_prob_snow_exceedence(void *key, void *value, void *unused)
 static void
 show_snow_summary(struct NBMData const *nbm)
 {
-    GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", m_to_in);
+    GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", "ASNOW24hr_surface", m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
     print_snow_precip_header(nbm);
     g_tree_foreach(cdfs, print_row_prob_snow_exceedence, 0);

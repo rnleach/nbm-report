@@ -76,8 +76,9 @@ struct CumulativeDistribution;
 /** Extract CDF information from some \c NBMData.
  *
  * \param nbm is the source to extract the CDF from.
- * \param col_name_format is a \c printf style format string used to generate the column names of
- * the columns that contain the CDF information.
+ * \param cdf_col_name_format is a \c printf style format string used to generate the column names
+ * of the columns that contain the CDF information.
+ * \param pm_col_name is a the column name of the probability matched value.
  * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other
  * relavent conversion.
  *
@@ -85,7 +86,14 @@ struct CumulativeDistribution;
  * objects as values.
  *
  **/
-GTree *extract_cdfs(struct NBMData const *nbm, char const *col_name_format, Converter convert);
+GTree *extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format,
+                    char const *pm_col_name, Converter convert);
+
+/** Get the probability matched (or quantile mapped) value associated with CDF.
+ *
+ * If there was no PM (QMD) value, returns \c NAN.
+ */
+double cumulative_dist_pm_value(struct CumulativeDistribution const *);
 
 /** Get a probability of exceedence for a given value.
  *

@@ -215,13 +215,7 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary snow");
     nxt += 11;
 
-    // Remove NANs
-    char *c = 0;
-    while ((c = strstr(buf, "nan"))) {
-        c[0] = ' ';
-        c[1] = '-';
-        c[2] = ' ';
-    }
+    wipe_nans(buf);
 
     printf("%s\n", buf);
 
