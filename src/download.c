@@ -84,7 +84,7 @@ build_download_url(char const site[static 1], struct tm data_init_time)
     int day = data_init_time.tm_mday;
     int hour = data_init_time.tm_hour;
 
-    sprintf(url, "%s%4d/%02d/%02d/NBM/%02d/%s.csv", base_url, year, month, day, hour, site);
+    sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s.csv", base_url, year, month, day, hour, site);
 
     return url;
 }
