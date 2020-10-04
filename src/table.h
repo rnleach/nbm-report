@@ -39,7 +39,7 @@ void table_add_title(struct Table *tbl, int str_len, char const title[str_len + 
  * range for the arguments passed in \c table_new(...), then the whole program aborts if assertions
  * are enabled. If they are not, it is not checked and the behavior undefined.
  * \param str_len is the length of the \c col_title string.
- * \param col_title is the string to copy in.
+ * \param col_label is the string to copy in.
  * \param fmt_len is the length of the \c col_fmt string.
  * \param col_fmt is a \c printf format string which will be used to format the \c double values in
  * that column. The format specifier should contain only '%lf' format that specifies the precision
@@ -48,8 +48,8 @@ void table_add_title(struct Table *tbl, int str_len, char const title[str_len + 
  * column labels are longer than this, they will be truncated.
  */
 void table_add_column(struct Table *tbl, int col_num, int str_len,
-                      char const col_title[str_len + 1], int fmt_len, char const *col_fmt,
-                      int col_width);
+                      char const col_label[str_len + 1], int fmt_len,
+                      char const col_fmt[fmt_len + 1], int col_width);
 
 /** Add a row label.
  *
@@ -60,10 +60,10 @@ void table_add_column(struct Table *tbl, int col_num, int str_len,
  * out of range for the arguments passed in \c table_new(...), then the whole program aborts if
  * assertions are enabled. If they are not, it is not checked and the behavior is undefined.
  * \param str_len is the length of the \c col_title string.
- * \param col_title is the string to copy in.
+ * \param row_label is the string to copy in.
  */
 void table_add_row_label(struct Table *tbl, int row_num, int str_len,
-                         char const row_lable[str_len + 1]);
+                         char const row_label[str_len + 1]);
 
 /** Add a value to the table.
  *
