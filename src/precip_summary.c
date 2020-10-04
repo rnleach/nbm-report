@@ -1,6 +1,7 @@
 #include "precip_summary.h"
 #include "nbm_data.h"
 #include "summarize.h"
+#include "table.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -15,62 +16,19 @@
 /*-------------------------------------------------------------------------------------------------
  *                                            Liquid Summary
  *-----------------------------------------------------------------------------------------------*/
-static void
-print_liquid_precip_header(struct NBMData const *nbm)
-{
-    // Build a title.
-    char title_buf[256] = {0};
-    time_t init_time = nbm_data_init_time(nbm);
-    struct tm init = *gmtime(&init_time);
-    sprintf(title_buf, "24 Hr Probabilistic Precipitation for %s - ", nbm_data_site(nbm));
-    int len = strlen(title_buf);
-    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
-
-    // Calculate white space to center the title.
-    int line_len = 84 - 2;
-    char header_buf[84 + 1] = {0};
-    len = strlen(title_buf);
-    int left = (line_len - len) / 2;
-
-    // Print the white spaces and title.
-    for (int i = 0; i < left; i++) {
-        header_buf[i] = ' ';
-    }
-    strcpy(&header_buf[left], title_buf);
-    for (int i = left + len; i < line_len; i++) {
-        header_buf[i] = ' ';
-    }
-
-    // clang-format off
-    char const *top_border = 
-        "┌──────────────────────────────────────────────────────────────────────────────────┐";
-
-    char const *header = 
-        "├─────────────────────┬──────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
-        "│ 24 Hrs Ending / in. │Precip│ 0.01│ 0.05│ 0.10│ 0.25│ 0.50│ 0.75│ 1.00│ 1.50│ 2.00│\n"
-        "╞═════════════════════╪══════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
-    // clang-format on
-
-    puts(top_border);
-    printf("│%s│\n", header_buf);
-    puts(header);
-}
-
-static void
-print_liquid_precip_footer()
-{
-    // clang-format off
-    char const *footer = 
-        "╘═════════════════════╧══════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
-    // clang-format on
-    puts(footer);
-}
+struct TableFillerState {
+    int row;
+    struct Table *tbl;
+};
 
 static int
-print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
+add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
     struct CumulativeDistribution *dist = value;
+    struct TableFillerState *tbl_state = state;
+    struct Table *tbl = tbl_state->tbl;
+    int row = tbl_state->row;
 
     double prob_001 = round(interpolate_prob_of_exceedance(dist, 0.01));
     double prob_005 = round(interpolate_prob_of_exceedance(dist, 0.05));
@@ -86,18 +44,35 @@ print_row_prob_liquid_exceedence(void *key, void *value, void *unused)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    char linebuf[512] = {0};
-    sprintf(linebuf,
-            "│ %s │ %4.2lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf "
-            "│ %3.0lf │",
-            datebuf, pm_value, prob_001, prob_005, prob_010, prob_025, prob_050, prob_075, prob_100,
-            prob_150, prob_200);
+    table_add_row_label(tbl, row, strlen(datebuf), datebuf);
+    table_add_value(tbl, 0, row, pm_value);
+    table_add_value(tbl, 1, row, prob_001);
+    table_add_value(tbl, 2, row, prob_005);
+    table_add_value(tbl, 3, row, prob_010);
+    table_add_value(tbl, 4, row, prob_025);
+    table_add_value(tbl, 5, row, prob_050);
+    table_add_value(tbl, 6, row, prob_075);
+    table_add_value(tbl, 7, row, prob_100);
+    table_add_value(tbl, 8, row, prob_150);
+    table_add_value(tbl, 9, row, prob_200);
 
-    wipe_nans(linebuf);
-
-    puts(linebuf);
+    tbl_state->row++;
 
     return false;
+}
+
+static void
+build_title_liquid(struct NBMData const *nbm, struct Table *tbl)
+{
+
+    char title_buf[256] = {0};
+    time_t init_time = nbm_data_init_time(nbm);
+    struct tm init = *gmtime(&init_time);
+    sprintf(title_buf, "24 Hr Probabilistic Precipitation for %s - ", nbm_data_site(nbm));
+    int len = strlen(title_buf);
+    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
+
+    table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
 static void
@@ -105,21 +80,38 @@ show_liquid_summary(struct NBMData const *nbm)
 {
     GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", "APCP24hr_surface", mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
-    print_liquid_precip_header(nbm);
-    g_tree_foreach(cdfs, print_row_prob_liquid_exceedence, 0);
-    print_liquid_precip_footer();
+
+    struct Table *tbl = table_new(10, g_tree_nnodes(cdfs));
+    build_title_liquid(nbm, tbl);
+    table_add_column(tbl, -1, strlen("24 Hrs Ending / in."), "24 Hrs Ending / in.", 0, 0, 19);
+    table_add_column(tbl, 0, strlen("Precip"), "Precip", strlen("%4.2lf"), "%6.2lf", 6);
+    table_add_column(tbl, 1, strlen("0.01"), "0.01", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 2, strlen("0.05"), "0.05", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 3, strlen("0.10"), "0.10", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 4, strlen("0.25"), "0.25", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 5, strlen("0.50"), "0.50", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 6, strlen("0.75"), "0.75", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 7, strlen("1.00"), "1.00", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 8, strlen("1.50"), "1.50", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 9, strlen("2.00"), "2.00", strlen("%3.0lf"), "%5.0lf", 5);
+
+    struct TableFillerState state = {.row = 0, .tbl = tbl};
+    g_tree_foreach(cdfs, add_row_prob_liquid_exceedence_to_table, &state);
+
+    table_display(tbl, stdout);
 
     g_tree_unref(cdfs);
+
+    table_free(&tbl);
 }
 
 /*-------------------------------------------------------------------------------------------------
  *                                            Snow Summary
  *-----------------------------------------------------------------------------------------------*/
-
 static void
-print_snow_precip_header(struct NBMData const *nbm)
+build_title_snow(struct NBMData const *nbm, struct Table *tbl)
 {
-    // Build a title.
+
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
@@ -127,51 +119,17 @@ print_snow_precip_header(struct NBMData const *nbm)
     int len = strlen(title_buf);
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
-    // Calculate white space to center the title.
-    int line_len = 90 - 2;
-    char header_buf[90 + 1] = {0};
-    len = strlen(title_buf);
-    int left = (line_len - len) / 2;
-
-    // Print the white spaces and title.
-    for (int i = 0; i < left; i++) {
-        header_buf[i] = ' ';
-    }
-    strcpy(&header_buf[left], title_buf);
-    for (int i = left + len; i < line_len; i++) {
-        header_buf[i] = ' ';
-    }
-
-    // clang-format off
-    char const *top_border = 
-        "┌────────────────────────────────────────────────────────────────────────────────────────┐";
-
-    char const *header = 
-        "├─────────────────────┬──────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┤\n"
-        "│ 24 Hrs Ending / in. │ Snow │  0.1│  0.5│  1.0│  2.0│  4.0│  6.0│  8.0│ 12.0│ 18.0│ 24.0│\n"
-        "╞═════════════════════╪══════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╪═════╡";
-    // clang-format on
-
-    puts(top_border);
-    printf("│%s│\n", header_buf);
-    puts(header);
-}
-
-static void
-print_snow_precip_footer()
-{
-    // clang-format off
-    char const *footer = 
-        "╘═════════════════════╧══════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╛";
-    // clang-format on
-    puts(footer);
+    table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
 static int
-print_row_prob_snow_exceedence(void *key, void *value, void *unused)
+add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
     struct CumulativeDistribution *dist = value;
+    struct TableFillerState *tbl_state = state;
+    struct Table *tbl = tbl_state->tbl;
+    int row = tbl_state->row;
 
     double prob_01 = round(interpolate_prob_of_exceedance(dist, 0.1));
     double prob_05 = round(interpolate_prob_of_exceedance(dist, 0.5));
@@ -188,16 +146,20 @@ print_row_prob_snow_exceedence(void *key, void *value, void *unused)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    char linebuf[512] = {0};
-    sprintf(linebuf,
-            "│ %s │ %4.1lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf │ %3.0lf "
-            "│ %3.0lf │ %3.0lf │",
-            datebuf, pm_value, prob_01, prob_05, prob_10, prob_20, prob_40, prob_60, prob_80,
-            prob_120, prob_180, prob_240);
+    table_add_row_label(tbl, row, strlen(datebuf), datebuf);
+    table_add_value(tbl, 0, row, pm_value);
+    table_add_value(tbl, 1, row, prob_01);
+    table_add_value(tbl, 2, row, prob_05);
+    table_add_value(tbl, 3, row, prob_10);
+    table_add_value(tbl, 4, row, prob_20);
+    table_add_value(tbl, 5, row, prob_40);
+    table_add_value(tbl, 6, row, prob_60);
+    table_add_value(tbl, 7, row, prob_80);
+    table_add_value(tbl, 8, row, prob_120);
+    table_add_value(tbl, 9, row, prob_180);
+    table_add_value(tbl, 10, row, prob_240);
 
-    wipe_nans(linebuf);
-
-    puts(linebuf);
+    tbl_state->row++;
 
     return false;
 }
@@ -207,11 +169,31 @@ show_snow_summary(struct NBMData const *nbm)
 {
     GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", "ASNOW24hr_surface", m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
-    print_snow_precip_header(nbm);
-    g_tree_foreach(cdfs, print_row_prob_snow_exceedence, 0);
-    print_snow_precip_footer();
+
+    struct Table *tbl = table_new(11, g_tree_nnodes(cdfs));
+    build_title_snow(nbm, tbl);
+
+    table_add_column(tbl, -1, strlen("24 Hrs Ending / in."), "24 Hrs Ending / in.", 0, 0, 19);
+    table_add_column(tbl, 0, strlen("Snow"), "Snow", strlen("%4.1lf"), "%6.2lf", 6);
+    table_add_column(tbl, 1, strlen("0.1"), "0.1", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 2, strlen("0.5"), "0.5", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 3, strlen("1.0"), "1.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 4, strlen("2.0"), "2.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 5, strlen("4.0"), "4.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 6, strlen("6.0"), "6.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 7, strlen("8.0"), "8.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 8, strlen("12.0"), "12.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 9, strlen("18.0"), "18.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 10, strlen("24.0"), "24.0", strlen("%3.0lf"), "%5.0lf", 5);
+
+    struct TableFillerState state = {.row = 0, .tbl = tbl};
+    g_tree_foreach(cdfs, add_row_prob_snow_exceedence_to_table, &state);
+
+    table_display(tbl, stdout);
 
     g_tree_unref(cdfs);
+
+    table_free(&tbl);
 }
 
 /*-------------------------------------------------------------------------------------------------

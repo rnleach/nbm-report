@@ -1,5 +1,6 @@
 // standard lib
 #include <assert.h>
+#include <locale.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -23,6 +24,7 @@
 static void
 program_initialization()
 {
+    setlocale(LC_ALL, "");
     CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
     Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
 }
