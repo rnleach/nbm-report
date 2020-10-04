@@ -101,6 +101,8 @@ show_liquid_summary(struct NBMData const *nbm)
     table_display(tbl, stdout);
 
     g_tree_unref(cdfs);
+
+    table_free(&tbl);
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -190,6 +192,8 @@ show_snow_summary(struct NBMData const *nbm)
     table_display(tbl, stdout);
 
     g_tree_unref(cdfs);
+
+    table_free(&tbl);
 }
 
 /*-------------------------------------------------------------------------------------------------
