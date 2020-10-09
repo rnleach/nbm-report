@@ -147,13 +147,11 @@ calc_table_width(struct Table *tbl)
     // Sum the width for each column.
     for (int c = 0; c < tbl->num_cols; c++) {
         width += tbl->col_widths[c];
-        width += 2; // A space of padding each side of the value/label
         width += 1; // a vertical bar to the right of the column
     }
 
     // Don't forget the label column
     width += tbl->left_col_width;
-    width += 2; // A space of padding each side of the value/label
     width += 1; // a vertical bar to the right of the column
 
     return width;
@@ -201,34 +199,34 @@ print_header(struct Table *tbl, FILE *out)
 
     // Print the top border.
     fprintf(out, "├");
-    for (int i = 0; i < tbl->left_col_width + 2; i++) {
+    for (int i = 0; i < tbl->left_col_width; i++) {
         fprintf(out, "─");
     }
     for (int col = 0; col < tbl->num_cols; col++) {
         fprintf(out, "┬");
-        for (int i = 0; i < tbl->col_widths[col] + 2; i++) {
+        for (int i = 0; i < tbl->col_widths[col]; i++) {
             fprintf(out, "─");
         }
     }
     fprintf(out, "┤\n");
 
     // Print the column labels
-    fprintf(out, "│ ");
+    fprintf(out, "│");
     print_centered(tbl->left_col_label, tbl->left_col_width, out);
     for (int col = 0; col < tbl->num_cols; col++) {
-        fprintf(out, " │ ");
+        fprintf(out, "│");
         print_centered(tbl->col_labels[col], tbl->col_widths[col], out);
     }
-    fprintf(out, " │\n");
+    fprintf(out, "│\n");
 
     // Print the double line below.
     fprintf(out, "╞");
-    for (int i = 0; i < tbl->left_col_width + 2; i++) {
+    for (int i = 0; i < tbl->left_col_width; i++) {
         fprintf(out, "═");
     }
     for (int col = 0; col < tbl->num_cols; col++) {
         fprintf(out, "╪");
-        for (int i = 0; i < tbl->col_widths[col] + 2; i++) {
+        for (int i = 0; i < tbl->col_widths[col]; i++) {
             fprintf(out, "═");
         }
     }
@@ -243,7 +241,7 @@ print_rows(struct Table *tbl, FILE *out)
     for (int row = 0; row < tbl->num_rows; row++) {
         memset(buf, 0, sizeof(buf));
 
-        sprintf(buf, "│ ");
+        sprintf(buf, "│");
         char *next = &buf[strlen(buf)];
 
         int left_padding = 0;
@@ -263,12 +261,12 @@ print_rows(struct Table *tbl, FILE *out)
         }
 
         for (int col = 0; col < tbl->num_cols; col++) {
-            sprintf(next, " │ ");
+            sprintf(next, "│");
             next = &buf[strlen(buf)];
             sprintf(next, tbl->col_formats[col], tbl->vals[tbl->num_cols * row + col]);
             next = &buf[strlen(buf)];
         }
-        sprintf(next, " │\n");
+        sprintf(next, "│\n");
         wipe_nans(buf);
 
         fputs(buf, out);
@@ -279,12 +277,12 @@ static void
 print_bottom(struct Table *tbl, FILE *out)
 {
     fprintf(out, "╘");
-    for (int i = 0; i < tbl->left_col_width + 2; i++) {
+    for (int i = 0; i < tbl->left_col_width; i++) {
         fprintf(out, "═");
     }
     for (int col = 0; col < tbl->num_cols; col++) {
         fprintf(out, "╧");
-        for (int i = 0; i < tbl->col_widths[col] + 2; i++) {
+        for (int i = 0; i < tbl->col_widths[col]; i++) {
             fprintf(out, "═");
         }
     }
