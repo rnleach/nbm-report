@@ -25,8 +25,6 @@ struct DailySummary {
     double max_wind_gust;
     double max_wind_gust_std;
     double max_wind_dir;
-    double min_rh;
-    double max_rh;
     double precip;
     double snow;
     double prob_ltg;
@@ -39,8 +37,7 @@ daily_summary_printable(struct DailySummary const *sum)
 {
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
-           isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir) ||
-           isnan(sum->max_rh) || isnan(sum->min_rh);
+           isnan(sum->max_wind_gust) || isnan(sum->max_wind_gust_std) || isnan(sum->max_wind_dir);
 }
 
 static void *
@@ -59,8 +56,6 @@ daily_summary_new()
         .max_wind_gust = NAN,
         .max_wind_gust_std = NAN,
         .max_wind_dir = NAN,
-        .max_rh = NAN,
-        .min_rh = NAN,
         .precip = NAN,
         .snow = NAN,
         .prob_ltg = NAN,
@@ -104,20 +99,6 @@ daily_summary_access_precip(void *sm)
 {
     struct DailySummary *sum = sm;
     return &sum->precip;
-}
-
-static double *
-daily_summary_access_min_rh(void *sm)
-{
-    struct DailySummary *sum = sm;
-    return &sum->min_rh;
-}
-
-static double *
-daily_summary_access_max_rh(void *sm)
-{
-    struct DailySummary *sum = sm;
-    return &sum->max_rh;
 }
 
 static double *
@@ -178,10 +159,6 @@ daily_summary_print_as_row(void *key, void *val, void *user_data)
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
     nxt += 16;
 
-    np = snprintf(nxt, end - nxt, "│ %3.0lf%% /%3.0lf%% ", round(sum->max_rh), round(sum->min_rh));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary RH");
-    nxt += 15;
-
     np = snprintf(nxt, end - nxt, "│ %03.0lf ", round(sum->max_wind_dir));
     Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
            sum->max_wind_dir);
@@ -234,8 +211,8 @@ daily_summary_print_header(char const *site, time_t init_time)
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
     // Calculate white space to center the title.
-    int line_len = 115 - 2;
-    char header_buf[115 + 1] = {0};
+    int line_len = 102 - 2;
+    char header_buf[102 + 1] = {0};
     len = strlen(title_buf);
     int left = (line_len - len) / 2;
 
@@ -250,13 +227,13 @@ daily_summary_print_header(char const *site, time_t init_time)
 
     // clang-format off
     char const *top_border = 
-        "┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐";
+        "┌────────────────────────────────────────────────────────────────────────────────────────────────────┐";
 
     char const *header = 
-        "├─────────────────┬───────────┬───────────┬────────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┤\n"
-        "│       Date      │   MinT    │   MaxT    │ Max/Min RH │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
-        "│                 │    °F     │    °F     │   percent  │ deg │    mph  │     mph │   sky pct  │ Ltg │  in  │  in  │\n"
-        "╞═════════════════╪═══════════╪═══════════╪════════════╪═════╪═════════╪═════════╪════════════╪═════╪══════╪══════╡";
+        "├─────────────────┬───────────┬───────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┤\n"
+        "│       Date      │   MinT    │   MaxT    │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
+        "│                 │    °F     │    °F     │ deg │    mph  │     mph │   sky pct  │ Ltg │  in  │  in  │\n"
+        "╞═════════════════╪═══════════╪═══════════╪═════╪═════════╪═════════╪════════════╪═════╪══════╪══════╡";
     // clang-format on
 
     puts(top_border);
@@ -268,7 +245,7 @@ static void
 daily_summary_print_footer()
 {
     // clang-format off
-    puts("╘═════════════════╧═══════════╧═══════════╧════════════╧═════╧═════════╧═════════╧════════════╧═════╧══════╧══════╛");
+    puts("╘═════════════════╧═══════════╧═══════════╧═════╧═════════╧═════════╧════════════╧═════╧══════╧══════╛");
     // clang-format on
 }
 
@@ -338,14 +315,6 @@ build_daily_summaries(struct NBMData const *nbm)
                                      summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
                                      accum_daily_rh_t, daily_summary_new,
                                      daily_summary_access_min_t_std);
-
-    extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", keep_all,
-                                     summary_date_06z, id_func, accum_daily_rh_t, daily_summary_new,
-                                     daily_summary_access_min_rh);
-
-    extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", keep_all,
-                                     summary_date_06z, id_func, accum_daily_rh_t, daily_summary_new,
-                                     daily_summary_access_max_rh);
 
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_06z,
                                      mm_to_in, accum_last, daily_summary_new,
