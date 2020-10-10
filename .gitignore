@@ -4,6 +4,9 @@ build
 Session.vim
 tags
 
+# Data files, may be in project for testing or inspection.
+*.csv
+
 # Prerequisites
 *.d
 
