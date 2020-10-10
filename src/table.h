@@ -5,6 +5,14 @@
 /** A table meant for printing to the terminal. */
 struct Table;
 
+/** A column type descriptor. */
+enum ColumnType {
+    Table_ColumnType_TEXT,
+    Table_ColumnType_VALUE,
+    Table_ColumnType_AVG_STDEV,
+    Table_ColumnType_QUANTILES
+};
+
 /** Allocate and create a new table.
  *
  * The table is created and the row and column labels are initialized to null strings. They will
@@ -34,10 +42,10 @@ void table_add_title(struct Table *tbl, int str_len, char const title[str_len + 
  * The title and format strings are copied into the table.
  *
  * \param tbl is the target table to add a column to.
- * \param col_num is the column number to set the title for. If \c col_num is <0, then it sets the
- * title for the 'row label' column. Otherwise column numbers start at 0. If \c col_num is out of
- * range for the arguments passed in \c table_new(...), then the whole program aborts if assertions
- * are enabled. If they are not, it is not checked and the behavior undefined.
+ * \param col_num is the column number. Column numbers start at 0. If \c col_num is out of range
+ * for the arguments passed in \c table_new(...), then the whole program aborts if assertions are
+ * enabled. If they are not, it is not checked and the behavior undefined.
+ * \param type is the type of data in this column.
  * \param str_len is the length of the \c col_title string.
  * \param col_label is the string to copy in.
  * \param fmt_len is the length of the \c col_fmt string.
@@ -47,30 +55,60 @@ void table_add_title(struct Table *tbl, int str_len, char const title[str_len + 
  * \param col_width is the width of the column in printable characters. If outputs, including
  * column labels are longer than this, they will be truncated.
  */
-void table_add_column(struct Table *tbl, int col_num, int str_len,
+void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_len,
                       char const col_label[str_len + 1], int fmt_len,
                       char const col_fmt[fmt_len + 1], int col_width);
 
-/** Add a row label.
+/** Add a string value to a column.
  *
- * The label string is copied into the table.
+ * If the column type does not match (i.e. it's not a Table_ColumnType_TEXT column), then it will
+ * abort the program.
  *
  * \param tbl is the target table to add a column to.
- * \param row_num is the row number to set the lable for. Row numbers start at 0. If \c row_num is
+ * \param col_num is the column number. Column numbers start at 0. If \c col_num is out of range
+ * for the arguments passed in \c table_new(...), then the whole program aborts if assertions are
+ * enabled. If they are not, it is not checked and the behavior undefined.
+ * \param row_num is the row number of the table cell. Row numbers start at 0. If \c row_num is
  * out of range for the arguments passed in \c table_new(...), then the whole program aborts if
  * assertions are enabled. If they are not, it is not checked and the behavior is undefined.
- * \param str_len is the length of the \c col_title string.
- * \param row_label is the string to copy in.
+ * \param str_len is the length of the \c value string.
+ * \param value is the string to copy in.
  */
-void table_add_row_label(struct Table *tbl, int row_num, int str_len,
-                         char const row_label[str_len + 1]);
+void table_set_string_value(struct Table *tbl, int col_num, int row_num, int str_len,
+                            char const value[str_len + 1]);
 
 /** Add a value to the table.
  *
- * All values in the table default to NaN, which is printed as a ' - ' string. This overwrites the
- * value at \c col_num, \c row_num.
+ * If the column type does not match (i.e. it's not a Table_ColumnType_VALUE column), then it will
+ * abort the program.
+ *
+ * All double values in the table default to NaN, which is printed as a ' - ' string. This
+ * overwrites the value at \c col_num, \c row_num.
  */
-void table_add_value(struct Table *tbl, int col_num, int row_num, double value);
+void table_set_value(struct Table *tbl, int col_num, int row_num, double value);
+
+/** Add an average and standard deviation value to the table.
+ *
+ * If the column type does not match (i.e. it's not a Table_ColumnType_AVG_STDEV column), then it
+ * will abort the program.
+ *
+ * All double values in the table default to NaN, which is printed as a ' - ' string. This
+ * overwrites the value at \c col_num, \c row_num.
+ */
+void table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, double stdev);
+
+/** Add quantiles to the table.
+ *
+ * Quantiles should be the 10th, 25th, 50th, 75th, and 90th percentiles.
+ *
+ * If the column type does not match (i.e. it's not a Table_ColumnType_QUANTILES column), then it
+ * will abort the program.
+ *
+ * All double values in the table default to NaN, which is printed as a ' - ' string. This
+ * overwrites the value at \c col_num, \c row_num.
+ */
+void table_set_quantiles(struct Table *tbl, int col_num, int row_num, double q10, double q25,
+                         double q50, double q75, double q90);
 
 /** Display the table. */
 void table_display(struct Table *tbl, FILE *out);

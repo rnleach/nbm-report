@@ -44,17 +44,17 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    table_add_row_label(tbl, row, strlen(datebuf), datebuf);
-    table_add_value(tbl, 0, row, pm_value);
-    table_add_value(tbl, 1, row, prob_001);
-    table_add_value(tbl, 2, row, prob_005);
-    table_add_value(tbl, 3, row, prob_010);
-    table_add_value(tbl, 4, row, prob_025);
-    table_add_value(tbl, 5, row, prob_050);
-    table_add_value(tbl, 6, row, prob_075);
-    table_add_value(tbl, 7, row, prob_100);
-    table_add_value(tbl, 8, row, prob_150);
-    table_add_value(tbl, 9, row, prob_200);
+    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
+    table_set_value(tbl, 1, row, pm_value);
+    table_set_value(tbl, 2, row, prob_001);
+    table_set_value(tbl, 3, row, prob_005);
+    table_set_value(tbl, 4, row, prob_010);
+    table_set_value(tbl, 5, row, prob_025);
+    table_set_value(tbl, 6, row, prob_050);
+    table_set_value(tbl, 7, row, prob_075);
+    table_set_value(tbl, 8, row, prob_100);
+    table_set_value(tbl, 9, row, prob_150);
+    table_set_value(tbl, 10, row, prob_200);
 
     tbl_state->row++;
 
@@ -81,19 +81,40 @@ show_liquid_summary(struct NBMData const *nbm)
     GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", "APCP24hr_surface", mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
 
-    struct Table *tbl = table_new(10, g_tree_nnodes(cdfs));
+    struct Table *tbl = table_new(11, g_tree_nnodes(cdfs));
     build_title_liquid(nbm, tbl);
-    table_add_column(tbl, -1, strlen("24 Hrs Ending / in."), "24 Hrs Ending / in.", 0, 0, 19);
-    table_add_column(tbl, 0, strlen("Precip"), "Precip", strlen("%4.2lf"), "%6.2lf", 6);
-    table_add_column(tbl, 1, strlen("0.01"), "0.01", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 2, strlen("0.05"), "0.05", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 3, strlen("0.10"), "0.10", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 4, strlen("0.25"), "0.25", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 5, strlen("0.50"), "0.50", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 6, strlen("0.75"), "0.75", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 7, strlen("1.00"), "1.00", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 8, strlen("1.50"), "1.50", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 9, strlen("2.00"), "2.00", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
+                     "24 Hrs Ending / in.", strlen("%s"), "%s", 19);
+
+    table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%6.2lf"),
+                     "%6.2lf", 6);
+
+    table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("0.01"), "0.01", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.05"), "0.05", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("0.25"), "0.25", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("0.50"), "0.50", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("0.75"), "0.75", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("1.00"), "1.00", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("1.50"), "1.50", strlen("%3.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 10, Table_ColumnType_VALUE, strlen("2.00"), "2.00", strlen("%3.0lf"),
+                     "%5.0lf", 5);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(cdfs, add_row_prob_liquid_exceedence_to_table, &state);
@@ -146,18 +167,18 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    table_add_row_label(tbl, row, strlen(datebuf), datebuf);
-    table_add_value(tbl, 0, row, pm_value);
-    table_add_value(tbl, 1, row, prob_01);
-    table_add_value(tbl, 2, row, prob_05);
-    table_add_value(tbl, 3, row, prob_10);
-    table_add_value(tbl, 4, row, prob_20);
-    table_add_value(tbl, 5, row, prob_40);
-    table_add_value(tbl, 6, row, prob_60);
-    table_add_value(tbl, 7, row, prob_80);
-    table_add_value(tbl, 8, row, prob_120);
-    table_add_value(tbl, 9, row, prob_180);
-    table_add_value(tbl, 10, row, prob_240);
+    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
+    table_set_value(tbl, 1, row, pm_value);
+    table_set_value(tbl, 2, row, prob_01);
+    table_set_value(tbl, 3, row, prob_05);
+    table_set_value(tbl, 4, row, prob_10);
+    table_set_value(tbl, 5, row, prob_20);
+    table_set_value(tbl, 6, row, prob_40);
+    table_set_value(tbl, 7, row, prob_60);
+    table_set_value(tbl, 8, row, prob_80);
+    table_set_value(tbl, 9, row, prob_120);
+    table_set_value(tbl, 10, row, prob_180);
+    table_set_value(tbl, 11, row, prob_240);
 
     tbl_state->row++;
 
@@ -170,21 +191,43 @@ show_snow_summary(struct NBMData const *nbm)
     GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", "ASNOW24hr_surface", m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
 
-    struct Table *tbl = table_new(11, g_tree_nnodes(cdfs));
+    struct Table *tbl = table_new(12, g_tree_nnodes(cdfs));
     build_title_snow(nbm, tbl);
 
-    table_add_column(tbl, -1, strlen("24 Hrs Ending / in."), "24 Hrs Ending / in.", 0, 0, 19);
-    table_add_column(tbl, 0, strlen("Snow"), "Snow", strlen("%4.1lf"), "%6.2lf", 6);
-    table_add_column(tbl, 1, strlen("0.1"), "0.1", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 2, strlen("0.5"), "0.5", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 3, strlen("1.0"), "1.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 4, strlen("2.0"), "2.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 5, strlen("4.0"), "4.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 6, strlen("6.0"), "6.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 7, strlen("8.0"), "8.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 8, strlen("12.0"), "12.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 9, strlen("18.0"), "18.0", strlen("%3.0lf"), "%5.0lf", 5);
-    table_add_column(tbl, 10, strlen("24.0"), "24.0", strlen("%3.0lf"), "%5.0lf", 5);
+    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
+                     "24 Hrs Ending / in.", strlen("%s"), "%s", 19);
+    table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%6.1lf"),
+                     "%6.2lf", 6);
+
+    table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("0.1"), "0.1", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.5"), "0.5", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("1.0"), "1.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("2.0"), "2.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("4.0"), "4.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("6.0"), "6.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("8.0"), "8.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("12.0"), "12.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 10, Table_ColumnType_VALUE, strlen("18.0"), "18.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
+
+    table_add_column(tbl, 11, Table_ColumnType_VALUE, strlen("24.0"), "24.0", strlen("%5.0lf"),
+                     "%5.0lf", 5);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(cdfs, add_row_prob_snow_exceedence_to_table, &state);

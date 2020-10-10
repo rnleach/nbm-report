@@ -9,17 +9,95 @@
 #include <string.h>
 #include <wchar.h>
 
+struct Column {
+    char *col_label;
+    char *col_format;
+    enum ColumnType col_type;
+    int col_width;
+    char **text_values;
+    double *values1;
+    double *values2;
+    double *values3;
+    double *values4;
+    double *values5;
+};
+
+static double *
+column_new_double_vec(int num_rows)
+{
+    double *vec = calloc(num_rows, sizeof(double));
+    assert(vec);
+    for (int i = 0; i < num_rows; i++) {
+        vec[i] = NAN;
+    }
+    return vec;
+}
+
+static void
+column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int width,
+            int label_len, char const col_label[label_len + 1], int fmt_len,
+            char const col_fmt[fmt_len + 1])
+{
+    ptr->col_type = type;
+
+    switch (type) {
+    case Table_ColumnType_TEXT:
+        ptr->text_values = calloc(num_rows, sizeof(char *));
+        assert(ptr->text_values);
+        break;
+    case Table_ColumnType_QUANTILES:
+        ptr->values3 = column_new_double_vec(num_rows);
+        ptr->values4 = column_new_double_vec(num_rows);
+        ptr->values5 = column_new_double_vec(num_rows);
+        // Intentional Fall through.
+    case Table_ColumnType_AVG_STDEV:
+        ptr->values2 = column_new_double_vec(num_rows);
+        // Intentional Fall through.
+    case Table_ColumnType_VALUE:
+        ptr->values1 = column_new_double_vec(num_rows);
+        break;
+    default:
+        Stopif(true, exit(EXIT_FAILURE), "Invalid ColumnType: %d", type);
+    }
+
+    ptr->col_width = width;
+
+    char *label_buf = calloc(label_len + 1, sizeof(char));
+    assert(label_buf);
+    strncpy(label_buf, col_label, label_len + 1);
+    ptr->col_label = label_buf;
+
+    char *fmt_buf = calloc(fmt_len + 1, sizeof(char));
+    assert(fmt_buf);
+    strncpy(fmt_buf, col_fmt, fmt_len + 1);
+    ptr->col_format = fmt_buf;
+}
+
+static void
+column_free(struct Column *ptr, int num_rows)
+{
+    free(ptr->col_label);
+    free(ptr->col_format);
+
+    if (ptr->text_values) {
+        for (int i = 0; i < num_rows; i++) {
+            free(ptr->text_values[i]);
+        }
+    }
+
+    free(ptr->text_values);
+    free(ptr->values1);
+    free(ptr->values2);
+    free(ptr->values3);
+    free(ptr->values4);
+    free(ptr->values5);
+}
+
 struct Table {
     int num_cols;
     int num_rows;
     char *title;
-    char **col_labels;
-    char **col_formats;
-    int *col_widths;
-    char *left_col_label; // Column Label for the column of row labels, the leftmost column.
-    int left_col_width;
-    char **row_labels;
-    double *vals;
+    struct Column *cols;
 };
 
 struct Table *
@@ -28,30 +106,15 @@ table_new(int num_cols, int num_rows)
     struct Table *new = calloc(1, sizeof(struct Table));
     assert(new);
 
-    char **buf = calloc(2 * num_cols + num_rows, sizeof(char *));
-    assert(buf);
+    struct Column *new_cols = calloc(num_cols, sizeof(struct Column));
+    assert(new_cols);
 
     *new = (struct Table){
         .num_cols = num_cols,
         .num_rows = num_rows,
         .title = 0,
-        .col_labels = &buf[0],
-        .col_formats = &buf[num_cols],
-        .col_widths = calloc(num_cols, sizeof(int)),
-        .left_col_label = 0,
-        .row_labels = &buf[2 * num_cols],
-        .vals = calloc(num_cols * num_rows, sizeof(double)),
+        .cols = new_cols,
     };
-
-    assert(new->col_labels);
-    assert(new->col_formats);
-    assert(new->col_widths);
-    assert(new->row_labels);
-    assert(new->vals);
-
-    for (int i = 0; i < num_cols * num_rows; i++) {
-        new->vals[i] = NAN;
-    }
 
     return new;
 }
@@ -63,16 +126,8 @@ table_free(struct Table **ptrptr)
 
     free(ptr->title);
     for (int i = 0; i < ptr->num_cols; i++) {
-        free(ptr->col_labels[i]);
-        free(ptr->col_formats[i]);
+        column_free(&ptr->cols[i], ptr->num_rows);
     }
-    for (int i = 0; i < ptr->num_rows; i++) {
-        free(ptr->row_labels[i]);
-    }
-    free(ptr->col_labels);
-    free(ptr->col_widths);
-    free(ptr->left_col_label);
-    free(ptr->vals);
     free(ptr);
 
     *ptrptr = 0;
@@ -88,54 +143,89 @@ table_add_title(struct Table *tbl, int str_len, char const title[str_len + 1])
 }
 
 void
-table_add_column(struct Table *tbl, int col_num, int str_len, char const col_label[str_len + 1],
-                 int fmt_len, char const col_fmt[fmt_len + 1], int col_width)
+table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_len,
+                 char const col_label[str_len + 1], int fmt_len, char const col_fmt[fmt_len + 1],
+                 int col_width)
 {
     assert(tbl->num_cols > col_num);
-    assert(col_num >= -1);
+    assert(col_num >= 0);
 
-    if (col_num >= 0) { // Not the row label column header
-        char *label_buf = calloc(str_len + 1, sizeof(char));
-        assert(label_buf);
-        strncpy(label_buf, col_label, str_len + 1);
-        tbl->col_labels[col_num] = label_buf;
+    struct Column *col = &tbl->cols[col_num];
 
-        char *fmt_buf = calloc(fmt_len + 1, sizeof(char));
-        assert(fmt_buf);
-        strncpy(fmt_buf, col_fmt, fmt_len + 1);
-        tbl->col_formats[col_num] = fmt_buf;
+    // Check that this hasn't been set up already.
+    assert(!col->col_label);
+    assert(!col->col_format);
 
-        tbl->col_widths[col_num] = col_width;
-    } else {
-        char *label_buf = calloc(str_len + 1, sizeof(char));
-        assert(label_buf);
-        strncpy(label_buf, col_label, str_len + 1);
-        tbl->left_col_label = label_buf;
-
-        tbl->left_col_width = col_width;
-    }
+    column_init(col, type, tbl->num_rows, col_width, str_len, col_label, fmt_len, col_fmt);
 }
 
 void
-table_add_row_label(struct Table *tbl, int row_num, int str_len, char const row_label[str_len + 1])
+table_set_string_value(struct Table *tbl, int col_num, int row_num, int str_len,
+                       char const value[str_len + 1])
 {
     assert(tbl->num_rows > row_num);
     assert(row_num >= 0);
 
+    struct Column *col = &tbl->cols[col_num];
+    Stopif(col->col_type != Table_ColumnType_TEXT, exit(EXIT_FAILURE),
+           "Can't assign text to column.");
+
     char *buf = calloc(str_len + 1, sizeof(char));
     assert(buf);
-    strncpy(buf, row_label, str_len + 1);
-    tbl->row_labels[row_num] = buf;
+    strncpy(buf, value, str_len + 1);
+
+    col->text_values[row_num] = buf;
 }
 
 void
-table_add_value(struct Table *tbl, int col_num, int row_num, double value)
+table_set_value(struct Table *tbl, int col_num, int row_num, double value)
 {
     assert(tbl->num_cols > col_num);
     assert(tbl->num_rows > row_num);
     assert(col_num >= 0 && row_num >= 0);
 
-    tbl->vals[tbl->num_cols * row_num + col_num] = value;
+    struct Column *col = &tbl->cols[col_num];
+
+    Stopif(col->col_type != Table_ColumnType_VALUE, exit(EXIT_FAILURE),
+           "Can't assign single value to column.");
+
+    col->values1[row_num] = value;
+}
+
+void
+table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, double stdev)
+{
+    assert(tbl->num_cols > col_num);
+    assert(tbl->num_rows > row_num);
+    assert(col_num >= 0 && row_num >= 0);
+
+    struct Column *col = &tbl->cols[col_num];
+
+    Stopif(col->col_type != Table_ColumnType_AVG_STDEV, exit(EXIT_FAILURE),
+           "Can't assign average and standard deviation to column.");
+
+    col->values1[row_num] = avg;
+    col->values2[row_num] = stdev;
+}
+
+void
+table_set_quantiles(struct Table *tbl, int col_num, int row_num, double q10, double q25, double q50,
+                    double q75, double q90)
+{
+    assert(tbl->num_cols > col_num);
+    assert(tbl->num_rows > row_num);
+    assert(col_num >= 0 && row_num >= 0);
+
+    struct Column *col = &tbl->cols[col_num];
+
+    Stopif(col->col_type != Table_ColumnType_QUANTILES, exit(EXIT_FAILURE),
+           "Can't assign quantiles to column.");
+
+    col->values1[row_num] = q10;
+    col->values2[row_num] = q25;
+    col->values3[row_num] = q50;
+    col->values4[row_num] = q75;
+    col->values5[row_num] = q90;
 }
 
 static int
@@ -146,13 +236,9 @@ calc_table_width(struct Table *tbl)
 
     // Sum the width for each column.
     for (int c = 0; c < tbl->num_cols; c++) {
-        width += tbl->col_widths[c];
+        width += tbl->cols[c].col_width;
         width += 1; // a vertical bar to the right of the column
     }
-
-    // Don't forget the label column
-    width += tbl->left_col_width;
-    width += 1; // a vertical bar to the right of the column
 
     return width;
 }
@@ -199,38 +285,95 @@ print_header(struct Table *tbl, FILE *out)
 
     // Print the top border.
     fprintf(out, "├");
-    for (int i = 0; i < tbl->left_col_width; i++) {
+    for (int i = 0; i < tbl->cols[0].col_width; i++) {
         fprintf(out, "─");
     }
-    for (int col = 0; col < tbl->num_cols; col++) {
+    for (int col = 1; col < tbl->num_cols; col++) {
         fprintf(out, "┬");
-        for (int i = 0; i < tbl->col_widths[col]; i++) {
+        for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "─");
         }
     }
     fprintf(out, "┤\n");
 
     // Print the column labels
-    fprintf(out, "│");
-    print_centered(tbl->left_col_label, tbl->left_col_width, out);
     for (int col = 0; col < tbl->num_cols; col++) {
         fprintf(out, "│");
-        print_centered(tbl->col_labels[col], tbl->col_widths[col], out);
+        print_centered(tbl->cols[col].col_label, tbl->cols[col].col_width, out);
     }
     fprintf(out, "│\n");
 
     // Print the double line below.
     fprintf(out, "╞");
-    for (int i = 0; i < tbl->left_col_width; i++) {
+    for (int i = 0; i < tbl->cols[0].col_width; i++) {
         fprintf(out, "═");
     }
-    for (int col = 0; col < tbl->num_cols; col++) {
+    for (int col = 1; col < tbl->num_cols; col++) {
         fprintf(out, "╪");
-        for (int i = 0; i < tbl->col_widths[col]; i++) {
+        for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "═");
         }
     }
     fprintf(out, "╡\n");
+}
+
+static char *
+print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, char buf[buf_size])
+{
+    char *next = &buf[strlen(buf)];
+    struct Column *col = &tbl->cols[col_num];
+    char *fmt = col->col_format;
+
+    char small_buf[64] = {0};
+    switch (col->col_type) {
+    case Table_ColumnType_TEXT: {
+        char *val = col->text_values[row_num];
+        if (val) {
+            sprintf(small_buf, fmt, val);
+            sprintf(next, "%-*s", col->col_width, small_buf);
+        } else {
+            // Fill with spaces.
+            for (int i = 0; i < col->col_width; i++) {
+                next[i] = ' ';
+            }
+        }
+        break;
+    }
+    case Table_ColumnType_VALUE: {
+        double val = col->values1[row_num];
+
+        sprintf(small_buf, fmt, val);
+        sprintf(next, "%*s", col->col_width, small_buf);
+        break;
+    }
+    case Table_ColumnType_AVG_STDEV: {
+        double avg = col->values1[row_num];
+        double stdev = col->values2[row_num];
+
+        sprintf(small_buf, fmt, avg, stdev);
+        sprintf(next, "%*s", col->col_width, small_buf);
+        break;
+    }
+    case Table_ColumnType_QUANTILES: {
+        double q10 = col->values1[row_num];
+        double q25 = col->values2[row_num];
+        double q50 = col->values3[row_num];
+        double q75 = col->values4[row_num];
+        double q90 = col->values5[row_num];
+
+        sprintf(small_buf, fmt, q10, q25, q50, q75, q90);
+        sprintf(next, "%*s", col->col_width, small_buf);
+        break;
+    }
+    default:
+        assert(false);
+    }
+
+    next = &next[strlen(next)];
+    sprintf(next, "│");
+
+    next = &next[strlen(next)];
+    return next;
 }
 
 static void
@@ -240,33 +383,16 @@ print_rows(struct Table *tbl, FILE *out)
 
     for (int row = 0; row < tbl->num_rows; row++) {
         memset(buf, 0, sizeof(buf));
+        char *next = &buf[0];
 
-        sprintf(buf, "│");
-        char *next = &buf[strlen(buf)];
-
-        int left_padding = 0;
-        if (tbl->row_labels[row]) {
-            left_padding = tbl->left_col_width - strlen(tbl->row_labels[row]);
-        } else {
-            left_padding = tbl->left_col_width;
-        }
-        for (int i = 0; i < left_padding; i++) {
-            next[i] = ' ';
-        }
-        next = &buf[strlen(buf)];
-
-        if (tbl->row_labels[row]) {
-            sprintf(next, "%s", tbl->row_labels[row]);
-            next = &buf[strlen(buf)];
-        }
+        sprintf(next, "│");
+        next = &next[strlen(next)];
 
         for (int col = 0; col < tbl->num_cols; col++) {
-            sprintf(next, "│");
-            next = &buf[strlen(buf)];
-            sprintf(next, tbl->col_formats[col], tbl->vals[tbl->num_cols * row + col]);
-            next = &buf[strlen(buf)];
+            next = print_table_value(tbl, col, row, sizeof(buf) - (next - buf), next);
         }
-        sprintf(next, "│\n");
+
+        sprintf(next, "\n");
         wipe_nans(buf);
 
         fputs(buf, out);
@@ -277,12 +403,12 @@ static void
 print_bottom(struct Table *tbl, FILE *out)
 {
     fprintf(out, "╘");
-    for (int i = 0; i < tbl->left_col_width; i++) {
+    for (int i = 0; i < tbl->cols[0].col_width; i++) {
         fprintf(out, "═");
     }
-    for (int col = 0; col < tbl->num_cols; col++) {
+    for (int col = 1; col < tbl->num_cols; col++) {
         fprintf(out, "╧");
-        for (int i = 0; i < tbl->col_widths[col]; i++) {
+        for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "═");
         }
     }
