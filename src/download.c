@@ -111,6 +111,42 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
+static void
+format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 1])
+{
+    bool is_name = false;
+
+    // Check for spaces - if so - it's a name.
+    // Check for numbers - if so - it's a site.
+    for (char const *c = site; *c; c++) {
+        if (isspace(*c)) {
+            is_name = true;
+            break;
+        } else if (isdigit(*c)) {
+            break;
+        }
+    }
+
+    if (is_name) {
+        // Copy into the new string exactly, except replace ' ' by "%20"
+        int j = 0;
+        for (int i = 0; site[i]; i++) {
+            if (isspace(site[i])) {
+                url_site[j] = '%';
+                url_site[j + 1] = '2';
+                url_site[j + 2] = '0';
+                j += 3;
+            } else {
+                url_site[j] = site[i];
+                j += 1;
+            }
+        }
+    } else {
+        strcpy(url_site, site);
+        to_uppercase(url_site);
+    }
+}
+
 struct RawNbmData *
 retrieve_data_for_site(char const site[static 1])
 {
@@ -120,6 +156,9 @@ retrieve_data_for_site(char const site[static 1])
     char *data_site = malloc(strlen(site) + 1);
     strcpy(data_site, site);
     to_uppercase(data_site);
+
+    char url_site[64] = {0};
+    format_site_for_url(sizeof(url_site), url_site, site);
 
     CURL *curl = curl_easy_init();
     Stopif(!curl, return 0, "curl_easy_init failed.");
@@ -145,7 +184,7 @@ retrieve_data_for_site(char const site[static 1])
     char const *url = 0;
     do {
         data_init_time = calc_init_time(attempt_number);
-        url = build_download_url(data_site, data_init_time);
+        url = build_download_url(url_site, data_init_time);
         assert(url);
 
         attempt_number++;
