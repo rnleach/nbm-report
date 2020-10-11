@@ -1,6 +1,7 @@
 #include "daily_summary.h"
 #include "nbm_data.h"
 #include "summarize.h"
+#include "table.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -33,7 +34,7 @@ struct DailySummary {
 };
 
 static bool
-daily_summary_printable(struct DailySummary const *sum)
+daily_summary_not_printable(struct DailySummary const *sum)
 {
     return isnan(sum->max_t_f) || isnan(sum->max_t_std) || isnan(sum->min_t_f) ||
            isnan(sum->min_t_std) || isnan(sum->max_wind_mph) || isnan(sum->max_wind_std) ||
@@ -129,126 +130,6 @@ daily_summary_access_max_t(void *sm)
     return &sum->max_t_f;
 }
 
-#define MAX_ROW_LEN 256
-static int
-daily_summary_print_as_row(void *key, void *val, void *user_data)
-{
-    time_t *vt = key;
-    struct DailySummary *sum = val;
-
-    if (*vt == 0)
-        return false;
-
-    if (daily_summary_printable(val))
-        return false;
-
-    char buf[MAX_ROW_LEN] = {0};
-    char *nxt = &buf[0];
-    char *const end = &buf[MAX_ROW_LEN - 1];
-
-    strftime(buf, MAX_ROW_LEN, "│ %a, %Y-%m-%d ", gmtime(vt));
-    nxt += 20;
-
-    int np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->min_t_f),
-                      round(sum->min_t_std * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary min_t");
-    nxt += 16;
-
-    np = snprintf(nxt, end - nxt, "│ %3.0lf° ±%4.1lf ", round(sum->max_t_f),
-                  round(sum->max_t_std * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary max_t");
-    nxt += 16;
-
-    np = snprintf(nxt, end - nxt, "│ %03.0lf ", round(sum->max_wind_dir));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wdir: %lf",
-           sum->max_wind_dir);
-    nxt += 8;
-
-    np = snprintf(nxt, end - nxt, "│ %3.0lf ±%2.0lf ", round(sum->max_wind_mph),
-                  round(sum->max_wind_std));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary wind spd");
-    nxt += 13;
-
-    np = snprintf(nxt, end - nxt, "│ %3.0lf ±%2.0lf ", round(sum->max_wind_gust),
-                  round(sum->max_wind_gust_std));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary gust: g %lf",
-           sum->max_wind_gust);
-    nxt += 13;
-
-    np =
-        snprintf(nxt, end - nxt, "│ %3.0lf%% /%3.0lf%% ", round(sum->mrn_sky), round(sum->aft_sky));
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary sky");
-    nxt += 15;
-
-    np = snprintf(nxt, end - nxt, "│ %3.0lf ", sum->prob_ltg);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary ltg");
-    nxt += 8;
-
-    np = snprintf(nxt, end - nxt, "│ %4.2lf ", round(sum->precip * 100.0) / 100.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary precip");
-    nxt += 9;
-
-    np = snprintf(nxt, end - nxt, "│ %4.1lf │", round(sum->snow * 10.0) / 10.0);
-    Stopif(np >= end - nxt, *end = 0, "print buffer overflow daily summary snow");
-    nxt += 11;
-
-    wipe_nans(buf);
-
-    printf("%s\n", buf);
-
-    return false;
-}
-
-static void
-daily_summary_print_header(char const *site, time_t init_time)
-{
-
-    // Build a title.
-    char title_buf[100] = {0};
-    struct tm init = *gmtime(&init_time);
-    strcpy(title_buf, site);
-    int len = strlen(title_buf);
-    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
-
-    // Calculate white space to center the title.
-    int line_len = 102 - 2;
-    char header_buf[102 + 1] = {0};
-    len = strlen(title_buf);
-    int left = (line_len - len) / 2;
-
-    // Print the white spaces and title.
-    for (int i = 0; i < left; i++) {
-        header_buf[i] = ' ';
-    }
-    strcpy(&header_buf[left], title_buf);
-    for (int i = left + len; i < line_len; i++) {
-        header_buf[i] = ' ';
-    }
-
-    // clang-format off
-    char const *top_border = 
-        "┌────────────────────────────────────────────────────────────────────────────────────────────────────┐";
-
-    char const *header = 
-        "├─────────────────┬───────────┬───────────┬─────┬─────────┬─────────┬────────────┬─────┬──────┬──────┤\n"
-        "│       Date      │   MinT    │   MaxT    │ Dir │   Speed │    Gust │   Mrn/Aft  │ Prb │ Rain │ Snow │\n"
-        "│                 │    °F     │    °F     │ deg │    mph  │     mph │   sky pct  │ Ltg │  in  │  in  │\n"
-        "╞═════════════════╪═══════════╪═══════════╪═════╪═════════╪═════════╪════════════╪═════╪══════╪══════╡";
-    // clang-format on
-
-    puts(top_border);
-    printf("│%s│\n", header_buf);
-    puts(header);
-}
-
-static void
-daily_summary_print_footer()
-{
-    // clang-format off
-    puts("╘═════════════════╧═══════════╧═══════════╧═════╧═════════╧═════════╧════════════╧═════╧══════╧══════╛");
-    // clang-format on
-}
-
 // Most values can be considered in isolation, or one column at a time, winds are the exception. So
 // winds get their own extractor function.
 static void
@@ -339,6 +220,55 @@ build_daily_summaries(struct NBMData const *nbm)
     return sums;
 }
 
+static void
+build_title(struct NBMData const *nbm, struct Table *tbl)
+{
+    char title_buf[256] = {0};
+    time_t init_time = nbm_data_init_time(nbm);
+    struct tm init = *gmtime(&init_time);
+    sprintf(title_buf, "Daily Summary for %s - ", nbm_data_site(nbm));
+    int len = strlen(title_buf);
+    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
+
+    table_add_title(tbl, strlen(title_buf), title_buf);
+}
+
+struct TableFillerState {
+    int row;
+    struct Table *tbl;
+};
+
+static int
+add_row_to_table(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    struct DailySummary *sum = value;
+    struct TableFillerState *tbl_state = state;
+    struct Table *tbl = tbl_state->tbl;
+    int row = tbl_state->row;
+
+    if (daily_summary_not_printable(sum))
+        return false;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), " %a, %Y-%m-%d ", gmtime(vt));
+
+    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
+    table_set_avg_std(tbl, 1, row, sum->min_t_f, sum->min_t_std);
+    table_set_avg_std(tbl, 2, row, sum->max_t_f, sum->max_t_std);
+    table_set_value(tbl, 3, row, sum->max_wind_dir);
+    table_set_avg_std(tbl, 4, row, sum->max_wind_mph, sum->max_wind_std);
+    table_set_avg_std(tbl, 5, row, sum->max_wind_gust, sum->max_wind_gust_std);
+    table_set_avg_std(tbl, 6, row, sum->mrn_sky, sum->aft_sky);
+    table_set_value(tbl, 7, row, sum->prob_ltg);
+    table_set_value(tbl, 8, row, sum->precip);
+    table_set_value(tbl, 9, row, sum->snow);
+
+    tbl_state->row++;
+
+    return false;
+}
+
 /*-------------------------------------------------------------------------------------------------
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
@@ -347,9 +277,47 @@ show_daily_summary(struct NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
 
-    daily_summary_print_header(nbm_data_site(nbm), nbm_data_init_time(nbm));
-    g_tree_foreach(sums, daily_summary_print_as_row, 0);
-    daily_summary_print_footer();
+    // --
+    struct Table *tbl = table_new(10, g_tree_nnodes(sums));
+
+    build_title(nbm, tbl);
+
+    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("Day/Date"), "Day/Date", strlen("%s"),
+                     "%s", 17);
+
+    table_add_column(tbl, 1, Table_ColumnType_AVG_STDEV, strlen("MinT (F)"), "MinT (F)",
+                     strlen(" %3.0lf° ±%4.1lf "), " %3.0lf° ±%4.1lf ", 12);
+
+    table_add_column(tbl, 2, Table_ColumnType_AVG_STDEV, strlen("MaxT (F)"), "MaxT (F)",
+                     strlen(" %3.0lf° ±%4.1lf "), " %3.0lf° ±%4.1lf ", 12);
+
+    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("Dir"), "Dir", strlen(" %3.0lf "),
+                     " %3.0lf ", 5);
+
+    table_add_column(tbl, 4, Table_ColumnType_AVG_STDEV, strlen("Spd (mph)"), "Spd (mph)",
+                     strlen(" %3.0lf ±%2.0lf "), " %3.0lf ±%2.0lf ", 9);
+
+    table_add_column(tbl, 5, Table_ColumnType_AVG_STDEV, strlen("Gust"), "Gust",
+                     strlen(" %3.0lf ±%2.0lf "), " %3.0lf ±%2.0lf ", 9);
+
+    table_add_column(tbl, 6, Table_ColumnType_AVG_STDEV, strlen("Sky Pct"), "Sky Pct",
+                     strlen("%3.0lf%% /%3.0lf%% "), "%3.0lf%% /%3.0lf%% ", 12);
+
+    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("Ltg (%)"), "Ltg (%)",
+                     strlen("%3.0lf%% "), "%3.0lf%% ", 7);
+
+    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%5.2lf "),
+                     "%5.2lf ", 6);
+
+    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%5.1lf "),
+                     "%5.1lf ", 6);
+
+    struct TableFillerState state = {.row = 0, .tbl = tbl};
+    g_tree_foreach(sums, add_row_to_table, &state);
+
+    table_display(tbl, stdout);
+
+    table_free(&tbl);
 
     g_tree_unref(sums);
 }

@@ -98,6 +98,7 @@ struct Table {
     int num_rows;
     char *title;
     struct Column *cols;
+    bool *printable;
 };
 
 struct Table *
@@ -109,11 +110,18 @@ table_new(int num_cols, int num_rows)
     struct Column *new_cols = calloc(num_cols, sizeof(struct Column));
     assert(new_cols);
 
+    bool *flags = calloc(num_rows, sizeof(bool));
+    assert(flags);
+    for (int i = 0; i < num_rows; i++) {
+        flags[i] = false;
+    }
+
     *new = (struct Table){
         .num_cols = num_cols,
         .num_rows = num_rows,
         .title = 0,
         .cols = new_cols,
+        .printable = flags,
     };
 
     return new;
@@ -128,6 +136,7 @@ table_free(struct Table **ptrptr)
     for (int i = 0; i < ptr->num_cols; i++) {
         column_free(&ptr->cols[i], ptr->num_rows);
     }
+    free(ptr->printable);
     free(ptr);
 
     *ptrptr = 0;
@@ -175,6 +184,8 @@ table_set_string_value(struct Table *tbl, int col_num, int row_num, int str_len,
     strncpy(buf, value, str_len + 1);
 
     col->text_values[row_num] = buf;
+
+    tbl->printable[row_num] = true;
 }
 
 void
@@ -190,6 +201,8 @@ table_set_value(struct Table *tbl, int col_num, int row_num, double value)
            "Can't assign single value to column.");
 
     col->values1[row_num] = value;
+
+    tbl->printable[row_num] = true;
 }
 
 void
@@ -206,6 +219,8 @@ table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, doubl
 
     col->values1[row_num] = avg;
     col->values2[row_num] = stdev;
+
+    tbl->printable[row_num] = true;
 }
 
 void
@@ -226,6 +241,8 @@ table_set_quantiles(struct Table *tbl, int col_num, int row_num, double q10, dou
     col->values3[row_num] = q50;
     col->values4[row_num] = q75;
     col->values5[row_num] = q90;
+
+    tbl->printable[row_num] = true;
 }
 
 static int
@@ -382,6 +399,10 @@ print_rows(struct Table *tbl, FILE *out)
     static char buf[512] = {0};
 
     for (int row = 0; row < tbl->num_rows; row++) {
+        if (!tbl->printable[row]) {
+            continue;
+        }
+
         memset(buf, 0, sizeof(buf));
         char *next = &buf[0];
 
