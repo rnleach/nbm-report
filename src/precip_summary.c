@@ -31,7 +31,6 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     int row = tbl_state->row;
 
     double prob_001 = round(interpolate_prob_of_exceedance(dist, 0.01));
-    double prob_005 = round(interpolate_prob_of_exceedance(dist, 0.05));
     double prob_010 = round(interpolate_prob_of_exceedance(dist, 0.10));
     double prob_025 = round(interpolate_prob_of_exceedance(dist, 0.25));
     double prob_050 = round(interpolate_prob_of_exceedance(dist, 0.50));
@@ -47,14 +46,13 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
     table_set_value(tbl, 1, row, pm_value);
     table_set_value(tbl, 2, row, prob_001);
-    table_set_value(tbl, 3, row, prob_005);
-    table_set_value(tbl, 4, row, prob_010);
-    table_set_value(tbl, 5, row, prob_025);
-    table_set_value(tbl, 6, row, prob_050);
-    table_set_value(tbl, 7, row, prob_075);
-    table_set_value(tbl, 8, row, prob_100);
-    table_set_value(tbl, 9, row, prob_150);
-    table_set_value(tbl, 10, row, prob_200);
+    table_set_value(tbl, 3, row, prob_010);
+    table_set_value(tbl, 4, row, prob_025);
+    table_set_value(tbl, 5, row, prob_050);
+    table_set_value(tbl, 6, row, prob_075);
+    table_set_value(tbl, 7, row, prob_100);
+    table_set_value(tbl, 8, row, prob_150);
+    table_set_value(tbl, 9, row, prob_200);
 
     tbl_state->row++;
 
@@ -81,7 +79,7 @@ show_liquid_summary(struct NBMData const *nbm)
     GTree *cdfs = extract_cdfs(nbm, "APCP24hr_surface_%d%% level", "APCP24hr_surface", mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
 
-    struct Table *tbl = table_new(11, g_tree_nnodes(cdfs));
+    struct Table *tbl = table_new(10, g_tree_nnodes(cdfs));
     build_title_liquid(nbm, tbl);
     table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
                      "24 Hrs Ending / in.", strlen("%s"), "%s", 19);
@@ -92,28 +90,25 @@ show_liquid_summary(struct NBMData const *nbm)
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("0.01"), "0.01", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.05"), "0.05", strlen("%3.0lf"),
+    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
+    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("0.25"), "0.25", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("0.25"), "0.25", strlen("%3.0lf"),
+    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("0.50"), "0.50", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("0.50"), "0.50", strlen("%3.0lf"),
+    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("0.75"), "0.75", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("0.75"), "0.75", strlen("%3.0lf"),
+    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("1.00"), "1.00", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("1.00"), "1.00", strlen("%3.0lf"),
+    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("1.50"), "1.50", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
-    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("1.50"), "1.50", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 10, Table_ColumnType_VALUE, strlen("2.00"), "2.00", strlen("%3.0lf"),
+    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("2.00"), "2.00", strlen("%3.0lf"),
                      "%5.0lf", 5);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
