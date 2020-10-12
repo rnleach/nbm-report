@@ -60,7 +60,7 @@ print_usage(char **argv)
                     "then the time valid at the end of the period is reported.\n"
                     "So 24-hr probability of precipitation is looking back 24 hours.\n";
 
-        puts(options);
+    puts(options);
 }
 
 struct OptArgs {

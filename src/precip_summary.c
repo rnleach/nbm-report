@@ -62,7 +62,6 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 static void
 build_title_liquid(struct NBMData const *nbm, struct Table *tbl)
 {
-
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
