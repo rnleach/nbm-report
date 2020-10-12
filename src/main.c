@@ -16,6 +16,7 @@
 #include "nbm_data.h"
 #include "precip_summary.h"
 #include "raw_nbm_data.h"
+#include "temp_summary.h"
 #include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
@@ -46,20 +47,20 @@ print_usage(char **argv)
     printf("Usage: %s site_id\n", progname);
     printf("e.g. : %s kmso\n\n", progname);
 
-    char *options =
-        "Options:\n"
-        "   -s show summary of snow forecast.\n"
-        "   -r show summary of rain / liquid equivalent forecast.\n"
-        "   -n do not show main summary.\n"
-        "\n\n"
-        "For the purpose of this program, days run from 06Z to 06Z. Ideally, all daily\n"
-        "summary values would cut-off at this time, but some of the variables, such as\n"
-        "24 hour rain or snow, may not line up exactly for every run. In these cases, the\n"
-        "last value for the day will be used. The same goes for any longer range\n"
-        "summaries. If the summary is generated from 6-hrly or less data, then the day\n"
-        "break is consistently 06Z.";
+    char *options = "Options:\n"
+                    "   -t show temperature forecast quantiles.\n"
+                    "   -r show summary of rain / liquid equivalent forecast.\n"
+                    "   -s show summary of snow forecast.\n"
+                    "   -n do not show main summary.\n"
+                    "\n\n"
+                    "For the purpose of this program, days run from 06Z to 06Z.\n"
+                    "This only applies to variables that are sampled or summed\n"
+                    "over hourly, 3-hourly, or 6-hourly forecast values. If a\n"
+                    "parameter is a 12, 24, 48, or 72 hour summary from the NBM,\n"
+                    "then the time valid at the end of the period is reported.\n"
+                    "So 24-hr probability of precipitation is looking back 24 hours.\n";
 
-    puts(options);
+        puts(options);
 }
 
 struct OptArgs {
@@ -67,25 +68,34 @@ struct OptArgs {
     bool show_summary;
     bool show_rain;
     bool show_snow;
+    bool show_temperature;
 };
 
 static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
     Stopif(argc < 2, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.\n");
-    Stopif(argc > 5, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
+    Stopif(argc > 6, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
 
     struct OptArgs result = {
-        .site = 0, .show_summary = true, .show_rain = false, .show_snow = false};
+        .site = 0,
+        .show_summary = true,
+        .show_rain = false,
+        .show_snow = false,
+        .show_temperature = false,
+    };
 
     int opt;
-    while ((opt = getopt(argc, argv, "srn")) != -1) {
+    while ((opt = getopt(argc, argv, "nrst")) != -1) {
         switch (opt) {
         case 's':
             result.show_snow = true;
             break;
         case 'r':
             result.show_rain = true;
+            break;
+        case 't':
+            result.show_temperature = true;
             break;
         case 'n':
             result.show_summary = false;
@@ -156,6 +166,9 @@ main(int argc, char *argv[argc + 1])
 
     if (opt_args.show_summary)
         show_daily_summary(parsed_nbm_data);
+
+    if (opt_args.show_temperature)
+        show_temperature_summary(parsed_nbm_data);
 
     if (opt_args.show_rain)
         show_precip_summary(parsed_nbm_data, 'r');
