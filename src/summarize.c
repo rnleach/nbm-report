@@ -1,5 +1,5 @@
-#include "summarize.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -205,10 +205,15 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
         }
     }
 
-    // If unable to bracket the target value, then 100% of data was below value and prob
-    // of exceedance is 0.
+    // If unable to bracket the target value, then 100% of data was below value and the probability
+    // of exceedance is 0, or the first percentile marker we had was greater than the target value
+    // and and the probability of exceedance is 100.0
     if (left == right) {
-        return 0.0;
+        if (xs[0] >= target_val) {
+            return 100.0;
+        } else {
+            return 0.0;
+        }
     }
 
     double left_x = xs[left];
