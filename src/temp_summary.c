@@ -276,6 +276,8 @@ show_temperature_summary(struct NBMData const *nbm)
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("MinT (F)"), "MinT (F)",
                      strlen("   %3.0lf° "), "   %3.0lf° ", 8);
 
+    table_set_double_left_border(tbl, 1);
+
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen(" %3.0lf° "),
                      " %3.0lf° ", 6);
 
@@ -293,6 +295,8 @@ show_temperature_summary(struct NBMData const *nbm)
 
     table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("MaxT (F)"), "MaxT (F)",
                      strlen("   %3.0lf° "), "   %3.0lf° ", 8);
+
+    table_set_double_left_border(tbl, 7);
 
     table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen(" %3.0lf° "),
                      " %3.0lf° ", 6);

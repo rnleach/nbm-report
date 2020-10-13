@@ -86,8 +86,12 @@ show_liquid_summary(struct NBMData const *nbm)
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%6.2lf"),
                      "%6.2lf", 6);
 
+    table_set_double_left_border(tbl, 1);
+
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("0.01"), "0.01", strlen("%3.0lf"),
                      "%5.0lf", 5);
+
+    table_set_double_left_border(tbl, 2);
 
     table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
                      "%5.0lf", 5);
@@ -193,8 +197,12 @@ show_snow_summary(struct NBMData const *nbm)
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%6.1lf"),
                      "%6.2lf", 6);
 
+    table_set_double_left_border(tbl, 1);
+
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("0.1"), "0.1", strlen("%5.0lf"),
                      "%5.0lf", 5);
+
+    table_set_double_left_border(tbl, 2);
 
     table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("0.5"), "0.5", strlen("%5.0lf"),
                      "%5.0lf", 5);
