@@ -59,6 +59,9 @@ void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int 
                       char const col_label[str_len + 1], int fmt_len,
                       char const col_fmt[fmt_len + 1], int col_width);
 
+/** Set the left border of a column to have a double border */
+void table_set_double_left_border(struct Table *tbl, int col_num);
+
 /** Add a string value to a column.
  *
  * If the column type does not match (i.e. it's not a Table_ColumnType_TEXT column), then it will

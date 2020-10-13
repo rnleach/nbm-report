@@ -15,6 +15,7 @@ struct Column {
     enum ColumnType col_type;
     int col_width;
     char **text_values;
+    bool double_left_border;
     double *values1;
     double *values2;
     double *values3;
@@ -61,6 +62,7 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
     }
 
     ptr->col_width = width;
+    ptr->double_left_border = false;
 
     char *label_buf = calloc(label_len + 1, sizeof(char));
     assert(label_buf);
@@ -166,6 +168,15 @@ table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_l
     assert(!col->col_format);
 
     column_init(col, type, tbl->num_rows, col_width, str_len, col_label, fmt_len, col_fmt);
+}
+
+void
+table_set_double_left_border(struct Table *tbl, int col_num)
+{
+    assert(tbl->num_cols > col_num);
+    assert(col_num >= 0);
+
+    tbl->cols[col_num].double_left_border = true;
 }
 
 void
@@ -306,7 +317,11 @@ print_header(struct Table *tbl, FILE *out)
         fprintf(out, "─");
     }
     for (int col = 1; col < tbl->num_cols; col++) {
-        fprintf(out, "┬");
+        if (tbl->cols[col].double_left_border) {
+            fprintf(out, "╥");
+        } else {
+            fprintf(out, "┬");
+        }
         for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "─");
         }
@@ -315,7 +330,11 @@ print_header(struct Table *tbl, FILE *out)
 
     // Print the column labels
     for (int col = 0; col < tbl->num_cols; col++) {
-        fprintf(out, "│");
+        if (tbl->cols[col].double_left_border) {
+            fprintf(out, "║");
+        } else {
+            fprintf(out, "│");
+        }
         print_centered(tbl->cols[col].col_label, tbl->cols[col].col_width, out);
     }
     fprintf(out, "│\n");
@@ -326,7 +345,11 @@ print_header(struct Table *tbl, FILE *out)
         fprintf(out, "═");
     }
     for (int col = 1; col < tbl->num_cols; col++) {
-        fprintf(out, "╪");
+        if (tbl->cols[col].double_left_border) {
+            fprintf(out, "╬");
+        } else {
+            fprintf(out, "╪");
+        }
         for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "═");
         }
@@ -340,6 +363,13 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
     char *next = &buf[strlen(buf)];
     struct Column *col = &tbl->cols[col_num];
     char *fmt = col->col_format;
+
+    if (tbl->cols[col_num].double_left_border) {
+        sprintf(next, "║");
+    } else {
+        sprintf(next, "│");
+    }
+    next = &next[strlen(next)];
 
     char small_buf[64] = {0};
     switch (col->col_type) {
@@ -387,9 +417,6 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
     }
 
     next = &next[strlen(next)];
-    sprintf(next, "│");
-
-    next = &next[strlen(next)];
     return next;
 }
 
@@ -406,14 +433,12 @@ print_rows(struct Table *tbl, FILE *out)
         memset(buf, 0, sizeof(buf));
         char *next = &buf[0];
 
-        sprintf(next, "│");
-        next = &next[strlen(next)];
-
         for (int col = 0; col < tbl->num_cols; col++) {
             next = print_table_value(tbl, col, row, sizeof(buf) - (next - buf), next);
         }
 
-        sprintf(next, "\n");
+        sprintf(next, "│\n");
+
         wipe_nans(buf);
 
         fputs(buf, out);
@@ -428,7 +453,11 @@ print_bottom(struct Table *tbl, FILE *out)
         fprintf(out, "═");
     }
     for (int col = 1; col < tbl->num_cols; col++) {
-        fprintf(out, "╧");
+        if (tbl->cols[col].double_left_border) {
+            fprintf(out, "╩");
+        } else {
+            fprintf(out, "╧");
+        }
         for (int i = 0; i < tbl->cols[col].col_width; i++) {
             fprintf(out, "═");
         }
