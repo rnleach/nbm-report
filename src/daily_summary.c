@@ -220,6 +220,9 @@ build_daily_summaries(struct NBMData const *nbm)
     return sums;
 }
 
+/*-------------------------------------------------------------------------------------------------
+ *                                     Table Filling
+ *-----------------------------------------------------------------------------------------------*/
 static void
 build_title(struct NBMData const *nbm, struct Table *tbl)
 {
