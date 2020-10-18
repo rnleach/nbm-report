@@ -85,7 +85,6 @@ static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
     Stopif(argc < 2, goto ERR_RETURN, "Not enough arguments.\n");
-    Stopif(argc > 8, goto ERR_RETURN, "Too many arguments.\n");
 
     int accum_periods = 0;
 
