@@ -66,27 +66,35 @@ print_usage(char **argv)
     puts(options);
 }
 
+static bool
+is_valid_snow_accum_period(int hours)
+{
+    return hours == 24 || hours == 48 || hours == 72;
+}
+
 struct OptArgs {
     char *site;
     bool show_summary;
     bool show_rain;
     bool show_snow;
-    int snow_hours;
+    int snow_hours[4];
     bool show_temperature;
 };
 
 static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
-    Stopif(argc < 2, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.\n");
-    Stopif(argc > 8, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
+    Stopif(argc < 2, goto ERR_RETURN, "Not enough arguments.\n");
+    Stopif(argc > 8, goto ERR_RETURN, "Too many arguments.\n");
+
+    int accum_periods = 0;
 
     struct OptArgs result = {
         .site = 0,
         .show_summary = true,
         .show_rain = false,
         .show_snow = false,
-        .snow_hours = 24,
+        .snow_hours = {24, 0, 0, 0},
         .show_temperature = false,
     };
 
@@ -94,7 +102,10 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     while ((opt = getopt(argc, argv, "a:nrst")) != -1) {
         switch (opt) {
         case 'a':
-            result.snow_hours = atoi(optarg);
+            Stopif(accum_periods >= sizeof(result.snow_hours), goto ERR_RETURN,
+                   "Too man snow accum arguments.");
+            result.snow_hours[accum_periods] = atoi(optarg);
+            accum_periods++;
             break;
         case 'n':
             result.show_summary = false;
@@ -109,13 +120,17 @@ parse_cmd_line(int argc, char *argv[argc + 1])
             result.show_temperature = true;
             break;
         default:
-            goto ERR_RETURN;
+            Stopif(true, goto ERR_RETURN, "Unknown argument: %c", opt);
         }
     }
 
-    Stopif(result.snow_hours != 24 && result.snow_hours != 48 && result.snow_hours != 72,
-           print_usage(argv);
-           exit(EXIT_FAILURE), "Invalid snow accumulation period.");
+    if (result.show_snow && accum_periods == 0)
+        accum_periods = 1;
+
+    for (int i = 0; i < accum_periods; i++) {
+        Stopif(!is_valid_snow_accum_period(result.snow_hours[i]), print_usage(argv);
+               exit(EXIT_FAILURE), "Invalid snow accumulation period.");
+    }
     Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.");
 
     result.site = argv[optind];
@@ -123,7 +138,6 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     return result;
 
 ERR_RETURN:
-    fprintf(stderr, "Unknown argument.\n");
     print_usage(argv);
     exit(EXIT_FAILURE);
 }
@@ -186,8 +200,13 @@ main(int argc, char *argv[argc + 1])
     if (opt_args.show_rain)
         show_precip_summary(parsed_nbm_data);
 
-    if (opt_args.show_snow)
-        show_snow_summary(parsed_nbm_data, opt_args.snow_hours);
+    if (opt_args.show_snow) {
+        for (int i = 0;
+             i < sizeof(opt_args.snow_hours) && is_valid_snow_accum_period(opt_args.snow_hours[i]);
+             i++) {
+            show_snow_summary(parsed_nbm_data, opt_args.snow_hours[i]);
+        }
+    }
 
     nbm_data_free(&parsed_nbm_data);
     program_finalization();
