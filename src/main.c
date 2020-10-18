@@ -16,6 +16,7 @@
 #include "nbm_data.h"
 #include "precip_summary.h"
 #include "raw_nbm_data.h"
+#include "snow_summary.h"
 #include "temp_summary.h"
 #include "utils.h"
 
@@ -171,10 +172,10 @@ main(int argc, char *argv[argc + 1])
         show_temperature_summary(parsed_nbm_data);
 
     if (opt_args.show_rain)
-        show_precip_summary(parsed_nbm_data, 'r');
+        show_precip_summary(parsed_nbm_data);
 
     if (opt_args.show_snow)
-        show_precip_summary(parsed_nbm_data, 's');
+        show_snow_summary(parsed_nbm_data);
 
     nbm_data_free(&parsed_nbm_data);
     program_finalization();
