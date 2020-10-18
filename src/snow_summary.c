@@ -19,13 +19,13 @@ struct TableFillerState {
 };
 
 static void
-build_title_snow(struct NBMData const *nbm, struct Table *tbl)
+build_title_snow(struct NBMData const *nbm, struct Table *tbl, int hours)
 {
 
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
-    sprintf(title_buf, "24 Hr Probabilistic Snow for %s - ", nbm_data_site(nbm));
+    sprintf(title_buf, "%d Hr Probabilistic Snow for %s - ", hours, nbm_data_site(nbm));
     int len = strlen(title_buf);
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
@@ -75,13 +75,19 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_snow_summary(struct NBMData const *nbm)
+show_snow_summary(struct NBMData const *nbm, int hours)
 {
-    GTree *cdfs = extract_cdfs(nbm, "ASNOW24hr_surface_%d%% level", "ASNOW24hr_surface", m_to_in);
+    char percentile_format[32] = {0};
+    char deterministic_snow_key[32] = {0};
+
+    sprintf(percentile_format, "ASNOW%dhr_surface_%%d%%%% level", hours);
+    sprintf(deterministic_snow_key, "ASNOW%dhr_surface", hours);
+
+    GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
 
     struct Table *tbl = table_new(12, g_tree_nnodes(cdfs));
-    build_title_snow(nbm, tbl);
+    build_title_snow(nbm, tbl, hours);
 
     table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
                      "24 Hrs Ending / in.", strlen("%s"), "%s", 19);

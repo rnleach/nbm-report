@@ -51,7 +51,9 @@ print_usage(char **argv)
     char *options = "Options:\n"
                     "   -t show temperature forecast quantiles.\n"
                     "   -r show summary of rain / liquid equivalent forecast.\n"
-                    "   -s show summary of snow forecast.\n"
+                    "   -s show summary of snow forecast\n"
+                    "   -a <hours>  where hours is 24, 48, or 72. This is the\n"
+                    "      accumulation period for the snow.\n"
                     "   -n do not show main summary.\n"
                     "\n\n"
                     "For the purpose of this program, days run from 06Z to 06Z.\n"
@@ -69,6 +71,7 @@ struct OptArgs {
     bool show_summary;
     bool show_rain;
     bool show_snow;
+    int snow_hours;
     bool show_temperature;
 };
 
@@ -76,44 +79,53 @@ static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
     Stopif(argc < 2, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.\n");
-    Stopif(argc > 6, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
+    Stopif(argc > 8, print_usage(argv); exit(EXIT_FAILURE), "Too many arguments.\n");
 
     struct OptArgs result = {
         .site = 0,
         .show_summary = true,
         .show_rain = false,
         .show_snow = false,
+        .snow_hours = 24,
         .show_temperature = false,
     };
 
     int opt;
-    while ((opt = getopt(argc, argv, "nrst")) != -1) {
+    while ((opt = getopt(argc, argv, "a:nrst")) != -1) {
         switch (opt) {
-        case 's':
-            result.show_snow = true;
-            break;
-        case 'r':
-            result.show_rain = true;
-            break;
-        case 't':
-            result.show_temperature = true;
+        case 'a':
+            result.snow_hours = atoi(optarg);
             break;
         case 'n':
             result.show_summary = false;
             break;
-        default:
-            fprintf(stderr, "Unknown argument.\n");
-            print_usage(argv);
-            exit(EXIT_FAILURE);
+        case 'r':
+            result.show_rain = true;
             break;
+        case 's':
+            result.show_snow = true;
+            break;
+        case 't':
+            result.show_temperature = true;
+            break;
+        default:
+            goto ERR_RETURN;
         }
     }
 
+    Stopif(result.snow_hours != 24 && result.snow_hours != 48 && result.snow_hours != 72,
+           print_usage(argv);
+           exit(EXIT_FAILURE), "Invalid snow accumulation period.");
     Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.");
 
     result.site = argv[optind];
 
     return result;
+
+ERR_RETURN:
+    fprintf(stderr, "Unknown argument.\n");
+    print_usage(argv);
+    exit(EXIT_FAILURE);
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -175,7 +187,7 @@ main(int argc, char *argv[argc + 1])
         show_precip_summary(parsed_nbm_data);
 
     if (opt_args.show_snow)
-        show_snow_summary(parsed_nbm_data);
+        show_snow_summary(parsed_nbm_data, opt_args.snow_hours);
 
     nbm_data_free(&parsed_nbm_data);
     program_finalization();
