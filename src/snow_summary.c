@@ -79,9 +79,11 @@ show_snow_summary(struct NBMData const *nbm, int hours)
 {
     char percentile_format[32] = {0};
     char deterministic_snow_key[32] = {0};
+    char left_col_title[32] = {0};
 
     sprintf(percentile_format, "ASNOW%dhr_surface_%%d%%%% level", hours);
     sprintf(deterministic_snow_key, "ASNOW%dhr_surface", hours);
+    sprintf(left_col_title, "%d Hrs Ending / in.", hours);
 
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
@@ -89,8 +91,8 @@ show_snow_summary(struct NBMData const *nbm, int hours)
     struct Table *tbl = table_new(12, g_tree_nnodes(cdfs));
     build_title_snow(nbm, tbl, hours);
 
-    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
-                     "24 Hrs Ending / in.", strlen("%s"), "%s", 19);
+    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen(left_col_title), left_col_title,
+                     strlen("%s"), "%s", 19);
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%6.1lf"),
                      "%6.2lf", 6);
 
