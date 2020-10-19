@@ -57,60 +57,6 @@ calc_init_time(int versions_back)
     return *init_time;
 }
 
-/**
- * Build the URL to retrieve data from into a string.
- *
- * There is a maximum size limit of 255 characters for the URL.
- *
- * \param site is a string with the name of the site.
- * \param data_init_time is the model initialization time desired for download.
- *
- * \returns a pointer to a static string that contains the URL. It is important to NOT free this
- * string since it points to static memory. It also populates the \c site and \c init_time members
- * of the \c data struct.
- */
-static char const *
-build_download_url(char const site[static 1], struct tm data_init_time)
-{
-    static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
-    static char url[URL_LENGTH] = {0};
-    // Clear the memory before starting over
-    memset(url, 0, URL_LENGTH);
-
-    assert(site);
-
-    int year = data_init_time.tm_year + 1900;
-    int month = data_init_time.tm_mon + 1;
-    int day = data_init_time.tm_mday;
-    int hour = data_init_time.tm_hour;
-
-    sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s.csv", base_url, year, month, day, hour, site);
-
-    return url;
-}
-
-struct buffer {
-    char *memory;
-    size_t size;
-};
-
-static size_t
-write_callback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    size_t realsize = size * nmemb;
-    struct buffer *mem = userp;
-
-    char *ptr = realloc(mem->memory, mem->size + realsize + 1);
-    Stopif(!ptr, exit(EXIT_FAILURE), "Out of memory.");
-
-    mem->memory = ptr;
-    memcpy(&(mem->memory[mem->size]), contents, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
-
-    return realsize;
-}
-
 static void
 format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 1])
 {
@@ -147,6 +93,64 @@ format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 
     }
 }
 
+/**
+ * Build the URL to retrieve data from into a string.
+ *
+ * There is a maximum size limit of 255 characters for the URL.
+ *
+ * \param site is a string with the name of the site.
+ * \param data_init_time is the model initialization time desired for download.
+ *
+ * \returns a pointer to a static string that contains the URL. It is important to NOT free this
+ * string since it points to static memory. It also populates the \c site and \c init_time members
+ * of the \c data struct.
+ */
+static char const *
+build_download_url(char const site[static 1], struct tm data_init_time)
+{
+    static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
+    static char url[URL_LENGTH] = {0};
+    // Clear the memory before starting over
+    memset(url, 0, URL_LENGTH);
+
+    // Format the site for the url.
+    char url_site[64] = {0};
+    format_site_for_url(sizeof(url_site), url_site, site);
+
+    assert(site);
+
+    int year = data_init_time.tm_year + 1900;
+    int month = data_init_time.tm_mon + 1;
+    int day = data_init_time.tm_mday;
+    int hour = data_init_time.tm_hour;
+
+    sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s.csv", base_url, year, month, day, hour, url_site);
+
+    return url;
+}
+
+struct buffer {
+    char *memory;
+    size_t size;
+};
+
+static size_t
+write_callback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    size_t realsize = size * nmemb;
+    struct buffer *mem = userp;
+
+    char *ptr = realloc(mem->memory, mem->size + realsize + 1);
+    Stopif(!ptr, exit(EXIT_FAILURE), "Out of memory.");
+
+    mem->memory = ptr;
+    memcpy(&(mem->memory[mem->size]), contents, realsize);
+    mem->size += realsize;
+    mem->memory[mem->size] = 0;
+
+    return realsize;
+}
+
 struct RawNbmData *
 retrieve_data_for_site(char const site[static 1])
 {
@@ -163,10 +167,6 @@ retrieve_data_for_site(char const site[static 1])
     // Keep a copy of the site and force it to upper case.
     strcpy(data_site, site);
     to_uppercase(data_site);
-
-    // Format the site for the url.
-    char url_site[64] = {0};
-    format_site_for_url(sizeof(url_site), url_site, site);
 
     CURL *curl = curl_easy_init();
     Stopif(!curl, goto ERR_RETURN, "curl_easy_init failed.");
@@ -188,7 +188,7 @@ retrieve_data_for_site(char const site[static 1])
     char const *url = 0;
     do {
         data_init_time = calc_init_time(attempt_number);
-        url = build_download_url(url_site, data_init_time);
+        url = build_download_url(site, data_init_time);
         assert(url);
 
         attempt_number++;
