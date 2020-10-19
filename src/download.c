@@ -152,26 +152,30 @@ retrieve_data_for_site(char const site[static 1])
 {
     assert(site);
 
-    // Do not free this unless returning an error, it is encapsulated in the return value.
+    // Allocated memory, don't free these unless there is an error.
     char *data_site = malloc(strlen(site) + 1);
-    strcpy(data_site, site);
-    to_uppercase(data_site);
-
-    char url_site[64] = {0};
-    format_site_for_url(sizeof(url_site), url_site, site);
-
-    CURL *curl = curl_easy_init();
-    Stopif(!curl, return 0, "curl_easy_init failed.");
-
-    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-    Stopif(res, return 0, "curl_easy_setopt failed to set fail on error.");
 
     struct buffer buf = {0};
     buf.memory = malloc(1);
     buf.memory[0] = 0;
     buf.size = 0;
+
+    // Keep a copy of the site and force it to upper case.
+    strcpy(data_site, site);
+    to_uppercase(data_site);
+
+    // Format the site for the url.
+    char url_site[64] = {0};
+    format_site_for_url(sizeof(url_site), url_site, site);
+
+    CURL *curl = curl_easy_init();
+    Stopif(!curl, goto ERR_RETURN, "curl_easy_init failed.");
+
+    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set fail on error.");
+
     res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    Stopif(res, free(buf.memory); return 0, "curl_easy_setopt failed to set the write_callback.");
+    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the write_callback.");
 
     res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
     Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user data.");
