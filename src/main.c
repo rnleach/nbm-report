@@ -7,9 +7,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// Third party libs
-#include <curl/curl.h>
-
 // Program developed headers
 #include "daily_summary.h"
 #include "download.h"
@@ -27,14 +24,13 @@ static void
 program_initialization()
 {
     setlocale(LC_ALL, "");
-    CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
-    Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
+    download_module_initialize();
 }
 
 static void
 program_finalization()
 {
-    curl_global_cleanup();
+    download_module_finalize();
 }
 
 /*-------------------------------------------------------------------------------------------------

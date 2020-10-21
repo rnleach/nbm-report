@@ -1,4 +1,5 @@
 #include "download.h"
+#include "download_cache.h"
 #include "raw_nbm_data.h"
 #include "utils.h"
 
@@ -57,6 +58,11 @@ calc_init_time(int versions_back)
     return *init_time;
 }
 
+/** Use heuristics to determine if this is a site identifier or name, and format it for a url.
+ *
+ * If it is a site identifier, all the letters must be in uppercase. If it is a site name then
+ * the spaces need to be replaced with the "%20" string.
+ */
 static void
 format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 1])
 {
@@ -151,6 +157,37 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
+static CURL *curl = 0;
+
+static CURL *
+download_module_get_curl_handle(struct buffer *buf)
+{
+    if (!curl) {
+        CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
+        Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
+
+        curl = curl_easy_init();
+        Stopif(!curl, goto ERR_RETURN, "curl_easy_init failed.");
+
+        CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set fail on error.");
+
+        res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the write_callback.");
+
+        res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, buf);
+        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user data.");
+
+        res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user agent.");
+    }
+
+    return curl;
+
+ERR_RETURN:
+    return 0;
+};
+
 struct RawNbmData *
 retrieve_data_for_site(char const site[static 1])
 {
@@ -160,46 +197,45 @@ retrieve_data_for_site(char const site[static 1])
     char *data_site = malloc(strlen(site) + 1);
 
     struct buffer buf = {0};
-    buf.memory = malloc(1);
-    buf.memory[0] = 0;
-    buf.size = 0;
 
     // Keep a copy of the site and force it to upper case.
     strcpy(data_site, site);
     to_uppercase(data_site);
 
-    CURL *curl = curl_easy_init();
-    Stopif(!curl, goto ERR_RETURN, "curl_easy_init failed.");
-
-    CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
-    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set fail on error.");
-
-    res = curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the write_callback.");
-
-    res = curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buf);
-    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user data.");
-
-    res = curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the user agent.");
-
+    int res = 1;
     int attempt_number = 0;
     struct tm data_init_time = {0};
     char const *url = 0;
     do {
         data_init_time = calc_init_time(attempt_number);
+
+        char *cache_data = download_cache_retrieve(data_site, timegm(&data_init_time));
+        if (cache_data) {
+            printf("Successfully retrieved from the cache.\n");
+            int cache_data_size = strlen(cache_data) + 1;
+            return raw_nbm_data_new(data_init_time, data_site, cache_data, cache_data_size);
+        }
+
+        CURL *lcl_curl = download_module_get_curl_handle(&buf);
+        Stopif(!lcl_curl, goto ERR_RETURN, "Error setting up cURL.");
+
         url = build_download_url(site, data_init_time);
         assert(url);
 
         attempt_number++;
 
-        res = curl_easy_setopt(curl, CURLOPT_URL, url);
+        res = curl_easy_setopt(lcl_curl, CURLOPT_URL, url);
         Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the url.");
-        res = curl_easy_perform(curl);
+        res = curl_easy_perform(lcl_curl);
+
+        if (!res) {
+            printf("Successfully downloaded: %s\n", url);
+            int cache_res = download_cache_add(data_site, timegm(&data_init_time), buf.memory);
+            Stopif(cache_res, /* do nothing, just print message */, "Error saving to cache.");
+        }
+
     } while (res && attempt_number <= MAX_VERSIONS_TO_ATTEMP_DOWNLOADING);
     Stopif(res, goto ERR_RETURN, "curl_easy_perform failed: %s", curl_easy_strerror(res));
-
-    printf("Successfully downloaded: %s\n", url);
 
     curl_easy_cleanup(curl);
 
@@ -209,4 +245,19 @@ ERR_RETURN:
     free(buf.memory);
     free(data_site);
     return 0;
+}
+
+void
+download_module_initialize()
+{
+    download_cache_initialize();
+}
+
+void
+download_module_finalize()
+{
+    if (curl) {
+        curl_global_cleanup();
+    }
+    download_cache_finalize();
 }

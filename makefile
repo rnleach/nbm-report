@@ -24,6 +24,10 @@ LDLIBS += `curl-config --libs`
 # libcsv3 library
 CFLAGS +=
 LDLIBS += -lcsv
+
+# sqlite3 library for download cache
+CFLAGS += `pkg-config --cflags sqlite3`
+LDLIBS += `pkg-config --libs sqlite3`
 # -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options
