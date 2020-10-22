@@ -28,6 +28,10 @@ LDLIBS += -lcsv
 # sqlite3 library for download cache
 CFLAGS += `pkg-config --cflags sqlite3`
 LDLIBS += `pkg-config --libs sqlite3`
+
+# zlib for compression going into and out of the cache.
+CFLAGS += `pkg-config --cflags zlib`
+LDLIBS += `pkg-config --libs zlib`
 # -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options

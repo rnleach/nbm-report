@@ -195,7 +195,6 @@ retrieve_data_for_site(char const site[static 1])
 
     // Allocated memory, don't free these unless there is an error.
     char *data_site = malloc(strlen(site) + 1);
-
     struct buffer buf = {0};
 
     // Keep a copy of the site and force it to upper case.
@@ -259,5 +258,6 @@ download_module_finalize()
     if (curl) {
         curl_global_cleanup();
     }
+
     download_cache_finalize();
 }
