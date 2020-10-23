@@ -104,6 +104,16 @@ double cumulative_dist_pm_value(struct CumulativeDistribution const *);
  */
 double interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target_val);
 
+/** Get the value from a CDF at specific percentile.
+ *
+ * \param cdf is teh function you want to sample.
+ * \param target_percentile is the percentile you want to get the value for.
+ *
+ * \returns the value at the percentile, or NAN if it was out of the possible range.
+ */
+double cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf,
+                                        double target_percentile);
+
 /** Free a CDF object. */
 void cumulative_dist_free(void *);
 

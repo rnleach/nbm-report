@@ -1,5 +1,5 @@
-#include "summarize.h"
 #include "nbm_data.h"
+#include "summarize.h"
 #include "utils.h"
 
 #include <assert.h>
@@ -231,6 +231,42 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
     assert(prob_exc >= 0.0);
     assert(prob_exc <= 100.0);
     return prob_exc;
+}
+
+double
+cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf, double target_percentile)
+{
+    double *xs = cdf->percents;
+    double *ys = cdf->values;
+    int sz = cdf->size;
+
+    assert(sz > 1);
+
+    // Bracket the target percentile
+    int left = 0, right = 0;
+    for (int i = 1; i < sz; i++) {
+        if (xs[i - 1] <= target_percentile && xs[i] >= target_percentile) {
+            left = i - 1;
+            right = i;
+            break;
+        }
+    }
+
+    // If unable to bracket, then it wasn't available.
+    if (left == 0 && right == 0)
+        return NAN;
+
+    double left_pct = xs[left];
+    double right_pct = xs[right];
+    double left_val = ys[left];
+    double right_val = ys[right];
+
+    double rise = right_val - left_val;
+    double run = right_pct - left_pct;
+    assert(run > 0.0);
+    double slope = rise / run;
+
+    return slope * (target_percentile - left_pct) + left_val;
 }
 
 void
