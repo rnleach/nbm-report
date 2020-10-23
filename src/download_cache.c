@@ -28,20 +28,6 @@ buffer_expand(struct Buffer buf[static 1], int extra_space)
     buf->capacity += extra_space;
 }
 
-#if 0
-static void
-buffer_append_data(struct Buffer buf[static 1], int data_size, char new_data[data_size])
-{
-    if (buf->capacity < buf->size + data_size) {
-        buffer_expand(buf, data_size);
-    }
-
-    memcpy(&buf->data[buf->size], new_data, data_size);
-
-    buf->size += data_size;
-}
-#endif
-
 static struct Buffer
 compress_text_buffer(char const *in_text)
 {
