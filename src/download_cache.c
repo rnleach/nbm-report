@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -177,7 +178,25 @@ download_cache_initialize()
 void
 download_cache_finalize()
 {
-    // TODO - remove too old entries.
+    time_t now = time(0);
+    time_t too_old = now - 60 * 60 * 24 * 555; // About 555 days. That's over 1.5 years!
+
+    char *sql = "DELETE FROM nbm WHERE init_time < ?";
+
+    sqlite3_stmt *statement = 0;
+    int rc = sqlite3_prepare_v2(cache, sql, -1, &statement, 0);
+    Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error preparing delete statement: %s",
+           sqlite3_errstr(rc));
+
+    rc = sqlite3_bind_int64(statement, 1, too_old);
+    Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error binding init_time in delete.");
+
+    rc = sqlite3_step(statement);
+    Stopif(rc != SQLITE_ROW && rc != SQLITE_DONE, exit(EXIT_FAILURE),
+           "error executing select sql: %s", sqlite3_errstr(rc));
+
+    rc = sqlite3_finalize(statement);
+    Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing delete statement");
 
     int result = sqlite3_close(cache);
 
