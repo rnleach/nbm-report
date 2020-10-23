@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "snow_summary.h"
+#include "nbm_data.h"
 #include "summarize.h"
 #include "table.h"
 #include "utils.h"

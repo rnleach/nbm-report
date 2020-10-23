@@ -49,7 +49,7 @@ print_usage(char **argv)
                     "   -r show summary of rain / liquid equivalent forecast.                   \n"
                     "   -s show summary of snow forecast                                        \n"
                     "   -a <hours>  where hours is 24, 48, or 72. This is the                   \n"
-                    "      accumulation period for the snow.                                    \n"
+                    "      accumulation period for rain and snow.                               \n"
                     "   -n do not show main summary.                                            \n"
                     "\n                                                                         \n"
                     "For the purpose of this program, days run from 06Z to 06Z.                 \n"
@@ -63,9 +63,9 @@ print_usage(char **argv)
 }
 
 static bool
-is_valid_snow_accum_period(int hours)
+is_valid_accum_period(int hours)
 {
-    return hours == 24 || hours == 48 || hours == 72;
+    return hours == 1 || hours == 6 || hours == 12 || hours == 24 || hours == 48 || hours == 72;
 }
 
 struct OptArgs {
@@ -73,7 +73,7 @@ struct OptArgs {
     bool show_summary;
     bool show_rain;
     bool show_snow;
-    int snow_hours[4];
+    int accum_hours[4];
     bool show_temperature;
 };
 
@@ -89,7 +89,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .show_summary = true,
         .show_rain = false,
         .show_snow = false,
-        .snow_hours = {24, 0, 0, 0},
+        .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
     };
 
@@ -97,9 +97,9 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     while ((opt = getopt(argc, argv, "a:nrst")) != -1) {
         switch (opt) {
         case 'a':
-            Stopif(accum_periods >= sizeof(result.snow_hours), goto ERR_RETURN,
+            Stopif(accum_periods >= sizeof(result.accum_hours), goto ERR_RETURN,
                    "Too man snow accum arguments.");
-            result.snow_hours[accum_periods] = atoi(optarg);
+            result.accum_hours[accum_periods] = atoi(optarg);
             accum_periods++;
             break;
         case 'n':
@@ -119,14 +119,14 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         }
     }
 
-    if (result.show_snow && accum_periods == 0)
+    if ((result.show_snow || result.show_rain) && accum_periods == 0)
         accum_periods = 1;
 
     for (int i = 0; i < accum_periods; i++) {
-        Stopif(!is_valid_snow_accum_period(result.snow_hours[i]), print_usage(argv);
-               exit(EXIT_FAILURE), "Invalid snow accumulation period.");
+        Stopif(!is_valid_accum_period(result.accum_hours[i]), print_usage(argv);
+               exit(EXIT_FAILURE), "Invalid accumulation period.");
     }
-    Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Not enough arguments.");
+    Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Missing site argument.");
 
     result.site = argv[optind];
 
@@ -192,14 +192,16 @@ main(int argc, char *argv[argc + 1])
     if (opt_args.show_temperature)
         show_temperature_summary(parsed_nbm_data);
 
-    if (opt_args.show_rain)
-        show_precip_summary(parsed_nbm_data);
-
-    if (opt_args.show_snow) {
+    if (opt_args.show_snow || opt_args.show_rain) {
         for (int i = 0;
-             i < sizeof(opt_args.snow_hours) && is_valid_snow_accum_period(opt_args.snow_hours[i]);
+             i < sizeof(opt_args.accum_hours) && is_valid_accum_period(opt_args.accum_hours[i]);
              i++) {
-            show_snow_summary(parsed_nbm_data, opt_args.snow_hours[i]);
+            if (opt_args.show_rain) {
+                show_precip_summary(parsed_nbm_data, opt_args.accum_hours[i]);
+            }
+            if (opt_args.show_snow) {
+                show_snow_summary(parsed_nbm_data, opt_args.accum_hours[i]);
+            }
         }
     }
 
