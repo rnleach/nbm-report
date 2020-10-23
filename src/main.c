@@ -45,19 +45,19 @@ print_usage(char **argv)
     printf("e.g. : %s kmso\n\n", progname);
 
     char *options = "Options:\n"
-                    "   -t show temperature forecast quantiles.\n"
-                    "   -r show summary of rain / liquid equivalent forecast.\n"
-                    "   -s show summary of snow forecast\n"
-                    "   -a <hours>  where hours is 24, 48, or 72. This is the\n"
-                    "      accumulation period for the snow.\n"
-                    "   -n do not show main summary.\n"
-                    "\n\n"
-                    "For the purpose of this program, days run from 06Z to 06Z.\n"
-                    "This only applies to variables that are sampled or summed\n"
-                    "over hourly, 3-hourly, or 6-hourly forecast values. If a\n"
-                    "parameter is a 12, 24, 48, or 72 hour summary from the NBM,\n"
-                    "then the time valid at the end of the period is reported.\n"
-                    "So 24-hr probability of precipitation is looking back 24 hours.\n";
+                    "   -t show temperature forecast quantiles.                                 \n"
+                    "   -r show summary of rain / liquid equivalent forecast.                   \n"
+                    "   -s show summary of snow forecast                                        \n"
+                    "   -a <hours>  where hours is 24, 48, or 72. This is the                   \n"
+                    "      accumulation period for the snow.                                    \n"
+                    "   -n do not show main summary.                                            \n"
+                    "\n                                                                         \n"
+                    "For the purpose of this program, days run from 06Z to 06Z.                 \n"
+                    "This only applies to variables that are sampled or summed                  \n"
+                    "over hourly, 3-hourly, or 6-hourly forecast values. If a                   \n"
+                    "parameter is a 12, 24, 48, or 72 hour summary from the NBM,                \n"
+                    "then the time valid at the end of the period is reported.                  \n"
+                    "So 24-hr probability of precipitation is looking back 24 hours.            \n";
 
     puts(options);
 }
