@@ -4,14 +4,14 @@
 #include "raw_nbm_data.h"
 
 struct RawNbmData {
-    struct tm init_time;
+    time_t init_time;
     char *site;
     char *raw_data;
     size_t raw_data_size;
 };
 
 struct RawNbmData *
-raw_nbm_data_new(struct tm init_time, char *site, char *text, size_t text_len)
+raw_nbm_data_new(time_t init_time, char *site, char *text, size_t text_len)
 {
     struct RawNbmData *new = malloc(sizeof(struct RawNbmData));
     assert(new);
@@ -38,7 +38,7 @@ raw_nbm_data_free(struct RawNbmData **data)
     *data = 0;
 }
 
-struct tm
+time_t
 raw_nbm_data_init_time(struct RawNbmData const *data)
 {
     return data->init_time;

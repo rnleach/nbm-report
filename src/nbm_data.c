@@ -247,7 +247,7 @@ struct CSVParserState {
 };
 
 static struct CSVParserState
-init_parser_state(char *text_data, struct tm init_time, char const *site)
+init_parser_state(char *text_data, time_t init_time, char const *site)
 {
     // Count the rows and columns
     size_t rows = 0;
@@ -265,7 +265,7 @@ init_parser_state(char *text_data, struct tm init_time, char const *site)
 
     struct NBMData *nbm = malloc(sizeof(struct NBMData));
     *nbm = (struct NBMData){.site = site_name,
-                            .init_time = timegm(&init_time),
+                            .init_time = init_time,
                             .num_cols = cols - 1, // First column is stored in .valid_times
                             .num_rows = rows - 1, // First row is stored in .col_names
                             .col_names = calloc(cols - 1, sizeof(char *)),
@@ -349,7 +349,7 @@ do_parsing(struct csv_parser *parser, struct RawNbmData *raw)
     char *raw_text = raw_nbm_data_text(raw);
     assert(raw_text);
 
-    struct tm init_time_tm = raw_nbm_data_init_time(raw);
+    time_t init_time_tm = raw_nbm_data_init_time(raw);
     char const *site = raw_nbm_data_site(raw);
 
     struct CSVParserState state = init_parser_state(raw_text, init_time_tm, site);

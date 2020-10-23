@@ -19,7 +19,7 @@
 /**
  * Using the current time, calculate the most recent available inititialization time.
  */
-static struct tm
+static time_t
 calc_init_time(int versions_back)
 {
 
@@ -55,7 +55,7 @@ calc_init_time(int versions_back)
     init_time->tm_sec = 0;
     init_time->tm_min = 0;
 
-    return *init_time;
+    return timegm(init_time);
 }
 
 /** Use heuristics to determine if this is a site identifier or name, and format it for a url.
@@ -112,7 +112,7 @@ format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 
  * of the \c data struct.
  */
 static char const *
-build_download_url(char const site[static 1], struct tm data_init_time)
+build_download_url(char const site[static 1], time_t data_init_time)
 {
     static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
     static char url[URL_LENGTH] = {0};
@@ -125,10 +125,12 @@ build_download_url(char const site[static 1], struct tm data_init_time)
 
     assert(site);
 
-    int year = data_init_time.tm_year + 1900;
-    int month = data_init_time.tm_mon + 1;
-    int day = data_init_time.tm_mday;
-    int hour = data_init_time.tm_hour;
+    struct tm init_time = *gmtime(&data_init_time);
+
+    int year = init_time.tm_year + 1900;
+    int month = init_time.tm_mon + 1;
+    int day = init_time.tm_mday;
+    int hour = init_time.tm_hour;
 
     sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s.csv", base_url, year, month, day, hour, url_site);
 
@@ -203,12 +205,12 @@ retrieve_data_for_site(char const site[static 1])
 
     int res = 1;
     int attempt_number = 0;
-    struct tm data_init_time = {0};
+    time_t data_init_time = 0;
     char const *url = 0;
     do {
         data_init_time = calc_init_time(attempt_number);
 
-        char *cache_data = download_cache_retrieve(data_site, timegm(&data_init_time));
+        char *cache_data = download_cache_retrieve(data_site, data_init_time);
         if (cache_data) {
             printf("Successfully retrieved from the cache.\n");
             int cache_data_size = strlen(cache_data) + 1;
@@ -229,7 +231,7 @@ retrieve_data_for_site(char const site[static 1])
 
         if (!res) {
             printf("Successfully downloaded: %s\n", url);
-            int cache_res = download_cache_add(data_site, timegm(&data_init_time), buf.memory);
+            int cache_res = download_cache_add(data_site, data_init_time, buf.memory);
             Stopif(cache_res, /* do nothing, just print message */, "Error saving to cache.");
         }
 

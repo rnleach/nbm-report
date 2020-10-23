@@ -20,7 +20,7 @@ struct RawNbmData;
  *
  * \returns a new allocated RawNbmData object that needs to be freed with \c raw_nbm_data_free.
  **/
-struct RawNbmData *raw_nbm_data_new(struct tm init_time, char *site, char *text, size_t text_len);
+struct RawNbmData *raw_nbm_data_new(time_t init_time, char *site, char *text, size_t text_len);
 
 /**
  * Free all allocated data in a RawNbmData, and set the pointer to null.
@@ -30,7 +30,7 @@ void raw_nbm_data_free(struct RawNbmData **data);
 /**
  * Get the init time of the NBM run for this data.
  */
-struct tm raw_nbm_data_init_time(struct RawNbmData const *);
+time_t raw_nbm_data_init_time(struct RawNbmData const *);
 
 /**
  * Get the site name for this data.
