@@ -100,7 +100,7 @@ format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 
 }
 
 /**
- * Build the URL to retrieve data from into a string.
+ * Build the URL to retrieve data from the web into a string.
  *
  * There is a maximum size limit of 255 characters for the URL.
  *
@@ -137,24 +137,14 @@ build_download_url(char const site[static 1], time_t data_init_time)
     return url;
 }
 
-struct buffer {
-    char *memory;
-    size_t size;
-};
-
 static size_t
 write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
-    struct buffer *mem = userp;
+    struct Buffer *buf = userp;
+    char *text = contents;
 
-    char *ptr = realloc(mem->memory, mem->size + realsize + 1);
-    Stopif(!ptr, exit(EXIT_FAILURE), "Out of memory.");
-
-    mem->memory = ptr;
-    memcpy(&(mem->memory[mem->size]), contents, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
+    buffer_append_text(buf, realsize, text);
 
     return realsize;
 }
@@ -162,7 +152,7 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 static CURL *curl = 0;
 
 static CURL *
-download_module_get_curl_handle(struct buffer *buf)
+download_module_get_curl_handle(struct Buffer *buf)
 {
     if (!curl) {
         CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -197,7 +187,7 @@ retrieve_data_for_site(char const site[static 1])
 
     // Allocated memory, don't free these unless there is an error.
     char *data_site = malloc(strlen(site) + 1);
-    struct buffer buf = {0};
+    struct Buffer buf = buffer_with_capacity(1024);
 
     // Keep a copy of the site and force it to upper case.
     strcpy(data_site, site);
@@ -231,7 +221,7 @@ retrieve_data_for_site(char const site[static 1])
 
         if (!res) {
             printf("Successfully downloaded: %s\n", url);
-            int cache_res = download_cache_add(data_site, data_init_time, buf.memory);
+            int cache_res = download_cache_add(data_site, data_init_time, &buf);
             Stopif(cache_res, /* do nothing, just print message */, "Error saving to cache.");
         }
 
@@ -240,10 +230,10 @@ retrieve_data_for_site(char const site[static 1])
 
     curl_easy_cleanup(curl);
 
-    return raw_nbm_data_new(data_init_time, data_site, buf.memory, buf.size);
+    return raw_nbm_data_new(data_init_time, data_site, buf.text_data, buf.size);
 
 ERR_RETURN:
-    free(buf.memory);
+    buffer_clear(&buf);
     free(data_site);
     return 0;
 }

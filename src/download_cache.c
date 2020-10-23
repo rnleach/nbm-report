@@ -13,32 +13,12 @@
 #include "download_cache.h"
 #include "utils.h"
 
-struct Buffer {
-    char *data;
-    int capacity;
-    int size;
-};
-
-static void
-buffer_expand(struct Buffer buf[static 1], int extra_space)
-{
-    char *new_buf = realloc(buf->data, buf->capacity + extra_space);
-    Stopif(!new_buf, exit(EXIT_FAILURE), "out of memory.");
-
-    buf->data = new_buf;
-    buf->capacity += extra_space;
-}
-
 static struct Buffer
-compress_text_buffer(char const *in_text)
+compress_text_buffer(struct Buffer const in_text[static 1])
 {
     assert(in_text);
 
-    int buf_size = strlen(in_text) + 2;
-    char *buf_mem = malloc(buf_size);
-    Stopif(!buf_mem, exit(EXIT_FAILURE), "out of memory.");
-
-    struct Buffer out_buf = {.data = buf_mem, .capacity = buf_size, .size = 0};
+    struct Buffer out_buf = buffer_with_capacity(in_text->size + 2);
 
     int z_ret = Z_OK;
     z_stream strm = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL};
@@ -46,20 +26,20 @@ compress_text_buffer(char const *in_text)
     z_ret = deflateInit(&strm, 9);
     Stopif(z_ret != Z_OK, exit(EXIT_FAILURE), "zlib deflate init error.");
 
-    strm.avail_in = buf_size;
-    strm.next_in = (unsigned char *)in_text;
+    strm.avail_in = in_text->size;
+    strm.next_in = in_text->byte_data;
 
     do {
         int out_start = out_buf.capacity - out_buf.size;
         strm.avail_out = out_start;
-        strm.next_out = (unsigned char *)&out_buf.data[out_buf.size];
+        strm.next_out = &out_buf.byte_data[out_buf.size];
         z_ret = deflate(&strm, Z_FINISH);
         Stopif(z_ret == Z_STREAM_ERROR, exit(EXIT_FAILURE), "zlib stream clobbered");
 
         out_buf.size += out_start - strm.avail_out;
 
         if (strm.avail_out == 0) {
-            buffer_expand(&out_buf, strm.avail_in * 2);
+            buffer_set_capacity(&out_buf, strm.avail_in * 2);
         }
 
     } while (strm.avail_out == 0);
@@ -73,11 +53,8 @@ static struct Buffer
 uncompress_text(int in_size, unsigned char in[in_size])
 {
     assert(in);
-    int buf_size = in_size * 10; // Assume we had really good compression
-    char *buf_mem = malloc(buf_size);
-    Stopif(!buf_mem, exit(EXIT_FAILURE), "out of memory.");
 
-    struct Buffer out_buf = {.data = buf_mem, .capacity = buf_size, .size = 0};
+    struct Buffer out_buf = buffer_with_capacity(in_size * 10);
 
     int z_ret = Z_OK;
     z_stream strm = {
@@ -93,7 +70,7 @@ uncompress_text(int in_size, unsigned char in[in_size])
 
         int out_start = out_buf.capacity - out_buf.size;
         strm.avail_out = out_start;
-        strm.next_out = (unsigned char *)&out_buf.data[out_buf.size];
+        strm.next_out = &out_buf.byte_data[out_buf.size];
         z_ret = inflate(&strm, Z_FINISH);
 
         switch (z_ret) {
@@ -106,7 +83,7 @@ uncompress_text(int in_size, unsigned char in[in_size])
         out_buf.size += out_start - strm.avail_out;
 
         if (strm.avail_out == 0) {
-            buffer_expand(&out_buf, strm.avail_in * 6);
+            buffer_set_capacity(&out_buf, out_buf.capacity + strm.avail_in * 6);
         }
 
     } while (strm.avail_out == 0);
@@ -244,7 +221,7 @@ download_cache_retrieve(char const *site, time_t init_time)
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing select statement");
 
-    return out_buf.data;
+    return buffer_steal_text(&out_buf);
 
 ERR_RETURN:
 
@@ -255,12 +232,12 @@ ERR_RETURN:
 }
 
 int
-download_cache_add(char const *site, time_t init_time, char const *text_data)
+download_cache_add(char const *site, time_t init_time, struct Buffer const buf[static 1])
 {
     assert(site);
-    assert(text_data);
+    assert(buf);
 
-    struct Buffer compressed_buf = compress_text_buffer(text_data);
+    struct Buffer compressed_buf = compress_text_buffer(buf);
 
     char const *sql = "INSERT OR REPLACE INTO nbm (site, init_time, data) VALUES (?, ?, ?)";
 
@@ -275,13 +252,13 @@ download_cache_add(char const *site, time_t init_time, char const *text_data)
     rc = sqlite3_bind_int64(statement, 2, init_time);
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error binding init_time.");
 
-    rc = sqlite3_bind_blob(statement, 3, compressed_buf.data, compressed_buf.size, 0);
+    rc = sqlite3_bind_blob(statement, 3, compressed_buf.byte_data, compressed_buf.size, 0);
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error binding compressed data.");
 
     rc = sqlite3_step(statement);
     Stopif(rc != SQLITE_DONE, goto ERR_RETURN, "error executing insert sql");
 
-    free(compressed_buf.data);
+    buffer_clear(&compressed_buf);
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert statement");
@@ -292,7 +269,7 @@ ERR_RETURN:
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert sql.");
 
-    free(compressed_buf.data);
+    buffer_clear(&compressed_buf);
 
     return -1;
 }

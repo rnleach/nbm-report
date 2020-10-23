@@ -2,6 +2,8 @@
 
 #include <time.h>
 
+#include "utils.h"
+
 /** Initialize the cache. */
 void download_cache_initialize();
 
@@ -24,8 +26,8 @@ char *download_cache_retrieve(char const *site, time_t init_time);
  *
  * \param site is the site name
  * \param intit_time is the model initialization time.
- * \param text_data is the downloaded string data.
+ * \param buf is the downloaded string data.
  *
  * \returns 0 on success.
  */
-int download_cache_add(char const *site, time_t init_time, char const *text_data);
+int download_cache_add(char const *site, time_t init_time, struct Buffer const buf[static 1]);
