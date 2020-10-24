@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "precip_summary.h"
+#include "nbm_data.h"
 #include "summarize.h"
 #include "table.h"
 #include "utils.h"
@@ -93,7 +93,7 @@ show_precip_summary(struct NBMData const *nbm, int hours)
 
     sprintf(percentile_format, "APCP%dhr_surface_%%d%%%% level", hours);
     sprintf(deterministic_precip_key, "APCP%dhr_surface", hours);
-    sprintf(left_col_title, "%d Hrs Ending / in.", hours);
+    sprintf(left_col_title, "%d Hrs Ending", hours);
 
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_precip_key, mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
@@ -107,18 +107,14 @@ show_precip_summary(struct NBMData const *nbm, int hours)
 
     struct Table *tbl = table_new(15, num_rows);
     build_title_liquid(nbm, tbl, hours);
-    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
-                     "24 Hrs Ending / in.", strlen("%s"), "%s", 19);
+    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen(left_col_title), left_col_title,
+                     strlen("%s"), "%s", 19);
 
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%6.2lf"),
                      "%6.2lf", 6);
 
-    table_set_double_left_border(tbl, 1);
-
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen("%5.2lf"),
                      "%5.2lf", 5);
-
-    table_set_double_left_border(tbl, 2);
 
     table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("25th"), "25th", strlen("%5.2lf"),
                      "%5.2lf", 5);
@@ -134,8 +130,6 @@ show_precip_summary(struct NBMData const *nbm, int hours)
 
     table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("0.01"), "0.01", strlen("%3.0lf"),
                      "%5.0lf", 5);
-
-    table_set_double_left_border(tbl, 7);
 
     table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
                      "%5.0lf", 5);
@@ -157,6 +151,14 @@ show_precip_summary(struct NBMData const *nbm, int hours)
 
     table_add_column(tbl, 14, Table_ColumnType_VALUE, strlen("2.00"), "2.00", strlen("%3.0lf"),
                      "%5.0lf", 5);
+
+    table_set_double_left_border(tbl, 1);
+    table_set_double_left_border(tbl, 2);
+    table_set_double_left_border(tbl, 7);
+
+    for (int i = 1; i <= 14; i++) {
+        table_set_blank_zeros(tbl, i);
+    }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(cdfs, add_row_prob_liquid_exceedence_to_table, &state);

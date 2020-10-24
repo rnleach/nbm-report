@@ -18,9 +18,7 @@ struct Column {
     bool double_left_border;
     double *values1;
     double *values2;
-    double *values3;
-    double *values4;
-    double *values5;
+    bool blank_zeros;
 };
 
 static double *
@@ -46,11 +44,6 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
         ptr->text_values = calloc(num_rows, sizeof(char *));
         assert(ptr->text_values);
         break;
-    case Table_ColumnType_QUANTILES:
-        ptr->values3 = column_new_double_vec(num_rows);
-        ptr->values4 = column_new_double_vec(num_rows);
-        ptr->values5 = column_new_double_vec(num_rows);
-        // Intentional Fall through.
     case Table_ColumnType_AVG_STDEV:
         ptr->values2 = column_new_double_vec(num_rows);
         // Intentional Fall through.
@@ -73,6 +66,8 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
     assert(fmt_buf);
     strncpy(fmt_buf, col_fmt, fmt_len + 1);
     ptr->col_format = fmt_buf;
+
+    ptr->blank_zeros = false;
 }
 
 static void
@@ -90,9 +85,6 @@ column_free(struct Column *ptr, int num_rows)
     free(ptr->text_values);
     free(ptr->values1);
     free(ptr->values2);
-    free(ptr->values3);
-    free(ptr->values4);
-    free(ptr->values5);
 }
 
 struct Table {
@@ -180,6 +172,15 @@ table_set_double_left_border(struct Table *tbl, int col_num)
 }
 
 void
+table_set_blank_zeros(struct Table *tbl, int col_num)
+{
+    assert(tbl->num_cols > col_num);
+    assert(col_num >= 0);
+
+    tbl->cols[col_num].blank_zeros = true;
+}
+
+void
 table_set_string_value(struct Table *tbl, int col_num, int row_num, int str_len,
                        char const value[str_len + 1])
 {
@@ -230,28 +231,6 @@ table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, doubl
 
     col->values1[row_num] = avg;
     col->values2[row_num] = stdev;
-
-    tbl->printable[row_num] = true;
-}
-
-void
-table_set_quantiles(struct Table *tbl, int col_num, int row_num, double q10, double q25, double q50,
-                    double q75, double q90)
-{
-    assert(tbl->num_cols > col_num);
-    assert(tbl->num_rows > row_num);
-    assert(col_num >= 0 && row_num >= 0);
-
-    struct Column *col = &tbl->cols[col_num];
-
-    Stopif(col->col_type != Table_ColumnType_QUANTILES, exit(EXIT_FAILURE),
-           "Can't assign quantiles to column.");
-
-    col->values1[row_num] = q10;
-    col->values2[row_num] = q25;
-    col->values3[row_num] = q50;
-    col->values4[row_num] = q75;
-    col->values5[row_num] = q90;
 
     tbl->printable[row_num] = true;
 }
@@ -389,8 +368,15 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
     case Table_ColumnType_VALUE: {
         double val = col->values1[row_num];
 
-        sprintf(small_buf, fmt, val);
-        sprintf(next, "%*s", col->col_width, small_buf);
+        if (val == 0.0 && col->blank_zeros) {
+            for (int i = 0; i < col->col_width; i++) {
+                next[i] = ' ';
+            }
+            next[col->col_width] = '\0';
+        } else {
+            sprintf(small_buf, fmt, val);
+            sprintf(next, "%*s", col->col_width, small_buf);
+        }
         break;
     }
     case Table_ColumnType_AVG_STDEV: {
@@ -398,17 +384,6 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
         double stdev = col->values2[row_num];
 
         sprintf(small_buf, fmt, avg, stdev);
-        sprintf(next, "%*s", col->col_width, small_buf);
-        break;
-    }
-    case Table_ColumnType_QUANTILES: {
-        double q10 = col->values1[row_num];
-        double q25 = col->values2[row_num];
-        double q50 = col->values3[row_num];
-        double q75 = col->values4[row_num];
-        double q90 = col->values5[row_num];
-
-        sprintf(small_buf, fmt, q10, q25, q50, q75, q90);
         sprintf(next, "%*s", col->col_width, small_buf);
         break;
     }
@@ -471,6 +446,4 @@ table_display(struct Table *tbl, FILE *out)
     print_header(tbl, out);
     print_rows(tbl, out);
     print_bottom(tbl, out);
-
-    // assert(false);
 }

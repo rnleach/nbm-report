@@ -10,7 +10,6 @@ enum ColumnType {
     Table_ColumnType_TEXT,
     Table_ColumnType_VALUE,
     Table_ColumnType_AVG_STDEV,
-    Table_ColumnType_QUANTILES
 };
 
 /** Allocate and create a new table.
@@ -62,6 +61,12 @@ void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int 
 /** Set the left border of a column to have a double border */
 void table_set_double_left_border(struct Table *tbl, int col_num);
 
+/** Set zero values to be blanked out and print nothing for a column.
+ *
+ * This has no affect on text or avg-std columns.
+ */
+void table_set_blank_zeros(struct Table *tbl, int col_num);
+
 /** Add a string value to a column.
  *
  * If the column type does not match (i.e. it's not a Table_ColumnType_TEXT column), then it will
@@ -99,19 +104,6 @@ void table_set_value(struct Table *tbl, int col_num, int row_num, double value);
  * overwrites the value at \c col_num, \c row_num.
  */
 void table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, double stdev);
-
-/** Add quantiles to the table.
- *
- * Quantiles should be the 10th, 25th, 50th, 75th, and 90th percentiles.
- *
- * If the column type does not match (i.e. it's not a Table_ColumnType_QUANTILES column), then it
- * will abort the program.
- *
- * All double values in the table default to NaN, which is printed as a ' - ' string. This
- * overwrites the value at \c col_num, \c row_num.
- */
-void table_set_quantiles(struct Table *tbl, int col_num, int row_num, double q10, double q25,
-                         double q50, double q75, double q90);
 
 /** Display the table. */
 void table_display(struct Table *tbl, FILE *out);

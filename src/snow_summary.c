@@ -1,5 +1,5 @@
-#include "nbm_data.h"
 #include "snow_summary.h"
+#include "nbm_data.h"
 #include "summarize.h"
 #include "table.h"
 #include "utils.h"
@@ -117,12 +117,8 @@ show_snow_summary(struct NBMData const *nbm, int hours)
     table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%6.1lf"),
                      "%6.2lf", 6);
 
-    table_set_double_left_border(tbl, 1);
-
     table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen("%4.1lf"),
                      "%4.1lf", 4);
-
-    table_set_double_left_border(tbl, 2);
 
     table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("25th"), "25th", strlen("%4.1lf"),
                      "%4.1lf", 4);
@@ -138,8 +134,6 @@ show_snow_summary(struct NBMData const *nbm, int hours)
 
     table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("0.1"), "0.1", strlen("%5.0lf"),
                      "%5.0lf", 5);
-
-    table_set_double_left_border(tbl, 7);
 
     table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("0.5"), "0.5", strlen("%5.0lf"),
                      "%5.0lf", 5);
@@ -167,6 +161,14 @@ show_snow_summary(struct NBMData const *nbm, int hours)
 
     table_add_column(tbl, 16, Table_ColumnType_VALUE, strlen("24.0"), "24.0", strlen("%5.0lf"),
                      "%5.0lf", 5);
+
+    table_set_double_left_border(tbl, 1);
+    table_set_double_left_border(tbl, 2);
+    table_set_double_left_border(tbl, 7);
+
+    for (int i = 1; i <= 16; i++) {
+        table_set_blank_zeros(tbl, i);
+    }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(cdfs, add_row_prob_snow_exceedence_to_table, &state);
