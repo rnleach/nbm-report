@@ -297,7 +297,7 @@ show_daily_summary(struct NBMData const *nbm)
     table_add_column(tbl, 8, Table_ColumnType_VALUE,     "Precip",    "%5.2lf ",              6);
     table_add_column(tbl, 9, Table_ColumnType_VALUE,     "Snow",      "%5.1lf ",              6);
     // clang-format on
-    
+
     table_set_blank_zeros(tbl, 7);
     table_set_blank_zeros(tbl, 8);
     table_set_blank_zeros(tbl, 9);
