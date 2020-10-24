@@ -270,48 +270,24 @@ show_temperature_summary(struct NBMData const *nbm)
     struct Table *tbl = table_new(13, g_tree_nnodes(temps));
     build_title(nbm, tbl);
 
-    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("Day/Date"), "Day/Date", strlen("%s"),
-                     "%s", 17);
-
-    table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("MinT (F)"), "MinT (F)",
-                     strlen("   %3.0lf° "), "   %3.0lf° ", 8);
+    // clang-format off
+    table_add_column(tbl,  0, Table_ColumnType_TEXT,  "Day/Date",          "%s", 17);
+    table_add_column(tbl,  1, Table_ColumnType_VALUE, "MinT (F)", "   %3.0lf° ",  8);
+    table_add_column(tbl,  2, Table_ColumnType_VALUE,     "10th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  3, Table_ColumnType_VALUE,     "25th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  4, Table_ColumnType_VALUE,     "50th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  5, Table_ColumnType_VALUE,     "75th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  6, Table_ColumnType_VALUE,     "90th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  7, Table_ColumnType_VALUE, "MaxT (F)", "   %3.0lf° ",  8);
+    table_add_column(tbl,  8, Table_ColumnType_VALUE,     "10th",   " %3.0lf° ",  6);
+    table_add_column(tbl,  9, Table_ColumnType_VALUE,     "25th",   " %3.0lf° ",  6);
+    table_add_column(tbl, 10, Table_ColumnType_VALUE,     "50th",   " %3.0lf° ",  6);
+    table_add_column(tbl, 11, Table_ColumnType_VALUE,     "75th",   " %3.0lf° ",  6);
+    table_add_column(tbl, 12, Table_ColumnType_VALUE,     "90th",   " %3.0lf° ",  6);
+    // clang-format on
 
     table_set_double_left_border(tbl, 1);
-
-    table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("25th"), "25th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("50th"), "50th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("75th"), "75th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("90th"), "90th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("MaxT (F)"), "MaxT (F)",
-                     strlen("   %3.0lf° "), "   %3.0lf° ", 8);
-
     table_set_double_left_border(tbl, 7);
-
-    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("25th"), "25th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 10, Table_ColumnType_VALUE, strlen("50th"), "50th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 11, Table_ColumnType_VALUE, strlen("75th"), "75th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
-
-    table_add_column(tbl, 12, Table_ColumnType_VALUE, strlen("90th"), "90th", strlen(" %3.0lf° "),
-                     " %3.0lf° ", 6);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(temps, add_row_to_table, &state);

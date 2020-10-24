@@ -107,50 +107,24 @@ show_precip_summary(struct NBMData const *nbm, int hours)
 
     struct Table *tbl = table_new(15, num_rows);
     build_title_liquid(nbm, tbl, hours);
-    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen(left_col_title), left_col_title,
-                     strlen("%s"), "%s", 19);
 
-    table_add_column(tbl, 1, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%6.2lf"),
-                     "%6.2lf", 6);
-
-    table_add_column(tbl, 2, Table_ColumnType_VALUE, strlen("10th"), "10th", strlen("%5.2lf"),
-                     "%5.2lf", 5);
-
-    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("25th"), "25th", strlen("%5.2lf"),
-                     "%5.2lf", 5);
-
-    table_add_column(tbl, 4, Table_ColumnType_VALUE, strlen("50th"), "50th", strlen("%5.2lf"),
-                     "%5.2lf", 5);
-
-    table_add_column(tbl, 5, Table_ColumnType_VALUE, strlen("75th"), "75th", strlen("%5.2lf"),
-                     "%5.2lf", 5);
-
-    table_add_column(tbl, 6, Table_ColumnType_VALUE, strlen("90th"), "90th", strlen("%5.2lf"),
-                     "%5.2lf", 5);
-
-    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("0.01"), "0.01", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("0.10"), "0.10", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("0.25"), "0.25", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 10, Table_ColumnType_VALUE, strlen("0.50"), "0.50", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 11, Table_ColumnType_VALUE, strlen("0.75"), "0.75", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 12, Table_ColumnType_VALUE, strlen("1.00"), "1.00", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 13, Table_ColumnType_VALUE, strlen("1.50"), "1.50", strlen("%3.0lf"),
-                     "%5.0lf", 5);
-
-    table_add_column(tbl, 14, Table_ColumnType_VALUE, strlen("2.00"), "2.00", strlen("%3.0lf"),
-                     "%5.0lf", 5);
+    // clang-format off
+    table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
+    table_add_column(tbl,  1, Table_ColumnType_VALUE,      "Precip", "%6.2lf",  6);
+    table_add_column(tbl,  2, Table_ColumnType_VALUE,        "10th", "%5.2lf",  5);
+    table_add_column(tbl,  3, Table_ColumnType_VALUE,        "25th", "%5.2lf",  5);
+    table_add_column(tbl,  4, Table_ColumnType_VALUE,        "50th", "%5.2lf",  5);
+    table_add_column(tbl,  5, Table_ColumnType_VALUE,        "75th", "%5.2lf",  5);
+    table_add_column(tbl,  6, Table_ColumnType_VALUE,        "90th", "%5.2lf",  5);
+    table_add_column(tbl,  7, Table_ColumnType_VALUE,        "0.01", "%5.0lf",  5);
+    table_add_column(tbl,  8, Table_ColumnType_VALUE,        "0.10", "%5.0lf",  5);
+    table_add_column(tbl,  9, Table_ColumnType_VALUE,        "0.25", "%5.0lf",  5);
+    table_add_column(tbl, 10, Table_ColumnType_VALUE,        "0.50", "%5.0lf",  5);
+    table_add_column(tbl, 11, Table_ColumnType_VALUE,        "0.75", "%5.0lf",  5);
+    table_add_column(tbl, 12, Table_ColumnType_VALUE,        "1.00", "%5.0lf",  5);
+    table_add_column(tbl, 13, Table_ColumnType_VALUE,        "1.50", "%5.0lf",  5);
+    table_add_column(tbl, 14, Table_ColumnType_VALUE,        "2.00", "%5.0lf",  5);
+    // clang-format on
 
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 2);

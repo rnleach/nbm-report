@@ -285,35 +285,18 @@ show_daily_summary(struct NBMData const *nbm)
 
     build_title(nbm, tbl);
 
-    table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("Day/Date"), "Day/Date", strlen("%s"),
-                     "%s", 17);
-
-    table_add_column(tbl, 1, Table_ColumnType_AVG_STDEV, strlen("MinT (F)"), "MinT (F)",
-                     strlen(" %3.0lf° ±%4.1lf "), " %3.0lf° ±%4.1lf ", 12);
-
-    table_add_column(tbl, 2, Table_ColumnType_AVG_STDEV, strlen("MaxT (F)"), "MaxT (F)",
-                     strlen(" %3.0lf° ±%4.1lf "), " %3.0lf° ±%4.1lf ", 12);
-
-    table_add_column(tbl, 3, Table_ColumnType_VALUE, strlen("Dir"), "Dir", strlen(" %3.0lf "),
-                     " %3.0lf ", 5);
-
-    table_add_column(tbl, 4, Table_ColumnType_AVG_STDEV, strlen("Spd (mph)"), "Spd (mph)",
-                     strlen(" %3.0lf ±%2.0lf "), " %3.0lf ±%2.0lf ", 9);
-
-    table_add_column(tbl, 5, Table_ColumnType_AVG_STDEV, strlen("Gust"), "Gust",
-                     strlen(" %3.0lf ±%2.0lf "), " %3.0lf ±%2.0lf ", 9);
-
-    table_add_column(tbl, 6, Table_ColumnType_AVG_STDEV, strlen("Sky Pct"), "Sky Pct",
-                     strlen("%3.0lf%% /%3.0lf%% "), "%3.0lf%% /%3.0lf%% ", 12);
-
-    table_add_column(tbl, 7, Table_ColumnType_VALUE, strlen("Ltg (%)"), "Ltg (%)",
-                     strlen("%3.0lf%% "), "%3.0lf%% ", 7);
-
-    table_add_column(tbl, 8, Table_ColumnType_VALUE, strlen("Precip"), "Precip", strlen("%5.2lf "),
-                     "%5.2lf ", 6);
-
-    table_add_column(tbl, 9, Table_ColumnType_VALUE, strlen("Snow"), "Snow", strlen("%5.1lf "),
-                     "%5.1lf ", 6);
+    // clang-format off
+    table_add_column(tbl, 0, Table_ColumnType_TEXT,      "Day/Date",  "%s",                  17);
+    table_add_column(tbl, 1, Table_ColumnType_AVG_STDEV, "MinT (F)",  " %3.0lf° ±%4.1lf ",   12);
+    table_add_column(tbl, 2, Table_ColumnType_AVG_STDEV, "MaxT (F)",  " %3.0lf° ±%4.1lf ",   12);
+    table_add_column(tbl, 3, Table_ColumnType_VALUE,     "Dir",       " %3.0lf ",             5);
+    table_add_column(tbl, 4, Table_ColumnType_AVG_STDEV, "Spd (mph)", " %3.0lf ±%2.0lf ",     9);
+    table_add_column(tbl, 5, Table_ColumnType_AVG_STDEV, "Gust",      " %3.0lf ±%2.0lf ",     9);
+    table_add_column(tbl, 6, Table_ColumnType_AVG_STDEV, "Sky Pct",   "%3.0lf%% /%3.0lf%% ", 12);
+    table_add_column(tbl, 7, Table_ColumnType_VALUE,     "Ltg (%)",   "%3.0lf%% ",            7);
+    table_add_column(tbl, 8, Table_ColumnType_VALUE,     "Precip",    "%5.2lf ",              6);
+    table_add_column(tbl, 9, Table_ColumnType_VALUE,     "Snow",      "%5.1lf ",              6);
+    // clang-format on
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(sums, add_row_to_table, &state);

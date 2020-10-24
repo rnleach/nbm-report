@@ -45,18 +45,15 @@ void table_add_title(struct Table *tbl, int str_len, char const title[str_len + 
  * for the arguments passed in \c table_new(...), then the whole program aborts if assertions are
  * enabled. If they are not, it is not checked and the behavior undefined.
  * \param type is the type of data in this column.
- * \param str_len is the length of the \c col_title string.
  * \param col_label is the string to copy in.
- * \param fmt_len is the length of the \c col_fmt string.
  * \param col_fmt is a \c printf format string which will be used to format the \c double values in
  * that column. The format specifier should contain only '%lf' format that specifies the precision
  * to use in the format string.
  * \param col_width is the width of the column in printable characters. If outputs, including
  * column labels are longer than this, they will be truncated.
  */
-void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_len,
-                      char const col_label[str_len + 1], int fmt_len,
-                      char const col_fmt[fmt_len + 1], int col_width);
+void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, char const *col_label,
+                      char const *col_fmt, int col_width);
 
 /** Set the left border of a column to have a double border */
 void table_set_double_left_border(struct Table *tbl, int col_num);

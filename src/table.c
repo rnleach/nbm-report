@@ -34,8 +34,7 @@ column_new_double_vec(int num_rows)
 
 static void
 column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int width,
-            int label_len, char const col_label[label_len + 1], int fmt_len,
-            char const col_fmt[fmt_len + 1])
+            char const *col_label, char const *col_fmt)
 {
     ptr->col_type = type;
 
@@ -57,14 +56,16 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
     ptr->col_width = width;
     ptr->double_left_border = false;
 
-    char *label_buf = calloc(label_len + 1, sizeof(char));
+    size_t label_len = strlen(col_label) + 1;
+    char *label_buf = calloc(label_len, sizeof(char));
     assert(label_buf);
-    strncpy(label_buf, col_label, label_len + 1);
+    strncpy(label_buf, col_label, label_len);
     ptr->col_label = label_buf;
 
-    char *fmt_buf = calloc(fmt_len + 1, sizeof(char));
+    size_t fmt_len = strlen(col_fmt) + 1;
+    char *fmt_buf = calloc(fmt_len, sizeof(char));
     assert(fmt_buf);
-    strncpy(fmt_buf, col_fmt, fmt_len + 1);
+    strncpy(fmt_buf, col_fmt, fmt_len);
     ptr->col_format = fmt_buf;
 
     ptr->blank_zeros = false;
@@ -146,10 +147,11 @@ table_add_title(struct Table *tbl, int str_len, char const title[str_len + 1])
 }
 
 void
-table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_len,
-                 char const col_label[str_len + 1], int fmt_len, char const col_fmt[fmt_len + 1],
-                 int col_width)
+table_add_column(struct Table *tbl, int col_num, enum ColumnType type, char const *col_label,
+                 char const *col_fmt, int col_width)
 {
+    assert(col_label);
+    assert(col_fmt);
     assert(tbl->num_cols > col_num);
     assert(col_num >= 0);
 
@@ -159,7 +161,7 @@ table_add_column(struct Table *tbl, int col_num, enum ColumnType type, int str_l
     assert(!col->col_label);
     assert(!col->col_format);
 
-    column_init(col, type, tbl->num_rows, col_width, str_len, col_label, fmt_len, col_fmt);
+    column_init(col, type, tbl->num_rows, col_width, col_label, col_fmt);
 }
 
 void
