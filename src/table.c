@@ -375,6 +375,14 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
                 next[i] = ' ';
             }
             next[col->col_width] = '\0';
+        } else if (isnan(val)) {
+            for (int i = 0; i < col->col_width; i++) {
+                if (i == col->col_width - 2)
+                    next[i] = '-';
+                else
+                    next[i] = ' ';
+            }
+            next[col->col_width] = '\0';
         } else {
             sprintf(small_buf, fmt, val);
             sprintf(next, "%*s", col->col_width, small_buf);
@@ -415,8 +423,6 @@ print_rows(struct Table *tbl, FILE *out)
         }
 
         sprintf(next, "│\n");
-
-        wipe_nans(buf);
 
         fputs(buf, out);
     }

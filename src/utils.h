@@ -69,18 +69,6 @@ to_uppercase(char string[static 1])
     }
 }
 
-/** Replace "nan" with " - " in a string. */
-static inline void
-wipe_nans(char string[static 1])
-{
-    char *c = 0;
-    while ((c = strstr(string, "nan"))) {
-        c[0] = ' ';
-        c[1] = '-';
-        c[2] = ' ';
-    }
-}
-
 /*-------------------------------------------------------------------------------------------------
  *                                  Resizable Buffer Type
  *-----------------------------------------------------------------------------------------------*/
