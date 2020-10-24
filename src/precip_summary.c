@@ -1,5 +1,5 @@
-#include "precip_summary.h"
 #include "nbm_data.h"
+#include "precip_summary.h"
 #include "summarize.h"
 #include "table.h"
 #include "utils.h"
@@ -98,7 +98,14 @@ show_precip_summary(struct NBMData const *nbm, int hours)
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_precip_key, mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
 
-    struct Table *tbl = table_new(15, g_tree_nnodes(cdfs));
+    int num_rows = g_tree_nnodes(cdfs);
+    if (num_rows == 0) {
+        printf("\n\n     ***** No precipitation summary for accumulation period %d. *****\n\n",
+               hours);
+        return;
+    }
+
+    struct Table *tbl = table_new(15, num_rows);
     build_title_liquid(nbm, tbl, hours);
     table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen("24 Hrs Ending / in."),
                      "24 Hrs Ending / in.", strlen("%s"), "%s", 19);

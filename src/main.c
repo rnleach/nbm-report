@@ -48,8 +48,8 @@ print_usage(char **argv)
                     "   -t show temperature forecast quantiles.                                 \n"
                     "   -r show summary of rain / liquid equivalent forecast.                   \n"
                     "   -s show summary of snow forecast                                        \n"
-                    "   -a <hours>  where hours is 24, 48, or 72. This is the                   \n"
-                    "      accumulation period for rain and snow.                               \n"
+                    "   -a <hours>  where hours is 6, 12, 24, 48, or 72. This                   \n"
+                    "      is the accumulation period for rain and snow.                        \n"
                     "   -n do not show main summary.                                            \n"
                     "\n                                                                         \n"
                     "For the purpose of this program, days run from 06Z to 06Z.                 \n"
@@ -65,7 +65,7 @@ print_usage(char **argv)
 static bool
 is_valid_accum_period(int hours)
 {
-    return hours == 1 || hours == 6 || hours == 12 || hours == 24 || hours == 48 || hours == 72;
+    return hours == 6 || hours == 12 || hours == 24 || hours == 48 || hours == 72;
 }
 
 struct OptArgs {

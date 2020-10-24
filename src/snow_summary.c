@@ -1,5 +1,5 @@
-#include "snow_summary.h"
 #include "nbm_data.h"
+#include "snow_summary.h"
 #include "summarize.h"
 #include "table.h"
 #include "utils.h"
@@ -103,7 +103,13 @@ show_snow_summary(struct NBMData const *nbm, int hours)
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
 
-    struct Table *tbl = table_new(17, g_tree_nnodes(cdfs));
+    int num_rows = g_tree_nnodes(cdfs);
+    if (num_rows == 0) {
+        printf("\n\n     ***** No snow summary for accumulation period %d. *****\n\n", hours);
+        return;
+    }
+
+    struct Table *tbl = table_new(17, num_rows);
     build_title_snow(nbm, tbl, hours);
 
     table_add_column(tbl, 0, Table_ColumnType_TEXT, strlen(left_col_title), left_col_title,
