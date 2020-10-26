@@ -98,7 +98,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         switch (opt) {
         case 'a':
             Stopif(accum_periods >= sizeof(result.accum_hours), goto ERR_RETURN,
-                   "Too man snow accum arguments.");
+                   "Too many accum arguments.");
             result.accum_hours[accum_periods] = atoi(optarg);
             accum_periods++;
             break;
