@@ -42,11 +42,11 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 
     double pm_value = round(cumulative_dist_pm_value(dist) * 100.0) / 100.0;
 
-    double p10th = round(cumulative_dist_percentile_vaule(dist, 10.0) * 100.0) / 100.0;
-    double p25th = round(cumulative_dist_percentile_vaule(dist, 25.0) * 100.0) / 100.0;
-    double p50th = round(cumulative_dist_percentile_vaule(dist, 50.0) * 100.0) / 100.0;
-    double p75th = round(cumulative_dist_percentile_vaule(dist, 75.0) * 100.0) / 100.0;
-    double p90th = round(cumulative_dist_percentile_vaule(dist, 90.0) * 100.0) / 100.0;
+    double p10th = round(cumulative_dist_percentile_value(dist, 10.0) * 100.0) / 100.0;
+    double p25th = round(cumulative_dist_percentile_value(dist, 25.0) * 100.0) / 100.0;
+    double p50th = round(cumulative_dist_percentile_value(dist, 50.0) * 100.0) / 100.0;
+    double p75th = round(cumulative_dist_percentile_value(dist, 75.0) * 100.0) / 100.0;
+    double p90th = round(cumulative_dist_percentile_value(dist, 90.0) * 100.0) / 100.0;
 
     double prob_001 = round(interpolate_prob_of_exceedance(dist, 0.01));
     double prob_010 = round(interpolate_prob_of_exceedance(dist, 0.10));

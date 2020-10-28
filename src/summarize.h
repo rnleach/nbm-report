@@ -111,7 +111,7 @@ double interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double
  *
  * \returns the value at the percentile, or NAN if it was out of the possible range.
  */
-double cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf,
+double cumulative_dist_percentile_value(struct CumulativeDistribution *cdf,
                                         double target_percentile);
 
 /** Free a CDF object. */

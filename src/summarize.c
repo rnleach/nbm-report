@@ -65,13 +65,30 @@ extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char co
 /*-------------------------------------------------------------------------------------------------
  *                                    CDF implementations.
  *-----------------------------------------------------------------------------------------------*/
+struct Percentile {
+    double pct;
+    double val;
+};
+
+static int
+percentile_compare(void const *a, void const *b)
+{
+    struct Percentile const *pa = a;
+    struct Percentile const *pb = b;
+
+    if (pa->pct < pb->pct)
+        return -1;
+    if (pa->pct > pb->pct)
+        return 1;
+    return 0;
+}
 
 struct CumulativeDistribution {
     double quantile_mapped_value;
-    double *percents;
-    double *values;
+    struct Percentile *percentiles;
     int size;
     int capacity;
+    bool sorted;
 };
 
 static struct CumulativeDistribution *
@@ -80,12 +97,11 @@ cumulative_dist_new()
     struct CumulativeDistribution *new = calloc(1, sizeof(struct CumulativeDistribution));
     assert(new);
 
-    new->percents = calloc(10, sizeof(double));
-    assert(new->percents);
-    new->values = calloc(10, sizeof(double));
-    assert(new->values);
+    new->percentiles = calloc(10, sizeof(struct Percentile));
+    assert(new->percentiles);
     new->capacity = 10;
     new->quantile_mapped_value = NAN;
+    new->sorted = false;
 
     return new;
 }
@@ -98,21 +114,14 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
     // Expand storage if needed.
     if (dist->capacity == dist->size) {
         assert(dist->capacity == 10);
-        dist->percents = realloc(dist->percents, 100 * sizeof(double));
-        dist->values = realloc(dist->values, 100 * sizeof(double));
-        assert(dist->percents);
-        assert(dist->values);
+        dist->percentiles = realloc(dist->percentiles, 100 * sizeof(struct Percentile));
+        assert(dist->percentiles);
         dist->capacity = 100;
     }
 
-    int last_index = dist->size - 1;
-    if (last_index >= 0 && dist->percents[last_index] == percentile) {
-        dist->values[last_index] = value;
-    } else {
-        dist->percents[dist->size] = percentile;
-        dist->values[dist->size] = value;
-        dist->size += 1;
-    }
+    dist->sorted = false;
+    dist->percentiles[dist->size] = (struct Percentile){.pct = percentile, .val = value};
+    dist->size++;
 
     return true;
 }
@@ -186,11 +195,21 @@ cumulative_dist_pm_value(struct CumulativeDistribution const *ptr)
     return ptr->quantile_mapped_value;
 }
 
+static void
+cumulative_dist_sort(struct CumulativeDistribution *ptr)
+{
+    qsort(ptr->percentiles, ptr->size, sizeof(struct Percentile), percentile_compare);
+    ptr->sorted = true;
+}
+
 double
 interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target_val)
 {
-    double *xs = cdf->values;
-    double *ys = cdf->percents;
+    if (!cdf->sorted) {
+        cumulative_dist_sort(cdf);
+    }
+
+    struct Percentile *ps = cdf->percentiles;
     int sz = cdf->size;
 
     assert(sz > 1);
@@ -198,7 +217,7 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
     // Bracket the target value
     int left = 0, right = 0;
     for (int i = 1; i < sz; i++) {
-        if (xs[i - 1] <= target_val && xs[i] >= target_val) {
+        if (ps[i - 1].val <= target_val && ps[i].val >= target_val) {
             left = i - 1;
             right = i;
             break;
@@ -209,17 +228,17 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
     // of exceedance is 0, or the first percentile marker we had was greater than the target value
     // and and the probability of exceedance is 100.0
     if (left == right) {
-        if (xs[0] >= target_val) {
+        if (ps[0].val >= target_val) {
             return 100.0;
         } else {
             return 0.0;
         }
     }
 
-    double left_x = xs[left];
-    double right_x = xs[right];
-    double left_y = ys[left];
-    double right_y = ys[right];
+    double left_x = ps[left].val;
+    double right_x = ps[right].val;
+    double left_y = ps[left].pct;
+    double right_y = ps[right].pct;
 
     double rise = right_y - left_y;
     double run = right_x - left_x;
@@ -234,10 +253,13 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
 }
 
 double
-cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf, double target_percentile)
+cumulative_dist_percentile_value(struct CumulativeDistribution *cdf, double target_percentile)
 {
-    double *xs = cdf->percents;
-    double *ys = cdf->values;
+
+    if (!cdf->sorted) {
+        cumulative_dist_sort(cdf);
+    }
+    struct Percentile *ps = cdf->percentiles;
     int sz = cdf->size;
 
     assert(sz > 1);
@@ -245,7 +267,7 @@ cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf, double targ
     // Bracket the target percentile
     int left = 0, right = 0;
     for (int i = 1; i < sz; i++) {
-        if (xs[i - 1] <= target_percentile && xs[i] >= target_percentile) {
+        if (ps[i - 1].pct <= target_percentile && ps[i].pct >= target_percentile) {
             left = i - 1;
             right = i;
             break;
@@ -256,10 +278,10 @@ cumulative_dist_percentile_vaule(struct CumulativeDistribution *cdf, double targ
     if (left == 0 && right == 0)
         return NAN;
 
-    double left_pct = xs[left];
-    double right_pct = xs[right];
-    double left_val = ys[left];
-    double right_val = ys[right];
+    double left_pct = ps[left].pct;
+    double right_pct = ps[right].pct;
+    double left_val = ps[left].val;
+    double right_val = ps[right].val;
 
     double rise = right_val - left_val;
     double run = right_pct - left_pct;
@@ -273,8 +295,7 @@ void
 cumulative_dist_free(void *void_cdf)
 {
     struct CumulativeDistribution *cdf = void_cdf;
-    free(cdf->percents);
-    free(cdf->values);
+    free(cdf->percentiles);
     free(cdf);
 }
 
