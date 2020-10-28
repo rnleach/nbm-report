@@ -10,6 +10,7 @@
 // Program developed headers
 #include "daily_summary.h"
 #include "download.h"
+#include "ice_summary.h"
 #include "nbm_data.h"
 #include "precip_summary.h"
 #include "raw_nbm_data.h"
@@ -48,6 +49,7 @@ print_usage(char **argv)
                     "   -t show temperature forecast quantiles.                                 \n"
                     "   -r show summary of rain / liquid equivalent forecast.                   \n"
                     "   -s show summary of snow forecast                                        \n"
+                    "   -i show summary of ice forecast                                         \n"
                     "   -a <hours>  where hours is 6, 12, 24, 48, or 72. This                   \n"
                     "      is the accumulation period for rain and snow.                        \n"
                     "   -n do not show main summary.                                            \n"
@@ -73,6 +75,7 @@ struct OptArgs {
     bool show_summary;
     bool show_rain;
     bool show_snow;
+    bool show_ice;
     int accum_hours[4];
     bool show_temperature;
 };
@@ -89,18 +92,22 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .show_summary = true,
         .show_rain = false,
         .show_snow = false,
+        .show_ice = false,
         .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
     };
 
     int opt;
-    while ((opt = getopt(argc, argv, "a:nrst")) != -1) {
+    while ((opt = getopt(argc, argv, "a:inrst")) != -1) {
         switch (opt) {
         case 'a':
             Stopif(accum_periods >= sizeof(result.accum_hours), goto ERR_RETURN,
                    "Too many accum arguments.");
             result.accum_hours[accum_periods] = atoi(optarg);
             accum_periods++;
+            break;
+        case 'i':
+            result.show_ice = true;
             break;
         case 'n':
             result.show_summary = false;
@@ -192,7 +199,7 @@ main(int argc, char *argv[argc + 1])
     if (opt_args.show_temperature)
         show_temperature_summary(parsed_nbm_data);
 
-    if (opt_args.show_snow || opt_args.show_rain) {
+    if (opt_args.show_snow || opt_args.show_rain || opt_args.show_ice) {
         for (int i = 0;
              i < sizeof(opt_args.accum_hours) && is_valid_accum_period(opt_args.accum_hours[i]);
              i++) {
@@ -201,6 +208,9 @@ main(int argc, char *argv[argc + 1])
             }
             if (opt_args.show_snow) {
                 show_snow_summary(parsed_nbm_data, opt_args.accum_hours[i]);
+            }
+            if (opt_args.show_ice) {
+                show_ice_summary(parsed_nbm_data, opt_args.accum_hours[i]);
             }
         }
     }
