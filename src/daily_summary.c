@@ -236,11 +236,6 @@ build_title(struct NBMData const *nbm, struct Table *tbl)
     table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
-struct TableFillerState {
-    int row;
-    struct Table *tbl;
-};
-
 static int
 add_row_to_table(void *key, void *value, void *state)
 {

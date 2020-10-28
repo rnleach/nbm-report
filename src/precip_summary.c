@@ -13,11 +13,6 @@
 
 #include <glib.h>
 
-struct TableFillerState {
-    int row;
-    struct Table *tbl;
-};
-
 static void
 build_title_liquid(struct NBMData const *nbm, struct Table *tbl, int hours)
 {

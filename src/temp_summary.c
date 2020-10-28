@@ -204,11 +204,6 @@ extract_temperature_data(struct NBMData const *nbm)
 /*-------------------------------------------------------------------------------------------------
  *                                     Table Filling
  *-----------------------------------------------------------------------------------------------*/
-struct TableFillerState {
-    int row;
-    struct Table *tbl;
-};
-
 static void
 build_title(struct NBMData const *nbm, struct Table *tbl)
 {

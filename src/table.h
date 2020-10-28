@@ -12,6 +12,12 @@ enum ColumnType {
     Table_ColumnType_AVG_STDEV,
 };
 
+/** A state type useful for use with callbacks that take a \c void \c * \c user_data argument. */
+struct TableFillerState {
+    int row;
+    struct Table *tbl;
+};
+
 /** Allocate and create a new table.
  *
  * The table is created and the row and column labels are initialized to null strings. They will
