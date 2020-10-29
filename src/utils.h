@@ -85,10 +85,11 @@ struct Buffer {
 static inline struct Buffer
 buffer_with_capacity(size_t capacity)
 {
-    assert(capacity > 0);
-
-    unsigned char *buf = malloc(capacity);
-    assert(buf);
+    unsigned char *buf = 0;
+    if (capacity) {
+        buf = malloc(capacity);
+        assert(buf);
+    }
 
     return (struct Buffer){.byte_data = buf, .size = 0, .capacity = capacity};
 }
@@ -106,7 +107,9 @@ static inline void
 buffer_set_capacity(struct Buffer buf[static 1], size_t new_capacity)
 {
     unsigned char *new_buf = realloc(buf->byte_data, new_capacity);
-    assert(new_buf);
+    if (new_capacity) {
+        assert(new_buf);
+    }
 
     buf->byte_data = new_buf;
     buf->capacity = new_capacity;

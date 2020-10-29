@@ -187,7 +187,7 @@ retrieve_data_for_site(char const site[static 1])
 
     // Allocated memory, don't free these unless there is an error.
     char *data_site = malloc(strlen(site) + 1);
-    struct Buffer buf = buffer_with_capacity(1024);
+    struct Buffer buf = buffer_with_capacity(0);
 
     // Keep a copy of the site and force it to upper case.
     strcpy(data_site, site);

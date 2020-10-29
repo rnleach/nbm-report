@@ -131,6 +131,7 @@ table_free(struct Table **ptrptr)
     for (int i = 0; i < ptr->num_cols; i++) {
         column_free(&ptr->cols[i], ptr->num_rows);
     }
+    free(ptr->cols);
     free(ptr->printable);
     free(ptr);
 
