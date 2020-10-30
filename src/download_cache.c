@@ -13,12 +13,12 @@
 #include "download_cache.h"
 #include "utils.h"
 
-static struct Buffer
-compress_text_buffer(struct Buffer const in_text[static 1])
+static struct TextBuffer
+compress_text_buffer(struct TextBuffer const in_text[static 1])
 {
     assert(in_text);
 
-    struct Buffer out_buf = buffer_with_capacity(in_text->size + 2);
+    struct TextBuffer out_buf = text_buffer_with_capacity(in_text->size + 2);
 
     int z_ret = Z_OK;
     z_stream strm = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL};
@@ -39,7 +39,7 @@ compress_text_buffer(struct Buffer const in_text[static 1])
         out_buf.size += out_start - strm.avail_out;
 
         if (strm.avail_out == 0) {
-            buffer_set_capacity(&out_buf, strm.avail_in * 2);
+            text_buffer_set_capacity(&out_buf, strm.avail_in * 2);
         }
 
     } while (strm.avail_out == 0);
@@ -49,12 +49,12 @@ compress_text_buffer(struct Buffer const in_text[static 1])
     return out_buf;
 }
 
-static struct Buffer
+static struct TextBuffer
 uncompress_text(int in_size, unsigned char in[in_size])
 {
     assert(in);
 
-    struct Buffer out_buf = buffer_with_capacity(in_size * 10);
+    struct TextBuffer out_buf = text_buffer_with_capacity(in_size * 10);
 
     int z_ret = Z_OK;
     z_stream strm = {
@@ -83,7 +83,7 @@ uncompress_text(int in_size, unsigned char in[in_size])
         out_buf.size += out_start - strm.avail_out;
 
         if (strm.avail_out == 0) {
-            buffer_set_capacity(&out_buf, out_buf.capacity + strm.avail_in * 6);
+            text_buffer_set_capacity(&out_buf, out_buf.capacity + strm.avail_in * 6);
         }
 
     } while (strm.avail_out == 0);
@@ -216,12 +216,12 @@ download_cache_retrieve(char const *site, time_t init_time)
     unsigned char const *blob_data = sqlite3_column_blob(statement, 0);
     int blob_size = sqlite3_column_bytes(statement, 0);
 
-    struct Buffer out_buf = uncompress_text(blob_size, (unsigned char *)blob_data);
+    struct TextBuffer out_buf = uncompress_text(blob_size, (unsigned char *)blob_data);
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing select statement");
 
-    return buffer_steal_text(&out_buf);
+    return text_buffer_steal_text(&out_buf);
 
 ERR_RETURN:
 
@@ -232,12 +232,12 @@ ERR_RETURN:
 }
 
 int
-download_cache_add(char const *site, time_t init_time, struct Buffer const buf[static 1])
+download_cache_add(char const *site, time_t init_time, struct TextBuffer const buf[static 1])
 {
     assert(site);
     assert(buf);
 
-    struct Buffer compressed_buf = compress_text_buffer(buf);
+    struct TextBuffer compressed_buf = compress_text_buffer(buf);
 
     char const *sql = "INSERT OR REPLACE INTO nbm (site, init_time, data) VALUES (?, ?, ?)";
 
@@ -258,7 +258,7 @@ download_cache_add(char const *site, time_t init_time, struct Buffer const buf[s
     rc = sqlite3_step(statement);
     Stopif(rc != SQLITE_DONE, goto ERR_RETURN, "error executing insert sql");
 
-    buffer_clear(&compressed_buf);
+    text_buffer_clear(&compressed_buf);
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert statement");
@@ -269,7 +269,7 @@ ERR_RETURN:
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert sql.");
 
-    buffer_clear(&compressed_buf);
+    text_buffer_clear(&compressed_buf);
 
     return -1;
 }

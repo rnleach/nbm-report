@@ -141,10 +141,10 @@ static size_t
 write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
-    struct Buffer *buf = userp;
+    struct TextBuffer *buf = userp;
     char *text = contents;
 
-    buffer_append_text(buf, realsize, text);
+    text_buffer_append(buf, realsize, text);
 
     return realsize;
 }
@@ -152,7 +152,7 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 static CURL *curl = 0;
 
 static CURL *
-download_module_get_curl_handle(struct Buffer *buf)
+download_module_get_curl_handle(struct TextBuffer *buf)
 {
     if (!curl) {
         CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -187,7 +187,7 @@ retrieve_data_for_site(char const site[static 1])
 
     // Allocated memory, don't free these unless there is an error.
     char *data_site = malloc(strlen(site) + 1);
-    struct Buffer buf = buffer_with_capacity(0);
+    struct TextBuffer buf = text_buffer_with_capacity(0);
 
     // Keep a copy of the site and force it to upper case.
     strcpy(data_site, site);
@@ -233,7 +233,7 @@ retrieve_data_for_site(char const site[static 1])
     return raw_nbm_data_new(data_init_time, data_site, buf.text_data, buf.size);
 
 ERR_RETURN:
-    buffer_clear(&buf);
+    text_buffer_clear(&buf);
     free(data_site);
     return 0;
 }

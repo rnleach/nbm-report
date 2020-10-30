@@ -30,4 +30,4 @@ char *download_cache_retrieve(char const *site, time_t init_time);
  *
  * \returns 0 on success.
  */
-int download_cache_add(char const *site, time_t init_time, struct Buffer const buf[static 1]);
+int download_cache_add(char const *site, time_t init_time, struct TextBuffer const buf[static 1]);

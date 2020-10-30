@@ -70,9 +70,9 @@ to_uppercase(char string[static 1])
 }
 
 /*-------------------------------------------------------------------------------------------------
- *                                  Resizable Buffer Type
+ *                                 Resizable Buffer Types
  *-----------------------------------------------------------------------------------------------*/
-struct Buffer {
+struct TextBuffer {
     union {
         unsigned char *byte_data;
         char *text_data;
@@ -82,8 +82,8 @@ struct Buffer {
     size_t capacity;
 };
 
-static inline struct Buffer
-buffer_with_capacity(size_t capacity)
+static inline struct TextBuffer
+text_buffer_with_capacity(size_t capacity)
 {
     unsigned char *buf = 0;
     if (capacity) {
@@ -91,11 +91,11 @@ buffer_with_capacity(size_t capacity)
         assert(buf);
     }
 
-    return (struct Buffer){.byte_data = buf, .size = 0, .capacity = capacity};
+    return (struct TextBuffer){.byte_data = buf, .size = 0, .capacity = capacity};
 }
 
 static inline void
-buffer_clear(struct Buffer buf[static 1])
+text_buffer_clear(struct TextBuffer buf[static 1])
 {
     free(buf->byte_data);
     buf->byte_data = 0;
@@ -104,7 +104,7 @@ buffer_clear(struct Buffer buf[static 1])
 }
 
 static inline void
-buffer_set_capacity(struct Buffer buf[static 1], size_t new_capacity)
+text_buffer_set_capacity(struct TextBuffer buf[static 1], size_t new_capacity)
 {
     unsigned char *new_buf = realloc(buf->byte_data, new_capacity);
     if (new_capacity) {
@@ -117,12 +117,12 @@ buffer_set_capacity(struct Buffer buf[static 1], size_t new_capacity)
 }
 
 static inline void
-buffer_append_text(struct Buffer buf[static 1], size_t text_len, char const text[text_len])
+text_buffer_append(struct TextBuffer buf[static 1], size_t text_len, char const text[text_len])
 {
     size_t new_capacity = buf->size + text_len + 1;
 
     if (buf->capacity < new_capacity) {
-        buffer_set_capacity(buf, new_capacity);
+        text_buffer_set_capacity(buf, new_capacity);
     }
 
     size_t start = buf->size == 0 ? 0 : buf->size - 1;
@@ -133,7 +133,7 @@ buffer_append_text(struct Buffer buf[static 1], size_t text_len, char const text
 }
 
 static inline char *
-buffer_steal_text(struct Buffer buf[static 1])
+text_buffer_steal_text(struct TextBuffer buf[static 1])
 {
     char *out = buf->text_data;
     buf->size = 0;
