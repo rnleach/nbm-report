@@ -13,12 +13,12 @@
 #include "download_cache.h"
 #include "utils.h"
 
-static struct TextBuffer
+static struct ByteBuffer
 compress_text_buffer(struct TextBuffer const in_text[static 1])
 {
     assert(in_text);
 
-    struct TextBuffer out_buf = text_buffer_with_capacity(in_text->size + 2);
+    struct ByteBuffer out_buf = byte_buffer_with_capacity(in_text->size + 2);
 
     int z_ret = Z_OK;
     z_stream strm = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL};
@@ -30,16 +30,16 @@ compress_text_buffer(struct TextBuffer const in_text[static 1])
     strm.next_in = in_text->byte_data;
 
     do {
-        int out_start = out_buf.capacity - out_buf.size;
+        int out_start = byte_buffer_remaining_capacity(&out_buf);
         strm.avail_out = out_start;
-        strm.next_out = &out_buf.byte_data[out_buf.size];
+        strm.next_out = byte_buffer_next_write_pos(&out_buf);
         z_ret = deflate(&strm, Z_FINISH);
         Stopif(z_ret == Z_STREAM_ERROR, exit(EXIT_FAILURE), "zlib stream clobbered");
 
-        out_buf.size += out_start - strm.avail_out;
+        byte_buffer_increase_size(&out_buf, out_start - strm.avail_out);
 
         if (strm.avail_out == 0) {
-            text_buffer_set_capacity(&out_buf, strm.avail_in * 2);
+            byte_buffer_set_capacity(&out_buf, strm.avail_in + 256);
         }
 
     } while (strm.avail_out == 0);
@@ -237,7 +237,7 @@ download_cache_add(char const *site, time_t init_time, struct TextBuffer const b
     assert(site);
     assert(buf);
 
-    struct TextBuffer compressed_buf = compress_text_buffer(buf);
+    struct ByteBuffer compressed_buf = compress_text_buffer(buf);
 
     char const *sql = "INSERT OR REPLACE INTO nbm (site, init_time, data) VALUES (?, ?, ?)";
 
@@ -252,13 +252,13 @@ download_cache_add(char const *site, time_t init_time, struct TextBuffer const b
     rc = sqlite3_bind_int64(statement, 2, init_time);
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error binding init_time.");
 
-    rc = sqlite3_bind_blob(statement, 3, compressed_buf.byte_data, compressed_buf.size, 0);
+    rc = sqlite3_bind_blob(statement, 3, compressed_buf.data, compressed_buf.size, 0);
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error binding compressed data.");
 
     rc = sqlite3_step(statement);
     Stopif(rc != SQLITE_DONE, goto ERR_RETURN, "error executing insert sql");
 
-    text_buffer_clear(&compressed_buf);
+    byte_buffer_clear(&compressed_buf);
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert statement");
@@ -269,7 +269,7 @@ ERR_RETURN:
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing insert sql.");
 
-    text_buffer_clear(&compressed_buf);
+    byte_buffer_clear(&compressed_buf);
 
     return -1;
 }

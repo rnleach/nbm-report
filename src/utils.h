@@ -70,7 +70,7 @@ to_uppercase(char string[static 1])
 }
 
 /*-------------------------------------------------------------------------------------------------
- *                                 Resizable Buffer Types
+ *                                   Resizable Text Buffer
  *-----------------------------------------------------------------------------------------------*/
 struct TextBuffer {
     union {
@@ -140,4 +140,68 @@ text_buffer_steal_text(struct TextBuffer buf[static 1])
     buf->capacity = 0;
     buf->text_data = 0;
     return out;
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                   Resizable Byte Buffer
+ *-----------------------------------------------------------------------------------------------*/
+struct ByteBuffer {
+    unsigned char *data;
+    size_t size;
+    size_t capacity;
+};
+
+static inline struct ByteBuffer
+byte_buffer_with_capacity(size_t capacity)
+{
+    unsigned char *buf = 0;
+    if (capacity) {
+        buf = malloc(capacity);
+        assert(buf);
+    }
+
+    return (struct ByteBuffer){.data = buf, .size = 0, .capacity = capacity};
+}
+
+static inline void
+byte_buffer_clear(struct ByteBuffer buf[static 1])
+{
+    free(buf->data);
+    buf->data = 0;
+    buf->capacity = 0;
+    buf->size = 0;
+}
+
+static inline void
+byte_buffer_set_capacity(struct ByteBuffer buf[static 1], size_t new_capacity)
+{
+    assert(new_capacity >= buf->capacity);
+
+    unsigned char *new_buf = realloc(buf->data, new_capacity);
+    if (new_capacity) {
+        assert(new_buf);
+    }
+
+    buf->data = new_buf;
+    buf->capacity = new_capacity;
+}
+
+static inline void
+byte_buffer_increase_size(struct ByteBuffer buf[static 1], size_t size_increase)
+{
+    size_t new_size = buf->size + size_increase;
+    assert(buf->capacity >= new_size);
+    buf->size = new_size;
+}
+
+static inline size_t
+byte_buffer_remaining_capacity(struct ByteBuffer buf[static 1])
+{
+    return buf->capacity - buf->size;
+}
+
+static inline unsigned char *
+byte_buffer_next_write_pos(struct ByteBuffer buf[static 1])
+{
+    return &buf->data[buf->size];
 }
