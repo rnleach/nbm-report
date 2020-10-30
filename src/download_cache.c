@@ -133,11 +133,11 @@ download_cache_initialize()
     int result = sqlite3_open(path, &cache);
     Stopif(result != SQLITE_OK, exit(EXIT_FAILURE), "unable to open download cache.");
 
-    char *sql = "CREATE TABLE IF NOT EXISTS nbm (   "
-                "  site      TEXT    NOT NULL,      "
-                "  init_time INTEGER NOT NULL,      "
-                "  data      BLOB,                  "
-                "  PRIMARY KEY (site, init_time))   ";
+    char *sql = "CREATE TABLE IF NOT EXISTS nbm (   \n"
+                "  site      TEXT    NOT NULL,      \n"
+                "  init_time INTEGER NOT NULL,      \n"
+                "  data      BLOB,                  \n"
+                "  PRIMARY KEY (site, init_time));  \n";
 
     sqlite3_stmt *statement = 0;
 
