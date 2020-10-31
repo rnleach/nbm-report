@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "nbm_data.h"
