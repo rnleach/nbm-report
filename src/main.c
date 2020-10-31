@@ -11,6 +11,7 @@
 #include <glib.h>
 
 // Program developed headers
+#include "cache.h"
 #include "daily_summary.h"
 #include "download.h"
 #include "ice_summary.h"
@@ -28,6 +29,7 @@ static void
 program_initialization()
 {
     setlocale(LC_ALL, "");
+    cache_initialize();
     download_module_initialize();
 }
 
@@ -35,6 +37,7 @@ static void
 program_finalization()
 {
     download_module_finalize();
+    cache_finalize();
 }
 
 /*-------------------------------------------------------------------------------------------------

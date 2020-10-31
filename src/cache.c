@@ -10,7 +10,7 @@
 
 #include <sqlite3.h>
 
-#include "download_cache.h"
+#include "cache.h"
 #include "utils.h"
 
 static struct ByteBuffer
@@ -127,7 +127,7 @@ get_or_create_cache_path()
 static sqlite3 *cache = 0;
 
 void
-download_cache_initialize()
+cache_initialize()
 {
     char const *path = get_or_create_cache_path();
     int result = sqlite3_open(path, &cache);
@@ -153,7 +153,7 @@ download_cache_initialize()
 }
 
 void
-download_cache_finalize()
+cache_finalize()
 {
     time_t now = time(0);
     time_t too_old = now - 60 * 60 * 24 * 555; // About 555 days. That's over 1.5 years!
@@ -184,7 +184,7 @@ download_cache_finalize()
 }
 
 char *
-download_cache_retrieve(char const *site, time_t init_time)
+cache_retrieve(char const *site, time_t init_time)
 {
     assert(site);
 
@@ -232,7 +232,7 @@ ERR_RETURN:
 }
 
 int
-download_cache_add(char const *site, time_t init_time, struct TextBuffer const buf[static 1])
+cache_add(char const *site, time_t init_time, struct TextBuffer const buf[static 1])
 {
     assert(site);
     assert(buf);

@@ -1,5 +1,5 @@
+#include "cache.h"
 #include "download.h"
-#include "download_cache.h"
 #include "raw_nbm_data.h"
 #include "utils.h"
 
@@ -13,7 +13,7 @@
 
 #include <curl/curl.h>
 
-#define URL_LENGTH 256
+#define URL_LENGTH 1024
 #define MAX_VERSIONS_TO_ATTEMP_DOWNLOADING 20
 
 /**
@@ -200,7 +200,7 @@ retrieve_data_for_site(char const site[static 1])
     do {
         data_init_time = calc_init_time(attempt_number);
 
-        char *cache_data = download_cache_retrieve(data_site, data_init_time);
+        char *cache_data = cache_retrieve(data_site, data_init_time);
         if (cache_data) {
             printf("Successfully retrieved from the cache.\n");
             int cache_data_size = strlen(cache_data) + 1;
@@ -221,7 +221,7 @@ retrieve_data_for_site(char const site[static 1])
 
         if (!res) {
             printf("Successfully downloaded: %s\n", url);
-            int cache_res = download_cache_add(data_site, data_init_time, &buf);
+            int cache_res = cache_add(data_site, data_init_time, &buf);
             Stopif(cache_res, /* do nothing, just print message */, "Error saving to cache.");
         }
 
@@ -241,7 +241,6 @@ ERR_RETURN:
 void
 download_module_initialize()
 {
-    download_cache_initialize();
 }
 
 void
@@ -250,6 +249,4 @@ download_module_finalize()
     if (curl) {
         curl_global_cleanup();
     }
-
-    download_cache_finalize();
 }
