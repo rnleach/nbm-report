@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// Third party libs
+#include <glib.h>
+
 // Program developed headers
 #include "daily_summary.h"
 #include "download.h"
@@ -37,33 +40,6 @@ program_finalization()
 /*-------------------------------------------------------------------------------------------------
  *                                    Argument Parsing
  *-----------------------------------------------------------------------------------------------*/
-static void
-print_usage(char **argv)
-{
-    char *progname = argv[0];
-
-    printf("Usage: %s site_id\n", progname);
-    printf("e.g. : %s kmso\n\n", progname);
-
-    char *options = "Options:\n"
-                    "   -t show temperature forecast quantiles.                                 \n"
-                    "   -r show summary of rain / liquid equivalent forecast.                   \n"
-                    "   -s show summary of snow forecast                                        \n"
-                    "   -i show summary of ice forecast                                         \n"
-                    "   -a <hours>  where hours is 6, 12, 24, 48, or 72. This                   \n"
-                    "      is the accumulation period for rain and snow.                        \n"
-                    "   -n do not show main summary.                                            \n"
-                    "\n                                                                         \n"
-                    "For the purpose of this program, days run from 06Z to 06Z.                 \n"
-                    "This only applies to variables that are sampled or summed                  \n"
-                    "over hourly, 3-hourly, or 6-hourly forecast values. If a                   \n"
-                    "parameter is a 12, 24, 48, or 72 hour summary from the NBM,                \n"
-                    "then the time valid at the end of the period is reported.                  \n"
-                    "So 24-hr probability of precipitation is looking back 24 hours.            \n";
-
-    puts(options);
-}
-
 static bool
 is_valid_accum_period(int hours)
 {
@@ -76,71 +52,132 @@ struct OptArgs {
     bool show_rain;
     bool show_snow;
     bool show_ice;
+    int num_accum_periods;
     int accum_hours[4];
     bool show_temperature;
+};
+
+static gboolean
+option_callback(const char *name, const char *value, void *data, GError **unused)
+{
+    struct OptArgs *opts = data;
+
+    if (strcmp(name, "--no-summary") == 0 || strcmp(name, "-n") == 0) {
+        opts->show_summary = false;
+    } else if (strcmp(name, "--precipitation") == 0 || strcmp(name, "-r") == 0) {
+        opts->show_rain = true;
+    } else if (strcmp(name, "--snow") == 0 || strcmp(name, "-s") == 0) {
+        opts->show_snow = true;
+    } else if (strcmp(name, "--ice") == 0 || strcmp(name, "-i") == 0) {
+        opts->show_ice = true;
+    } else if (strcmp(name, "--temperature") == 0 || strcmp(name, "-t") == 0) {
+        opts->show_temperature = true;
+    } else if (strcmp(name, "--accumulation-period") == 0 || strcmp(name, "-a") == 0) {
+        if (opts->num_accum_periods < sizeof(opts->accum_hours)) {
+            opts->accum_hours[opts->num_accum_periods] = atoi(value);
+            opts->num_accum_periods++;
+        } else {
+            fprintf(stderr, "Too many accumulation periods!\n");
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+static GOptionEntry entries[] = {
+    {.long_name = "accumulation-period",
+     .short_name = 'a',
+     .flags = G_OPTION_FLAG_NONE,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "the number of hours to report accumulation summaries, H must be 6, 12, 24, "
+                    "48, or 72 hours.",
+     .arg_description = "H"},
+    {.long_name = "no-summary",
+     .short_name = 'n',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "skip the overall summary",
+     .arg_description = 0},
+    {.long_name = "precipitation",
+     .short_name = 'r',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of precipitation",
+     .arg_description = 0},
+    {.long_name = "snow",
+     .short_name = 's',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of snow",
+     .arg_description = 0},
+    {.long_name = "ice",
+     .short_name = 'i',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of ice forecast",
+     .arg_description = 0},
+    {.long_name = "temperature",
+     .short_name = 't',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of temperatures",
+     .arg_description = 0},
+    {0},
 };
 
 static struct OptArgs
 parse_cmd_line(int argc, char *argv[argc + 1])
 {
-    Stopif(argc < 2, goto ERR_RETURN, "Not enough arguments.\n");
-
-    int accum_periods = 0;
-
     struct OptArgs result = {
         .site = 0,
         .show_summary = true,
         .show_rain = false,
         .show_snow = false,
         .show_ice = false,
+        .num_accum_periods = 0,
         .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
     };
 
-    int opt;
-    while ((opt = getopt(argc, argv, "a:inrst")) != -1) {
-        switch (opt) {
-        case 'a':
-            Stopif(accum_periods >= sizeof(result.accum_hours), goto ERR_RETURN,
-                   "Too many accum arguments.");
-            result.accum_hours[accum_periods] = atoi(optarg);
-            accum_periods++;
-            break;
-        case 'i':
-            result.show_ice = true;
-            break;
-        case 'n':
-            result.show_summary = false;
-            break;
-        case 'r':
-            result.show_rain = true;
-            break;
-        case 's':
-            result.show_snow = true;
-            break;
-        case 't':
-            result.show_temperature = true;
-            break;
-        default:
-            Stopif(true, goto ERR_RETURN, "Unknown argument: %c", opt);
-        }
+    GOptionContext *context = g_option_context_new("Download and view NBM data as tables.");
+    GOptionGroup *main = g_option_group_new("main", "main options", "main help", &result, 0);
+    g_option_group_add_entries(main, entries);
+    g_option_context_set_main_group(context, main);
+
+    bool success = g_option_context_parse(context, &argc, &argv, 0);
+    Stopif(!success, goto ERR_RETURN, "Error parsing command line arguments.");
+
+    if ((result.show_snow || result.show_rain || result.show_ice) && result.num_accum_periods == 0)
+        result.num_accum_periods = 1;
+
+    for (int i = 0; i < result.num_accum_periods; i++) {
+        Stopif(!is_valid_accum_period(result.accum_hours[i]), goto ERR_RETURN,
+               "Invalid accumulation period: %d - %d", i, result.accum_hours[i]);
     }
+    Stopif(argc < 2, goto ERR_RETURN, "Missing site argument.");
 
-    if ((result.show_snow || result.show_rain) && accum_periods == 0)
-        accum_periods = 1;
+    result.site = argv[1];
 
-    for (int i = 0; i < accum_periods; i++) {
-        Stopif(!is_valid_accum_period(result.accum_hours[i]), print_usage(argv);
-               exit(EXIT_FAILURE), "Invalid accumulation period.");
-    }
-    Stopif(optind >= argc, print_usage(argv); exit(EXIT_FAILURE), "Missing site argument.");
-
-    result.site = argv[optind];
+    g_option_context_free(context);
 
     return result;
 
-ERR_RETURN:
-    print_usage(argv);
+ERR_RETURN:;
+
+    char *err_msg = g_option_context_get_help(context, true, 0);
+    puts(err_msg);
+    g_free(err_msg);
+    g_option_context_free(context);
+
     exit(EXIT_FAILURE);
 }
 
