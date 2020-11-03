@@ -151,7 +151,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .show_temperature = false,
     };
 
-    GOptionContext *context = g_option_context_new("Download and view NBM data as tables.");
+    GOptionContext *context = g_option_context_new("SITE");
     GOptionGroup *main = g_option_group_new("main", "main options", "main help", &result, 0);
     g_option_group_add_entries(main, entries);
     g_option_context_set_main_group(context, main);
