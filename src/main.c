@@ -18,6 +18,7 @@
 #include "nbm_data.h"
 #include "precip_summary.h"
 #include "raw_nbm_data.h"
+#include "site_validation.h"
 #include "snow_summary.h"
 #include "temp_summary.h"
 #include "utils.h"
@@ -58,6 +59,7 @@ struct OptArgs {
     int num_accum_periods;
     int accum_hours[4];
     bool show_temperature;
+    bool error_parsing_options;
 };
 
 static gboolean
@@ -149,6 +151,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .num_accum_periods = 0,
         .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
+        .error_parsing_options = false,
     };
 
     GOptionContext *context = g_option_context_new("SITE");
@@ -180,8 +183,9 @@ ERR_RETURN:;
     puts(err_msg);
     g_free(err_msg);
     g_option_context_free(context);
+    result.error_parsing_options = true;
 
-    exit(EXIT_FAILURE);
+    return result;
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -220,16 +224,32 @@ alert_age(struct NBMData const *nbm)
 int
 main(int argc, char *argv[argc + 1])
 {
+    int exit_code = EXIT_FAILURE;
+
+    // Variables that hold allocated memory.
+    struct SiteValidation *validation = 0;
+    struct RawNbmData *raw_nbm_data = 0;
+    struct NBMData *parsed_nbm_data = 0;
+
     program_initialization();
 
     struct OptArgs opt_args = parse_cmd_line(argc, argv);
+    Stopif(opt_args.error_parsing_options, goto EXIT_ERR, "Error parsing command line.");
 
-    struct RawNbmData *raw_nbm_data = retrieve_data_for_site(opt_args.site);
-    Stopif(!raw_nbm_data, exit(EXIT_FAILURE), "Null data retrieved.");
+    validation = site_validation_create(opt_args.site, time(0));
+    if (site_validation_failed(validation)) {
+        site_validation_print_failure_message(validation);
+        goto EXIT_ERR;
+    }
 
-    struct NBMData *parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
-    raw_nbm_data_free(&raw_nbm_data);
-    Stopif(!parsed_nbm_data, exit(EXIT_FAILURE), "Null data returned from parsing.");
+    char const *file_name = site_validation_file_name_alias(validation);
+    time_t init_time = site_validation_init_time(validation);
+
+    raw_nbm_data = retrieve_data_for_site(opt_args.site, file_name, init_time);
+    Stopif(!raw_nbm_data, goto EXIT_ERR, "Null data retrieved for %s.", opt_args.site);
+
+    parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
+    Stopif(!parsed_nbm_data, goto EXIT_ERR, "Error parsing %s.", file_name);
 
     alert_age(parsed_nbm_data);
 
@@ -255,6 +275,13 @@ main(int argc, char *argv[argc + 1])
         }
     }
 
+    exit_code = EXIT_SUCCESS;
+
+EXIT_ERR:
     nbm_data_free(&parsed_nbm_data);
+    raw_nbm_data_free(&raw_nbm_data);
+    site_validation_free(&validation);
     program_finalization();
+
+    return exit_code;
 }

@@ -1,7 +1,5 @@
-#include "cache.h"
 #include "download.h"
-#include "raw_nbm_data.h"
-#include "utils.h"
+#include "cache.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -9,94 +7,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include <curl/curl.h>
 
 #define URL_LENGTH 1024
-#define MAX_VERSIONS_TO_ATTEMP_DOWNLOADING 20
 
-/**
- * Using the current time, calculate the most recent available inititialization time.
- */
-static time_t
-calc_init_time(int versions_back)
-{
-
-    static int valid_times[] = {1, 7, 13, 19};
-
-    time_t now_secs = time(0);
-    struct tm *now = gmtime(&now_secs);
-
-    int hour = now->tm_hour;
-    int shift_hours = 0;
-
-    int found = 0;
-    while (found < versions_back + 1) {
-        int curr_version = hour - shift_hours;
-        // Force current version into range 0-23
-        if (curr_version < 0) {
-            while (curr_version < 0) {
-                curr_version += 24;
-            }
-        }
-        for (int i = 0; i < sizeof(valid_times) / sizeof(int); i++) {
-            if (curr_version == valid_times[i]) {
-                found++;
-                break;
-            }
-        }
-        shift_hours++;
-    }
-    shift_hours--;
-
-    time_t init_secs = now_secs - shift_hours * 3600;
-    struct tm *init_time = gmtime(&init_secs);
-    init_time->tm_sec = 0;
-    init_time->tm_min = 0;
-
-    return timegm(init_time);
-}
-
-/** Use heuristics to determine if this is a site identifier or name, and format it for a url.
+/** Format the file name for downloading.
  *
- * If it is a site identifier, all the letters must be in uppercase. If it is a site name then
- * the spaces need to be replaced with the "%20" string.
+ * If it is a site name then the spaces need to be replaced with the "%20" string.
  */
 static void
-format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 1])
+format_file_name_for_url(int buf_len, char url_file_name[buf_len], char const file_name[static 1])
 {
-    bool is_name = false;
+    assert(file_name);
 
-    // Check for spaces - if so - it's a name.
-    // Check for numbers - if so - it's a site.
-    for (char const *c = site; *c; c++) {
-        if (isspace(*c)) {
-            is_name = true;
-            break;
-        } else if (isdigit(*c)) {
-            break;
+    // Copy into the new string exactly, except replace ' ' by "%20"
+    int j = 0;
+    for (int i = 0; file_name[i]; i++) {
+        Stopif(j == buf_len - 1, exit(EXIT_FAILURE), "URL Buffer overflow");
+        if (isspace(file_name[i])) {
+            url_file_name[j] = '%';
+            url_file_name[j + 1] = '2';
+            url_file_name[j + 2] = '0';
+            j += 3;
+        } else {
+            url_file_name[j] = file_name[i];
+            j += 1;
         }
     }
-
-    if (is_name) {
-        // Copy into the new string exactly, except replace ' ' by "%20"
-        int j = 0;
-        for (int i = 0; site[i]; i++) {
-            if (isspace(site[i])) {
-                url_site[j] = '%';
-                url_site[j + 1] = '2';
-                url_site[j + 2] = '0';
-                j += 3;
-            } else {
-                url_site[j] = site[i];
-                j += 1;
-            }
-        }
-    } else {
-        strcpy(url_site, site);
-        to_uppercase(url_site);
-    }
+    url_file_name[j] = '\0';
 }
 
 /**
@@ -104,15 +43,14 @@ format_site_for_url(int buf_len, char url_site[buf_len], char const site[static 
  *
  * There is a maximum size limit of 255 characters for the URL.
  *
- * \param site is a string with the name of the site.
- * \param data_init_time is the model initialization time desired for download.
+ * \param file_name is a name of the file to download.
+ * \param init_time is the model initialization time desired for download.
  *
  * \returns a pointer to a static string that contains the URL. It is important to NOT free this
- * string since it points to static memory. It also populates the \c site and \c init_time members
- * of the \c data struct.
+ * string since it points to static memory.
  */
 static char const *
-build_download_url(char const site[static 1], time_t data_init_time)
+build_download_url(char const file_name[static 1], time_t data_init_time)
 {
     static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
     static char url[URL_LENGTH] = {0};
@@ -120,10 +58,10 @@ build_download_url(char const site[static 1], time_t data_init_time)
     memset(url, 0, URL_LENGTH);
 
     // Format the site for the url.
-    char url_site[64] = {0};
-    format_site_for_url(sizeof(url_site), url_site, site);
+    char url_file_name[64] = {0};
+    format_file_name_for_url(sizeof(url_file_name), url_file_name, file_name);
 
-    assert(site);
+    assert(file_name);
 
     struct tm init_time = *gmtime(&data_init_time);
 
@@ -132,11 +70,12 @@ build_download_url(char const site[static 1], time_t data_init_time)
     int day = init_time.tm_mday;
     int hour = init_time.tm_hour;
 
-    sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s.csv", base_url, year, month, day, hour, url_site);
+    sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s", base_url, year, month, day, hour, url_file_name);
 
     return url;
 }
 
+/** Write callback for cURL. */
 static size_t
 write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -149,6 +88,7 @@ write_callback(void *contents, size_t size, size_t nmemb, void *userp)
     return realsize;
 }
 
+/** Global curl handle. */
 static CURL *curl = 0;
 
 static CURL *
@@ -156,7 +96,7 @@ download_module_get_curl_handle(struct TextBuffer *buf)
 {
     if (!curl) {
         CURLcode err = curl_global_init(CURL_GLOBAL_DEFAULT);
-        Stopif(err, exit(EXIT_FAILURE), "Failed to initialize curl");
+        Stopif(err, goto ERR_RETURN, "Failed to initialize curl");
 
         curl = curl_easy_init();
         Stopif(!curl, goto ERR_RETURN, "curl_easy_init failed.");
@@ -180,61 +120,79 @@ ERR_RETURN:
     return 0;
 };
 
-struct RawNbmData *
-retrieve_data_for_site(char const site[static 1])
+struct TextBuffer
+download_file(char const file_name[static 1], time_t init_time)
 {
-    assert(site);
+    assert(file_name);
 
-    // Allocated memory, don't free these unless there is an error.
-    char *data_site = malloc(strlen(site) + 1);
     struct TextBuffer buf = text_buffer_with_capacity(0);
-
-    // Keep a copy of the site and force it to upper case.
-    strcpy(data_site, site);
-    to_uppercase(data_site);
+    CURL *lcl_curl = 0;
 
     int res = 1;
-    int attempt_number = 0;
-    time_t data_init_time = 0;
     char const *url = 0;
-    do {
-        data_init_time = calc_init_time(attempt_number);
 
-        char *cache_data = cache_retrieve(data_site, data_init_time);
-        if (cache_data) {
-            printf("Successfully retrieved from the cache.\n");
-            int cache_data_size = strlen(cache_data) + 1;
-            return raw_nbm_data_new(data_init_time, data_site, cache_data, cache_data_size);
+    buf = cache_retrieve(file_name, init_time);
+    if (!text_buffer_is_empty(buf)) {
+        printf("Successfully retrieved from the cache: %s\n", file_name);
+        return buf;
+    }
+
+    lcl_curl = download_module_get_curl_handle(&buf);
+    Stopif(!lcl_curl, goto ERR_RETURN, "Error setting up cURL.");
+
+    url = build_download_url(file_name, init_time);
+    assert(url);
+
+    res = curl_easy_setopt(lcl_curl, CURLOPT_URL, url);
+    Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the url.");
+    res = curl_easy_perform(lcl_curl);
+
+    if (res) {
+        long response_code = 0;
+        int res2 = curl_easy_getinfo(lcl_curl, CURLINFO_RESPONSE_CODE, &response_code);
+        Stopif(res2, goto ERR_RETURN, "curel_easy_getinfo failed: %s", curl_easy_strerror(res2));
+
+        if (response_code == 404) {
+            res = CURLE_OK; // 0
         }
+    }
 
-        CURL *lcl_curl = download_module_get_curl_handle(&buf);
-        Stopif(!lcl_curl, goto ERR_RETURN, "Error setting up cURL.");
+    Stopif(res, goto ERR_RETURN, "curl_easy_perform failed: %s \n%s", curl_easy_strerror(res), url);
 
-        url = build_download_url(site, data_init_time);
-        assert(url);
-
-        attempt_number++;
-
-        res = curl_easy_setopt(lcl_curl, CURLOPT_URL, url);
-        Stopif(res, goto ERR_RETURN, "curl_easy_setopt failed to set the url.");
-        res = curl_easy_perform(lcl_curl);
-
-        if (!res) {
-            printf("Successfully downloaded: %s\n", url);
-            int cache_res = cache_add(data_site, data_init_time, &buf);
-            Stopif(cache_res, /* do nothing, just print message */, "Error saving to cache.");
+    if (!text_buffer_is_empty(buf)) {
+        printf("Successfully downloaded: %s\n", url);
+        int cache_res = cache_add(file_name, init_time, &buf);
+        if (cache_res) {
+            fprintf(stderr, "Error saving to cache: %s\n", file_name);
         }
+    }
 
-    } while (res && attempt_number <= MAX_VERSIONS_TO_ATTEMP_DOWNLOADING);
-    Stopif(res, goto ERR_RETURN, "curl_easy_perform failed: %s", curl_easy_strerror(res));
-
-    curl_easy_cleanup(curl);
-
-    return raw_nbm_data_new(data_init_time, data_site, buf.text_data, buf.size);
+    return buf;
 
 ERR_RETURN:
     text_buffer_clear(&buf);
-    free(data_site);
+    return buf;
+}
+
+struct RawNbmData *
+retrieve_data_for_site(char const site[static 1], char const file_name[static 1], time_t init_time)
+{
+    assert(site);
+    assert(file_name);
+
+    struct TextBuffer buf = download_file(file_name, init_time);
+
+    Stopif(text_buffer_is_empty(buf), goto ERR_RETURN, "No data retrieved for %s (%s)", site,
+           file_name);
+
+    char *data_site = malloc(strlen(site) + 1);
+    strcpy(data_site, site);
+    to_uppercase(data_site);
+
+    return raw_nbm_data_new(init_time, data_site, buf.text_data, buf.size);
+
+ERR_RETURN:
+    text_buffer_clear(&buf);
     return 0;
 }
 
@@ -247,6 +205,7 @@ void
 download_module_finalize()
 {
     if (curl) {
+        curl_easy_cleanup(curl);
         curl_global_cleanup();
     }
 }

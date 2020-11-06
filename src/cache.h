@@ -19,9 +19,9 @@ void cache_finalize();
  *             but it could also be some relavent metadata like the locations.
  * \param init_time is the model initialization time.
  *
- * \returns a pointer to the null terminated text or a null pointer if unable to retrieve the text.
+ * \returns a TextBuffer with the text data.
  */
-char *cache_retrieve(char const *file, time_t init_time);
+struct TextBuffer cache_retrieve(char const *file, time_t init_time);
 
 /** Add an entry to the cache.
  *

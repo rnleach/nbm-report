@@ -1,18 +1,31 @@
 #pragma once
 
+#include <time.h>
+#include <utils.h>
+
 #include "raw_nbm_data.h"
+
+/** Download a file from the online archive.
+ *
+ * This is used by other routines to download files from the archive server.
+ *
+ * \param file_name - the name of the file on the server.
+ * \param init_time - the NBM initialization time, so the routine knows where to go to get the file.
+ *
+ * \returns a \c TextBuffer. If there was an error downloading, the buffer will be empty.
+ */
+struct TextBuffer download_file(char const file_name[static 1], time_t init_time);
 
 /** Retrieve the CSV data for a site.
  *
- * This function will retrieve the latest available NBM run data for the given site.
- *
  * \param site is the name of the site you want to download data for.
+ * \param file_name is the name of the file on the server.
+ * \param init_time is the NBM initialization time you want from the online archive.
  *
- * \returns the contents of the downloaded CSV file as a string. If there is an error and it cannot
- * retrieve the data, it returns the null pointer. The returned struct is allocated, and you will
- * responsible for freeing it with \c free_raw_nbm_data().
+ * returns \c RawNbmData that you are responsible for freeing with \c free_raw_nbm_data().
  */
-struct RawNbmData *retrieve_data_for_site(char const site[static 1]);
+struct RawNbmData *retrieve_data_for_site(char const site[static 1], char const file_name[static 1],
+                                          time_t init_time);
 
 /** Initialize all the components of the download module.
  *

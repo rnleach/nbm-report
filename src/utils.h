@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -140,6 +141,12 @@ text_buffer_steal_text(struct TextBuffer buf[static 1])
     buf->capacity = 0;
     buf->text_data = 0;
     return out;
+}
+
+static inline bool
+text_buffer_is_empty(struct TextBuffer const buf)
+{
+    return buf.size == 0;
 }
 
 /*-------------------------------------------------------------------------------------------------

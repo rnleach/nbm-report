@@ -32,17 +32,21 @@ nbm_data_free(struct NBMData **ptrptr)
 {
     struct NBMData *ptr = *ptrptr;
 
-    free(ptr->site);
-    for (int i = 0; i < ptr->num_cols; i++) {
-        free(ptr->col_names[i]);
+    if (ptr) {
+
+        free(ptr->site);
+        for (int i = 0; i < ptr->num_cols; i++) {
+            free(ptr->col_names[i]);
+        }
+        free(ptr->col_names);
+        free(ptr->valid_times);
+        free(ptr->vals);
+
+        free(ptr);
+
+        *ptrptr = 0;
     }
-    free(ptr->col_names);
-    free(ptr->valid_times);
-    free(ptr->vals);
 
-    free(ptr);
-
-    *ptrptr = 0;
     return;
 }
 

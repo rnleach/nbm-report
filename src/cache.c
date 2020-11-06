@@ -183,10 +183,12 @@ cache_finalize()
     }
 }
 
-char *
-cache_retrieve(char const *site, time_t init_time)
+struct TextBuffer
+cache_retrieve(char const file_name[static 1], time_t init_time)
 {
-    assert(site);
+    assert(file_name);
+
+    struct TextBuffer out_buf = text_buffer_with_capacity(0);
 
     char const *sql = "SELECT data FROM nbm WHERE site = ? AND init_time = ?";
 
@@ -195,7 +197,7 @@ cache_retrieve(char const *site, time_t init_time)
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error preparing select statement: %s",
            sqlite3_errstr(rc));
 
-    rc = sqlite3_bind_text(statement, 1, site, -1, 0);
+    rc = sqlite3_bind_text(statement, 1, file_name, -1, 0);
     Stopif(rc != SQLITE_OK, goto ERR_RETURN, "error binding site in select.");
 
     rc = sqlite3_bind_int64(statement, 2, init_time);
@@ -216,19 +218,19 @@ cache_retrieve(char const *site, time_t init_time)
     unsigned char const *blob_data = sqlite3_column_blob(statement, 0);
     int blob_size = sqlite3_column_bytes(statement, 0);
 
-    struct TextBuffer out_buf = uncompress_text(blob_size, (unsigned char *)blob_data);
+    out_buf = uncompress_text(blob_size, (unsigned char *)blob_data);
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing select statement");
 
-    return text_buffer_steal_text(&out_buf);
+    return out_buf;
 
 ERR_RETURN:
 
     rc = sqlite3_finalize(statement);
     Stopif(rc != SQLITE_OK, exit(EXIT_FAILURE), "error finalizing select statement");
 
-    return 0;
+    return out_buf;
 }
 
 int
