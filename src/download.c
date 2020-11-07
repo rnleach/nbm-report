@@ -12,6 +12,8 @@
 
 #define URL_LENGTH 1024
 
+extern bool global_verbose;
+
 /** Format the file name for downloading.
  *
  * If it is a site name then the spaces need to be replaced with the "%20" string.
@@ -133,7 +135,8 @@ download_file(char const file_name[static 1], time_t init_time)
 
     buf = cache_retrieve(file_name, init_time);
     if (!text_buffer_is_empty(buf)) {
-        printf("Successfully retrieved from the cache: %s\n", file_name);
+        if (global_verbose)
+            printf("Successfully retrieved from the cache: %s\n", file_name);
         return buf;
     }
 
@@ -160,7 +163,8 @@ download_file(char const file_name[static 1], time_t init_time)
     Stopif(res, goto ERR_RETURN, "curl_easy_perform failed: %s \n%s", curl_easy_strerror(res), url);
 
     if (!text_buffer_is_empty(buf)) {
-        printf("Successfully downloaded: %s\n", url);
+        if (global_verbose)
+            printf("Successfully downloaded: %s\n", url);
         int cache_res = cache_add(file_name, init_time, &buf);
         if (cache_res) {
             fprintf(stderr, "Error saving to cache: %s\n", file_name);

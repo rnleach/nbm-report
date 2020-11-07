@@ -19,6 +19,7 @@
 #define FAILURE_MODE_TOO_MANY 2
 #define FAILURE_MODE_UNABLE_TO_CONNECT 3
 
+extern bool global_verbose;
 /*-------------------------------------------------------------------------------------------------
  *                                      Utility Functions
  *-----------------------------------------------------------------------------------------------*/
@@ -206,9 +207,11 @@ process_row(int unused, void *state)
     struct CSVState *st = state;
 
     if (st->invalid_record) {
-        fprintf(stderr, "\nInvalid record encountered in locations.csv\n");
-        fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n", st->id, st->name, st->state,
-                st->lat, st->lon);
+        if (global_verbose) {
+            fprintf(stderr, "\nInvalid record encountered in locations.csv\n");
+            fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n", st->id, st->name, st->state,
+                    st->lat, st->lon);
+        }
     } else {
 
         sqlite3_stmt *stmt = st->stmt;

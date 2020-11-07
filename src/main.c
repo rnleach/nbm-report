@@ -24,6 +24,11 @@
 #include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
+ *                                      Global Options
+ *-----------------------------------------------------------------------------------------------*/
+bool global_verbose = false;
+
+/*-------------------------------------------------------------------------------------------------
  *                                    Program Setup and Teardown.
  *-----------------------------------------------------------------------------------------------*/
 static void
@@ -135,6 +140,13 @@ static GOptionEntry entries[] = {
      .arg = G_OPTION_ARG_CALLBACK,
      .arg_data = option_callback,
      .description = "show summary of temperatures",
+     .arg_description = 0},
+    {.long_name = "verbose",
+     .short_name = 'v',
+     .flags = G_OPTION_FLAG_NONE,
+     .arg = G_OPTION_ARG_NONE,
+     .arg_data = &global_verbose,
+     .description = "show verbose output.",
      .arg_description = 0},
     {0},
 };
