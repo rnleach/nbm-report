@@ -78,7 +78,7 @@ struct CumulativeDistribution;
  * \param nbm is the source to extract the CDF from.
  * \param cdf_col_name_format is a \c printf style format string used to generate the column names
  * of the columns that contain the CDF information.
- * \param pm_col_name is a the column name of the probability matched value.
+ * \param pm_col_name is the column name of the probability matched value.
  * \param convert is a simple mapping. It may do nothing or map units of mm to in or some other
  * relavent conversion.
  *
