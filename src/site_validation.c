@@ -113,7 +113,10 @@ static void
 print_list(void *data, void *unused)
 {
     struct MatchedSitesRecord *rec = data;
-    printf("%20s %20s %3s %6.3lf %7.3lf\n", rec->id, rec->name, rec->state, rec->lat, rec->lon);
+    char namebuf[256] = {0};
+
+    sprintf(namebuf, "%s, %s", rec->name, rec->state);
+    printf("%-30s %6.3lf %8.3lf %s\n", namebuf, rec->lat, rec->lon, rec->id);
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -203,7 +206,7 @@ process_row(int unused, void *state)
     struct CSVState *st = state;
 
     if (st->invalid_record) {
-        fprintf(stderr, "Invalid record encountered in locations.csv\n");
+        fprintf(stderr, "\nInvalid record encountered in locations.csv\n");
         fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n", st->id, st->name, st->state,
                 st->lat, st->lon);
     } else {
@@ -385,10 +388,12 @@ find_similar_sites(sqlite3 *db, char const site[static 1])
 
     char *query = 0;
     asprintf(&query,
-             "SELECT id, name, state, lat, lon            "
-             "FROM locations                              "
-             "WHERE id LIKE '%%%s%%' OR name LIKE '%%%s%%'",
-             site, site);
+             "SELECT id, name, state, lat, lon "
+             "FROM locations                   "
+             "WHERE id LIKE '%%%s%%'           "
+             "    OR name LIKE '%%%s%%'        "
+             "    OR state LIKE '%s'           ",
+             site, site, site);
 
     sqlite3_stmt *stmt = 0;
     int res = sqlite3_prepare_v2(db, query, -1, &stmt, 0);
@@ -454,14 +459,16 @@ site_validation_print_failure_message(struct SiteValidation *validation)
 {
     switch (get_failure_mode(validation)) {
     case FAILURE_MODE_NOT_ENOUGH:
-        printf("No sites matched request.\n");
+        printf("\nNo sites matched request.\n");
         break;
     case FAILURE_MODE_TOO_MANY:
-        printf("Ambiguous site with multiple matches:\n");
+        printf("\nAmbiguous site with multiple matches:\n");
+        printf("%-30s %-6s %-8s %s\n", "Station Name", "Lat", "Lon", "ID");
+        printf("----------------------------------------------------\n");
         g_slist_foreach(validation->matched_sites, print_list, 0);
         break;
     case FAILURE_MODE_UNABLE_TO_CONNECT:
-        printf("Unable to connect to server for last %d model cycles.\n",
+        printf("\nUnable to connect to server for last %d model cycles.\n",
                MAX_VERSIONS_TO_ATTEMP_DOWNLOADING);
         break;
     default:

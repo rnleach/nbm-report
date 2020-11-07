@@ -52,6 +52,8 @@ format_file_name_for_url(int buf_len, char url_file_name[buf_len], char const fi
 static char const *
 build_download_url(char const file_name[static 1], time_t data_init_time)
 {
+    assert(file_name);
+
     static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
     static char url[URL_LENGTH] = {0};
     // Clear the memory before starting over
@@ -60,8 +62,6 @@ build_download_url(char const file_name[static 1], time_t data_init_time)
     // Format the site for the url.
     char url_file_name[64] = {0};
     format_file_name_for_url(sizeof(url_file_name), url_file_name, file_name);
-
-    assert(file_name);
 
     struct tm init_time = *gmtime(&data_init_time);
 
