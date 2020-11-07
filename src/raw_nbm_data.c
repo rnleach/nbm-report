@@ -1,7 +1,7 @@
-#include <assert.h>
-#include <stdbool.h>
-
 #include "raw_nbm_data.h"
+
+#include <assert.h>
+#include <stdlib.h>
 
 struct RawNbmData {
     time_t init_time;

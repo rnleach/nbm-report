@@ -1,8 +1,6 @@
 #include "site_validation.h"
 
-#include <assert.h>
 #include <math.h>
-#include <stdio.h>
 
 #include <csv.h>
 #include <glib.h>

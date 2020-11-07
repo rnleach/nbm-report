@@ -1,17 +1,9 @@
-#include <assert.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <time.h>
+#include "cache.h"
 
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <zlib.h>
 
 #include <sqlite3.h>
-
-#include "cache.h"
-#include "utils.h"
 
 static struct ByteBuffer
 compress_text_buffer(struct TextBuffer const in_text[static 1])

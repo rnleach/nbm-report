@@ -1,13 +1,6 @@
 #include "download.h"
 #include "cache.h"
 
-#include <assert.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <curl/curl.h>
 
 #define URL_LENGTH 1024
