@@ -175,7 +175,8 @@ ERR_RETURN:
 }
 
 struct RawNbmData *
-retrieve_data_for_site(char const site[static 1], char const file_name[static 1], time_t init_time)
+retrieve_data_for_site(char const site[static 1], char const site_nm[static 1],
+                       char const file_name[static 1], time_t init_time)
 {
     assert(site);
     assert(file_name);
@@ -187,9 +188,11 @@ retrieve_data_for_site(char const site[static 1], char const file_name[static 1]
 
     char *data_site = malloc(strlen(site) + 1);
     strcpy(data_site, site);
-    to_uppercase(data_site);
 
-    return raw_nbm_data_new(init_time, data_site, buf.text_data, buf.size);
+    char *data_name = malloc(strlen(site_nm) + 1);
+    strcpy(data_name, site_nm);
+
+    return raw_nbm_data_new(init_time, data_site, data_name, buf.text_data, buf.size);
 
 ERR_RETURN:
     text_buffer_clear(&buf);

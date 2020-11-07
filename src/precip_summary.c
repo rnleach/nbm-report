@@ -19,7 +19,8 @@ build_title_liquid(struct NBMData const *nbm, struct Table *tbl, int hours)
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
-    sprintf(title_buf, "%d Hr Probabilistic Precipitation for %s - ", hours, nbm_data_site(nbm));
+    sprintf(title_buf, "%d Hr Probabilistic Precipitation for %s (%s) - ", hours,
+            nbm_data_site_name(nbm), nbm_data_site_id(nbm));
     int len = strlen(title_buf);
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 

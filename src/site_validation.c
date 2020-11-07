@@ -477,6 +477,24 @@ site_validation_print_failure_message(struct SiteValidation *validation)
 }
 
 char const *
+site_validation_site_name_alias(struct SiteValidation *validation)
+{
+    assert(!site_validation_failed(validation));
+    struct MatchedSitesRecord *rec = validation->matched_sites->data;
+
+    return rec->name;
+}
+
+char const *
+site_validation_site_id_alias(struct SiteValidation *validation)
+{
+    assert(!site_validation_failed(validation));
+    struct MatchedSitesRecord *rec = validation->matched_sites->data;
+
+    return rec->id;
+}
+
+char const *
 site_validation_file_name_alias(struct SiteValidation *validation)
 {
     assert(!site_validation_failed(validation));

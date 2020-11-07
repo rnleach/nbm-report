@@ -33,7 +33,10 @@ void nbm_data_free(struct NBMData **ptrptr);
 double nbm_data_age(struct NBMData const *);
 
 /** Get the site this data is for. */
-char const *nbm_data_site(struct NBMData const *);
+char const *nbm_data_site_id(struct NBMData const *);
+
+/** Get the site name this data is for. */
+char const *nbm_data_site_name(struct NBMData const *);
 
 /** Get the initialization time of this model run. */
 time_t nbm_data_init_time(struct NBMData const *);

@@ -24,8 +24,8 @@ struct TextBuffer download_file(char const file_name[static 1], time_t init_time
  *
  * returns \c RawNbmData that you are responsible for freeing with \c free_raw_nbm_data().
  */
-struct RawNbmData *retrieve_data_for_site(char const site[static 1], char const file_name[static 1],
-                                          time_t init_time);
+struct RawNbmData *retrieve_data_for_site(char const site[static 1], char const site_nm[static 1],
+                                          char const file_name[static 1], time_t init_time);
 
 /** Initialize all the components of the download module.
  *

@@ -243,9 +243,11 @@ main(int argc, char *argv[argc + 1])
     }
 
     char const *file_name = site_validation_file_name_alias(validation);
+    char const *site_nm = site_validation_site_name_alias(validation);
+    char const *site_id = site_validation_site_id_alias(validation);
     time_t init_time = site_validation_init_time(validation);
 
-    raw_nbm_data = retrieve_data_for_site(opt_args.site, file_name, init_time);
+    raw_nbm_data = retrieve_data_for_site(site_id, site_nm, file_name, init_time);
     Stopif(!raw_nbm_data, goto EXIT_ERR, "Null data retrieved for %s.", opt_args.site);
 
     parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);

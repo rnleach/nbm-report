@@ -15,7 +15,8 @@
 // The main way to create one of these is via parse_raw_nbm_data(), which is at the bottom of the
 // file.
 struct NBMData {
-    char *site;
+    char *site_id;
+    char *site_name;
     time_t init_time;
 
     size_t num_cols;
@@ -34,7 +35,8 @@ nbm_data_free(struct NBMData **ptrptr)
 
     if (ptr) {
 
-        free(ptr->site);
+        free(ptr->site_id);
+        free(ptr->site_name);
         for (int i = 0; i < ptr->num_cols; i++) {
             free(ptr->col_names[i]);
         }
@@ -58,9 +60,15 @@ nbm_data_age(struct NBMData const *ptr)
 }
 
 char const *
-nbm_data_site(struct NBMData const *ptr)
+nbm_data_site_id(struct NBMData const *ptr)
 {
-    return ptr->site;
+    return ptr->site_id;
+}
+
+char const *
+nbm_data_site_name(struct NBMData const *ptr)
+{
+    return ptr->site_name;
 }
 
 time_t
@@ -251,8 +259,12 @@ struct CSVParserState {
 };
 
 static struct CSVParserState
-init_parser_state(char *text_data, time_t init_time, char const *site)
+init_parser_state(char *text_data, time_t init_time, char const site_id[static 1],
+                  char const site_name[static 1])
 {
+    assert(site_id);
+    assert(site_name);
+
     // Count the rows and columns
     size_t rows = 0;
     size_t cols = 0;
@@ -264,11 +276,15 @@ init_parser_state(char *text_data, time_t init_time, char const *site)
     }
     cols++;
 
-    char *site_name = calloc(strlen(site) + 1, sizeof(char));
-    strcpy(site_name, site);
+    char *site_nm = calloc(strlen(site_name) + 1, sizeof(char));
+    strcpy(site_nm, site_name);
+
+    char *id = calloc(strlen(site_id) + 1, sizeof(char));
+    strcpy(id, site_id);
 
     struct NBMData *nbm = malloc(sizeof(struct NBMData));
-    *nbm = (struct NBMData){.site = site_name,
+    *nbm = (struct NBMData){.site_name = site_nm,
+                            .site_id = id,
                             .init_time = init_time,
                             .num_cols = cols - 1, // First column is stored in .valid_times
                             .num_rows = rows - 1, // First row is stored in .col_names
@@ -354,9 +370,10 @@ do_parsing(struct csv_parser *parser, struct RawNbmData *raw)
     assert(raw_text);
 
     time_t init_time_tm = raw_nbm_data_init_time(raw);
-    char const *site = raw_nbm_data_site(raw);
+    char const *site = raw_nbm_data_site_id(raw);
+    char const *site_nm = raw_nbm_data_site_name(raw);
 
-    struct CSVParserState state = init_parser_state(raw_text, init_time_tm, site);
+    struct CSVParserState state = init_parser_state(raw_text, init_time_tm, site, site_nm);
 
     size_t parsed_len =
         csv_parse(parser, raw_text, data_len, column_callback, row_callback, &state);

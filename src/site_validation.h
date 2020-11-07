@@ -34,6 +34,12 @@ void site_validation_print_failure_message(struct SiteValidation *validation);
 /** Get an alias (pointer) to the file name. */
 char const *site_validation_file_name_alias(struct SiteValidation *validation);
 
+/** Get an alias (pointer) to the site name. */
+char const *site_validation_site_name_alias(struct SiteValidation *validation);
+
+/** Get an alias (pointer) to the site id. */
+char const *site_validation_site_id_alias(struct SiteValidation *validation);
+
 /** Get the NBM model run time for the validation. */
 time_t site_validation_init_time(struct SiteValidation *validation);
 
