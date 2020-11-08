@@ -171,7 +171,7 @@ ERR_RETURN:
     return buf;
 }
 
-struct RawNbmData *
+RawNbmData *
 retrieve_data_for_site(char const site[static 1], char const site_nm[static 1],
                        char const file_name[static 1], time_t init_time)
 {

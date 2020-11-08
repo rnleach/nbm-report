@@ -38,7 +38,7 @@ program_finalization()
  *                                    Quality checks/alerts.
  *-----------------------------------------------------------------------------------------------*/
 static void
-alert_age(struct NBMData const *nbm)
+alert_age(NBMData const *nbm)
 {
     double age_secs = nbm_data_age(nbm);
     int age_hrs = (int)round(age_secs / 3600.0);
@@ -73,9 +73,9 @@ main(int argc, char *argv[argc + 1])
     int exit_code = EXIT_FAILURE;
 
     // Variables that hold allocated memory.
-    struct SiteValidation *validation = 0;
-    struct RawNbmData *raw_nbm_data = 0;
-    struct NBMData *parsed_nbm_data = 0;
+    SiteValidation *validation = 0;
+    RawNbmData *raw_nbm_data = 0;
+    NBMData *parsed_nbm_data = 0;
 
     program_initialization();
 

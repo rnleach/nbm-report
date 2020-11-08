@@ -2,9 +2,9 @@
 
 #include "download.h"
 
-struct NBMData;
-struct NBMDataRowIterator;
-struct NBMDataRowIteratorWind;
+typedef struct NBMData NBMData;
+typedef struct NBMDataRowIterator NBMDataRowIterator;
+typedef struct NBMDataRowIteratorWind NBMDataRowIteratorWind;
 
 struct NBMDataRowIteratorValueView {
     time_t *valid_time;
@@ -24,22 +24,22 @@ struct NBMDataRowIteratorWindValueView {
  *
  * The resulting object will need to be freed with \c nbm_data_free().
  **/
-struct NBMData *parse_raw_nbm_data(struct RawNbmData *);
+NBMData *parse_raw_nbm_data(RawNbmData *);
 
 /** Free memory associated with an \c NBMData object, and nullify the pointer. */
-void nbm_data_free(struct NBMData **ptrptr);
+void nbm_data_free(NBMData **ptrptr);
 
 /** Get the age of the forecast in seconds. */
-double nbm_data_age(struct NBMData const *);
+double nbm_data_age(NBMData const *);
 
 /** Get the site this data is for. */
-char const *nbm_data_site_id(struct NBMData const *);
+char const *nbm_data_site_id(NBMData const *);
 
 /** Get the site name this data is for. */
-char const *nbm_data_site_name(struct NBMData const *);
+char const *nbm_data_site_name(NBMData const *);
 
 /** Get the initialization time of this model run. */
-time_t nbm_data_init_time(struct NBMData const *);
+time_t nbm_data_init_time(NBMData const *);
 
 /** Get an iterator over a column.
  *
@@ -48,17 +48,17 @@ time_t nbm_data_init_time(struct NBMData const *);
  *
  * \returns an iterator over the rows.
  */
-struct NBMDataRowIterator *nbm_data_rows(struct NBMData const *nbm, char const *col_name);
+NBMDataRowIterator *nbm_data_rows(NBMData const *nbm, char const *col_name);
 
 /** Free memory associated with the iterator and nullify the pointer. */
-void nbm_data_row_iterator_free(struct NBMDataRowIterator **);
+void nbm_data_row_iterator_free(NBMDataRowIterator **);
 
 /** Get the next values in the iterator.
  *
  * If there are no more values, the both of the pointers in the \c NBMDataRowIteratorValueView
  * object are set to null.
  */
-struct NBMDataRowIteratorValueView nbm_data_row_iterator_next(struct NBMDataRowIterator *);
+struct NBMDataRowIteratorValueView nbm_data_row_iterator_next(NBMDataRowIterator *);
 
 /** Get an iterator over the winds.
  *
@@ -66,15 +66,14 @@ struct NBMDataRowIteratorValueView nbm_data_row_iterator_next(struct NBMDataRowI
  *
  * \returns an iterator over the rows of wind data.
  */
-struct NBMDataRowIteratorWind *nbm_data_rows_wind(struct NBMData const *nbm);
+NBMDataRowIteratorWind *nbm_data_rows_wind(NBMData const *nbm);
 
 /** Free memory associated with the iterator and nullify the pointer. */
-void nbm_data_row_wind_iterator_free(struct NBMDataRowIteratorWind **);
+void nbm_data_row_wind_iterator_free(NBMDataRowIteratorWind **);
 
 /** Get the next values in the iterator.
  *
  * If there are no more values, the all of the pointers in the \c NBMDataRowIteratorWindValueView
  * object are set to null.
  */
-struct NBMDataRowIteratorWindValueView
-nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *);
+struct NBMDataRowIteratorWindValueView nbm_data_row_wind_iterator_next(NBMDataRowIteratorWind *);

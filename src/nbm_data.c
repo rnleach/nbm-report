@@ -359,7 +359,7 @@ initialize_a_csv_parser()
 }
 
 static struct NBMData *
-do_parsing(struct csv_parser *parser, struct RawNbmData *raw)
+do_parsing(struct csv_parser *parser, RawNbmData *raw)
 {
     size_t data_len = raw_nbm_data_text_len(raw);
     char *raw_text = raw_nbm_data_text(raw);
@@ -386,7 +386,7 @@ do_parsing(struct csv_parser *parser, struct RawNbmData *raw)
  *                             Other module functions in the public API.
  *-----------------------------------------------------------------------------------------------*/
 struct NBMData *
-parse_raw_nbm_data(struct RawNbmData *raw)
+parse_raw_nbm_data(RawNbmData *raw)
 {
     struct csv_parser parser = initialize_a_csv_parser();
 

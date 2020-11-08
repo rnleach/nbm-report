@@ -133,9 +133,9 @@ daily_summary_access_max_t(void *sm)
 // Most values can be considered in isolation, or one column at a time, winds are the exception. So
 // winds get their own extractor function.
 static void
-extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
+extract_max_winds_to_summary(GTree *sums, NBMData const *nbm)
 {
-    struct NBMDataRowIteratorWind *it = nbm_data_rows_wind(nbm);
+    NBMDataRowIteratorWind *it = nbm_data_rows_wind(nbm);
     Stopif(!it, exit(EXIT_FAILURE), "error creating wind iterator.");
 
     struct NBMDataRowIteratorWindValueView view = nbm_data_row_wind_iterator_next(it);
@@ -175,7 +175,7 @@ extract_max_winds_to_summary(GTree *sums, struct NBMData const *nbm)
 
 /** Build a sorted list (\c Tree) of daily summaries from an \c NBMData object. */
 static GTree *
-build_daily_summaries(struct NBMData const *nbm)
+build_daily_summaries(NBMData const *nbm)
 {
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
@@ -224,7 +224,7 @@ build_daily_summaries(struct NBMData const *nbm)
  *                                     Table Filling
  *-----------------------------------------------------------------------------------------------*/
 static void
-build_title(struct NBMData const *nbm, struct Table *tbl)
+build_title(NBMData const *nbm, Table *tbl)
 {
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
@@ -243,7 +243,7 @@ add_row_to_table(void *key, void *value, void *state)
     time_t *vt = key;
     struct DailySummary *sum = value;
     struct TableFillerState *tbl_state = state;
-    struct Table *tbl = tbl_state->tbl;
+    Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
     if (daily_summary_not_printable(sum))
@@ -272,12 +272,12 @@ add_row_to_table(void *key, void *value, void *state)
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
 void
-show_daily_summary(struct NBMData const *nbm)
+show_daily_summary(NBMData const *nbm)
 {
     GTree *sums = build_daily_summaries(nbm);
 
     // --
-    struct Table *tbl = table_new(10, g_tree_nnodes(sums));
+    Table *tbl = table_new(10, g_tree_nnodes(sums));
 
     build_title(nbm, tbl);
 

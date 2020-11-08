@@ -146,7 +146,7 @@ temp_sum_access_maxt_90th(void *sm)
 }
 
 static GTree *
-extract_temperature_data(struct NBMData const *nbm)
+extract_temperature_data(NBMData const *nbm)
 {
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
@@ -205,7 +205,7 @@ extract_temperature_data(struct NBMData const *nbm)
  *                                     Table Filling
  *-----------------------------------------------------------------------------------------------*/
 static void
-build_title(struct NBMData const *nbm, struct Table *tbl)
+build_title(NBMData const *nbm, Table *tbl)
 {
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
@@ -224,7 +224,7 @@ add_row_to_table(void *key, void *value, void *state)
     time_t *vt = key;
     struct TemperatureSum *sum = value;
     struct TableFillerState *tbl_state = state;
-    struct Table *tbl = tbl_state->tbl;
+    Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
     if (temperature_sum_not_printable(sum))
@@ -258,12 +258,12 @@ add_row_to_table(void *key, void *value, void *state)
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
 void
-show_temperature_summary(struct NBMData const *nbm)
+show_temperature_summary(NBMData const *nbm)
 {
     GTree *temps = extract_temperature_data(nbm);
     Stopif(!temps, return, "Error extracting CDFs for QPF.");
 
-    struct Table *tbl = table_new(13, g_tree_nnodes(temps));
+    Table *tbl = table_new(13, g_tree_nnodes(temps));
     build_title(nbm, tbl);
 
     // clang-format off

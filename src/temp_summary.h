@@ -6,4 +6,4 @@
  *
  * \param nbm the data to summarize.
  */
-void show_temperature_summary(struct NBMData const *nbm);
+void show_temperature_summary(NBMData const *nbm);

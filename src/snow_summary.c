@@ -14,7 +14,7 @@
 #include <glib.h>
 
 static void
-build_title_snow(struct NBMData const *nbm, struct Table *tbl, int hours)
+build_title_snow(NBMData const *nbm, Table *tbl, int hours)
 {
 
     char title_buf[256] = {0};
@@ -35,7 +35,7 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
     CumulativeDistribution *dist = value;
     ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 36.0, 0.2);
     struct TableFillerState *tbl_state = state;
-    struct Table *tbl = tbl_state->tbl;
+    Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
     double p10th = round(cumulative_dist_percentile_value(dist, 10.0) * 10.0) / 10.0;
@@ -95,7 +95,7 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_snow_summary(struct NBMData const *nbm, int hours)
+show_snow_summary(NBMData const *nbm, int hours)
 {
     char percentile_format[32] = {0};
     char deterministic_snow_key[32] = {0};
@@ -114,7 +114,7 @@ show_snow_summary(struct NBMData const *nbm, int hours)
         return;
     }
 
-    struct Table *tbl = table_new(20, num_rows);
+    Table *tbl = table_new(20, num_rows);
     build_title_snow(nbm, tbl, hours);
 
     // clang-format off

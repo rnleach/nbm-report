@@ -32,11 +32,11 @@ time_t_compare_func(void const *a, void const *b, void *user_data)
  *                             Extract Values for a Daily Summary.
  *-----------------------------------------------------------------------------------------------*/
 void
-extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
+extract_daily_summary_for_column(GTree *sums, NBMData const *nbm, char const *col_name,
                                  KeepFilter filter, SummarizeDate date_sum, Converter convert,
                                  Accumulator accumulate, Creator create_new, Extractor extract)
 {
-    struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
+    NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
     Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
 
     struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
@@ -128,7 +128,7 @@ cumulative_dist_append_pair(struct CumulativeDistribution *dist, double percenti
 }
 
 GTree *
-extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format, char const *pm_col_name,
+extract_cdfs(NBMData const *nbm, char const *cdf_col_name_format, char const *pm_col_name,
              Converter convert)
 {
     GTree *cdfs = g_tree_new_full(time_t_compare_func, 0, free, cumulative_dist_free);
@@ -140,7 +140,7 @@ extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format, char co
                "error with snprintf, buffer too small.");
 
         // Create an iterator, if the pointer is 0, no such column, continue.
-        struct NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
+        NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
         if (!it) {
             // This column doesn't exist, so skip it!
             continue;
@@ -166,7 +166,7 @@ extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format, char co
     }
 
     // Get the probability matched info.
-    struct NBMDataRowIterator *it = nbm_data_rows(nbm, pm_col_name);
+    NBMDataRowIterator *it = nbm_data_rows(nbm, pm_col_name);
     if (it) {
         struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
         while (view.valid_time && view.value) {

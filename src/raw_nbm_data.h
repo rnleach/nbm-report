@@ -8,7 +8,7 @@
  * This structure can be populated by loading from a file, a database, or downloading from the
  * internet.
  */
-struct RawNbmData;
+typedef struct RawNbmData RawNbmData;
 
 /** Create a new RawNbmData object.
  *
@@ -20,37 +20,36 @@ struct RawNbmData;
  *
  * \returns a new allocated RawNbmData object that needs to be freed with \c raw_nbm_data_free.
  **/
-struct RawNbmData *raw_nbm_data_new(time_t init_time, char *site, char *name, char *text,
-                                    size_t text_len);
+RawNbmData *raw_nbm_data_new(time_t init_time, char *site, char *name, char *text, size_t text_len);
 
 /**
  * Free all allocated data in a RawNbmData, and set the pointer to null.
  */
-void raw_nbm_data_free(struct RawNbmData **data);
+void raw_nbm_data_free(RawNbmData **data);
 
 /**
  * Get the init time of the NBM run for this data.
  */
-time_t raw_nbm_data_init_time(struct RawNbmData const *);
+time_t raw_nbm_data_init_time(RawNbmData const *);
 
 /**
  * Get the site id for this data.
  */
-char const *raw_nbm_data_site_id(struct RawNbmData const *);
+char const *raw_nbm_data_site_id(RawNbmData const *);
 
 /**
  * Get the site name for this data.
  */
-char const *raw_nbm_data_site_name(struct RawNbmData const *);
+char const *raw_nbm_data_site_name(RawNbmData const *);
 
 /**
  * Get the raw text data.
  *
  * This method allows for the raw text to be modified in place.
  */
-char *raw_nbm_data_text(struct RawNbmData *);
+char *raw_nbm_data_text(RawNbmData *);
 
 /**
  * Get the size of the raw text data in characters.
  */
-size_t raw_nbm_data_text_len(struct RawNbmData *);
+size_t raw_nbm_data_text_len(RawNbmData *);

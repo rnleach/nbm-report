@@ -14,7 +14,7 @@
 #include <glib.h>
 
 static void
-build_title_liquid(struct NBMData const *nbm, struct Table *tbl, int hours)
+build_title_liquid(NBMData const *nbm, Table *tbl, int hours)
 {
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
@@ -34,7 +34,7 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     CumulativeDistribution *dist = value;
     ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0, 0.02);
     struct TableFillerState *tbl_state = state;
-    struct Table *tbl = tbl_state->tbl;
+    Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
     double pm_value = round(cumulative_dist_pm_value(dist) * 100.0) / 100.0;
@@ -92,7 +92,7 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_precip_summary(struct NBMData const *nbm, int hours)
+show_precip_summary(NBMData const *nbm, int hours)
 {
     char percentile_format[32] = {0};
     char deterministic_precip_key[32] = {0};
@@ -112,7 +112,7 @@ show_precip_summary(struct NBMData const *nbm, int hours)
         return;
     }
 
-    struct Table *tbl = table_new(18, num_rows);
+    Table *tbl = table_new(18, num_rows);
     build_title_liquid(nbm, tbl, hours);
 
     // clang-format off

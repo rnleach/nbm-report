@@ -14,7 +14,7 @@
 #include <glib.h>
 
 static void
-build_title_ice(struct NBMData const *nbm, struct Table *tbl, int hours)
+build_title_ice(NBMData const *nbm, Table *tbl, int hours)
 {
 
     char title_buf[256] = {0};
@@ -32,9 +32,9 @@ static int
 add_row_prob_ice_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    struct CumulativeDistribution *dist = value;
+    CumulativeDistribution *dist = value;
     struct TableFillerState *tbl_state = state;
-    struct Table *tbl = tbl_state->tbl;
+    Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
     double pm_value = round(cumulative_dist_pm_value(dist) * 100.0) / 100.0;
@@ -76,7 +76,7 @@ add_row_prob_ice_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_ice_summary(struct NBMData const *nbm, int hours)
+show_ice_summary(NBMData const *nbm, int hours)
 {
     char percentile_format[32] = {0};
     char deterministic_ice_key[32] = {0};
@@ -95,7 +95,7 @@ show_ice_summary(struct NBMData const *nbm, int hours)
         return;
     }
 
-    struct Table *tbl = table_new(12, num_rows);
+    Table *tbl = table_new(12, num_rows);
     build_title_ice(nbm, tbl, hours);
 
     // clang-format off

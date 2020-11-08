@@ -63,7 +63,7 @@ typedef bool (*KeepFilter)(time_t const *);
  * \param extractor is a function that retrieves a reference to the value that will eventually be
  * passed to \c accumulate as the accumulation variable.
  */
-void extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, char const *col_name,
+void extract_daily_summary_for_column(GTree *sums, NBMData const *nbm, char const *col_name,
                                       KeepFilter filter, SummarizeDate date_sum, Converter convert,
                                       Accumulator accumulate, Creator create, Extractor extract);
 
@@ -86,8 +86,8 @@ typedef struct CumulativeDistribution CumulativeDistribution;
  * objects as values.
  *
  **/
-GTree *extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format,
-                    char const *pm_col_name, Converter convert);
+GTree *extract_cdfs(NBMData const *nbm, char const *cdf_col_name_format, char const *pm_col_name,
+                    Converter convert);
 
 /** Get the probability matched (or quantile mapped) value associated with CDF.
  *
