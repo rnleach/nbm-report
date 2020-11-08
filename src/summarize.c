@@ -256,7 +256,6 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
 double
 cumulative_dist_percentile_value(struct CumulativeDistribution *cdf, double target_percentile)
 {
-
     if (!cdf->sorted) {
         cumulative_dist_sort(cdf);
     }
@@ -298,6 +297,185 @@ cumulative_dist_free(void *void_cdf)
     struct CumulativeDistribution *cdf = void_cdf;
     free(cdf->percentiles);
     free(cdf);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                 ProbabilityDistribution implementations.
+ *-----------------------------------------------------------------------------------------------*/
+struct PDFPoint {
+    double bin_min_edge;
+    double bin_max_edge;
+    double bin_val;
+};
+
+static double
+pdfpoint_weight(struct PDFPoint p)
+{
+    return (p.bin_max_edge - p.bin_min_edge) * p.bin_val;
+}
+
+static double
+pdfpoint_center(struct PDFPoint p)
+{
+    return (p.bin_max_edge + p.bin_min_edge) / 2.0;
+}
+
+static int
+pdfpoint_compare_decreasing_weight_order(void const *a, void const *b)
+{
+    struct PDFPoint const *pa = a;
+    struct PDFPoint const *pb = b;
+
+    double weight_a = pdfpoint_weight(*pa);
+    double weight_b = pdfpoint_weight(*pb);
+
+    if (weight_a > weight_b)
+        return -1;
+    if (weight_a < weight_b)
+        return 1;
+    return 0;
+}
+
+#define MAX_NUM_MODES 5
+struct ProbabilityDistribution {
+    int size;
+    struct PDFPoint *pnts;
+    struct PDFPoint modes[MAX_NUM_MODES];
+    int num_modes;
+};
+
+static struct ProbabilityDistribution *
+probability_dist_new(int capacity)
+{
+    struct ProbabilityDistribution *pdf = calloc(1, sizeof(struct ProbabilityDistribution));
+    assert(pdf);
+
+    struct PDFPoint *pnts = calloc(capacity, sizeof(struct PDFPoint));
+    assert(pnts);
+
+    *pdf = (struct ProbabilityDistribution){.size = capacity, .pnts = pnts};
+
+    return pdf;
+}
+
+static struct PDFPoint
+pdfpoint_from_percentiles(struct Percentile left, struct Percentile right)
+{
+    double rise = right.pct - left.pct;
+    assert(rise > 0.0);
+    double width = right.val - left.val;
+    assert(width > 0.0);
+
+    return (struct PDFPoint){
+        .bin_min_edge = left.val, .bin_max_edge = right.val, .bin_val = rise / width};
+}
+
+static void
+probability_dist_fill_in_dist(struct ProbabilityDistribution *pdf,
+                              struct CumulativeDistribution *cdf, double abs_min, double abs_max)
+{
+    double area = 0.0;
+
+    // Handle the left edge first.
+    pdf->pnts[0] = pdfpoint_from_percentiles((struct Percentile){.pct = 0.0, .val = abs_min},
+                                             cdf->percentiles[0]);
+    area += pdfpoint_weight(pdf->pnts[0]);
+
+    // Handle the right edge next
+    int pdf_idx = pdf->size - 1;
+    pdf->pnts[pdf_idx] = pdfpoint_from_percentiles(
+        cdf->percentiles[pdf_idx - 1], (struct Percentile){.pct = 100.0, .val = abs_max});
+    area += pdfpoint_weight(pdf->pnts[pdf_idx]);
+
+    // Loop through to get the rest.
+    for (size_t i = 1; i < pdf->size - 1; i++) {
+        struct Percentile left = cdf->percentiles[i - 1];
+        struct Percentile right = cdf->percentiles[i];
+        pdf->pnts[i] = pdfpoint_from_percentiles(left, right);
+        area += pdfpoint_weight(pdf->pnts[i]);
+    }
+
+    // Normalize to have an area of 100.
+    area /= 100.0;
+    for (size_t i = 0; i < pdf->size; i++) {
+        pdf->pnts[i].bin_val /= area;
+    }
+}
+
+static void
+probability_dist_fill_in_modes(struct ProbabilityDistribution *pdf)
+{
+    double weight0 = pdfpoint_weight(pdf->pnts[0]);
+    for (size_t i = 1; i < pdf->size; i++) {
+        double weight1 = pdfpoint_weight(pdf->pnts[i]);
+
+        if (weight1 < weight0) {
+            if (pdf->num_modes < MAX_NUM_MODES) {
+                pdf->modes[pdf->num_modes] = pdf->pnts[i];
+                pdf->num_modes++;
+                qsort(pdf->modes, pdf->num_modes, sizeof(struct PDFPoint),
+                      pdfpoint_compare_decreasing_weight_order);
+            } else {
+                if (weight1 > pdfpoint_weight(pdf->modes[MAX_NUM_MODES - 1])) {
+                    pdf->modes[MAX_NUM_MODES - 1] = pdf->pnts[i];
+                    qsort(pdf->modes, pdf->num_modes, sizeof(struct PDFPoint),
+                          pdfpoint_compare_decreasing_weight_order);
+                }
+            }
+        }
+    }
+}
+
+struct ProbabilityDistribution *
+probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double abs_max)
+{
+    assert(cdf);
+    assert(cdf->size > 4);
+    assert(abs_min < abs_max);
+
+    if (!cdf->sorted) {
+        cumulative_dist_sort(cdf);
+    }
+
+    assert(abs_min < cdf->percentiles[0].val);
+    assert(abs_max > cdf->percentiles[cdf->size - 1].val);
+
+    struct ProbabilityDistribution *pdf = probability_dist_new(cdf->size + 1);
+
+    probability_dist_fill_in_dist(pdf, cdf, abs_min, abs_max);
+
+    probability_dist_fill_in_modes(pdf);
+
+    return pdf;
+}
+
+int
+probability_dist_num_modes(struct ProbabilityDistribution *pdf)
+{
+    return pdf->num_modes;
+}
+
+double
+probability_dist_get_mode(struct ProbabilityDistribution *pdf, int mode_num)
+{
+    assert(mode_num <= MAX_NUM_MODES);
+    return pdfpoint_center(pdf->modes[mode_num - 1]);
+}
+
+double
+probability_dist_get_mode_weight(struct ProbabilityDistribution *pdf, int mode_num)
+{
+    assert(mode_num <= MAX_NUM_MODES);
+    return pdfpoint_weight(pdf->modes[mode_num - 1]);
+}
+
+void
+probability_dist_free(void *ptr)
+{
+    struct ProbabilityDistribution *pdf = ptr;
+
+    free(pdf->pnts);
+    free(pdf);
 }
 
 /*-------------------------------------------------------------------------------------------------

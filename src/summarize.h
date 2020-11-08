@@ -71,7 +71,7 @@ void extract_daily_summary_for_column(GTree *sums, struct NBMData const *nbm, ch
  *                                  Cumulative Distributions
  *-----------------------------------------------------------------------------------------------*/
 /** A cumulative distribution function. (CDF) */
-struct CumulativeDistribution;
+typedef struct CumulativeDistribution CumulativeDistribution;
 
 /** Extract CDF information from some \c NBMData.
  *
@@ -93,7 +93,7 @@ GTree *extract_cdfs(struct NBMData const *nbm, char const *cdf_col_name_format,
  *
  * If there was no PM (QMD) value, returns \c NAN.
  */
-double cumulative_dist_pm_value(struct CumulativeDistribution const *);
+double cumulative_dist_pm_value(CumulativeDistribution const *);
 
 /** Get a probability of exceedence for a given value.
  *
@@ -102,21 +102,57 @@ double cumulative_dist_pm_value(struct CumulativeDistribution const *);
  *
  * \returns the probability of matching or exceeding the \c target_val.
  */
-double interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target_val);
+double interpolate_prob_of_exceedance(CumulativeDistribution *cdf, double target_val);
 
 /** Get the value from a CDF at specific percentile.
  *
- * \param cdf is teh function you want to sample.
+ * \param cdf is the function you want to sample.
  * \param target_percentile is the percentile you want to get the value for.
  *
  * \returns the value at the percentile, or NAN if it was out of the possible range.
  */
-double cumulative_dist_percentile_value(struct CumulativeDistribution *cdf,
-                                        double target_percentile);
+double cumulative_dist_percentile_value(CumulativeDistribution *cdf, double target_percentile);
 
 /** Free a CDF object. */
 void cumulative_dist_free(void *);
 
+/*-------------------------------------------------------------------------------------------------
+ *                                  Probability Distributions
+ *-----------------------------------------------------------------------------------------------*/
+/** A probability distribution function. */
+typedef struct ProbabilityDistribution ProbabilityDistribution;
+
+/** Create a \c ProbabilityDistribution from a \c CumulativeDistribution.
+ *
+ * \param cdf the \c CumulativeDistribution to use as the source of this PDF.
+ * \param abs_min is the absolute minimum value considered in the PDF. For many variables, like
+ * precipitation and snow, could be zero.
+ * \param abs_max is the absolute maximum value considered in the PDF. The CDFs may not actually
+ * include the max and min values in them, so we use these parameters to set hard limits. If there
+ * is data in the distribution, it will be clipped to this level.
+ */
+ProbabilityDistribution *probability_dist_calc(CumulativeDistribution *cdf, double abs_min,
+                                               double abs_max);
+
+/** Get the number of modes (local maxima) in a \c ProbabilityDistribution. */
+int probability_dist_num_modes(ProbabilityDistribution *pdf);
+
+/** Get the value of the mode.
+ *
+ * If the distribution has more than one mode, then get the \c mode_num mode. \c mode_num 1 is the
+ * mode with the largest probabiltiy in the PDF, and the next modes arrive in decreasing order. If
+ * there is no \c mode_num mode, then \c NAN is returned.
+ */
+double probability_dist_get_mode(ProbabilityDistribution *pdf, int mode_num);
+
+/** Get the weight, or probability value associated with a num.
+ *
+ * \see \c probability_dist_get_mode() for an explanation of \c mode_num.
+ */
+double probability_dist_get_mode_weight(ProbabilityDistribution *pdf, int mode_num);
+
+/** Free resources associated with a \c ProbabilityDistribution */
+void probability_dist_free(void *);
 /*-------------------------------------------------------------------------------------------------
  *                                 KeepFilter implementations.
  *-----------------------------------------------------------------------------------------------*/
