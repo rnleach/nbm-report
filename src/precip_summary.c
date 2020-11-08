@@ -32,7 +32,7 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
     CumulativeDistribution *dist = value;
-    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0);
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0, 0.02);
     struct TableFillerState *tbl_state = state;
     struct Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;

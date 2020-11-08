@@ -32,12 +32,11 @@ static int
 add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    struct CumulativeDistribution *dist = value;
+    CumulativeDistribution *dist = value;
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 36.0, 0.2);
     struct TableFillerState *tbl_state = state;
     struct Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
-
-    double pm_value = round(cumulative_dist_pm_value(dist) * 10.0) / 10.0;
 
     double p10th = round(cumulative_dist_percentile_value(dist, 10.0) * 10.0) / 10.0;
     double p25th = round(cumulative_dist_percentile_value(dist, 25.0) * 10.0) / 10.0;
@@ -48,37 +47,47 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
     double prob_01 = round(interpolate_prob_of_exceedance(dist, 0.1));
     double prob_05 = round(interpolate_prob_of_exceedance(dist, 0.5));
     double prob_10 = round(interpolate_prob_of_exceedance(dist, 1.0));
-    double prob_20 = round(interpolate_prob_of_exceedance(dist, 2.0));
-    double prob_40 = round(interpolate_prob_of_exceedance(dist, 4.0));
+    double prob_30 = round(interpolate_prob_of_exceedance(dist, 3.0));
     double prob_60 = round(interpolate_prob_of_exceedance(dist, 6.0));
     double prob_80 = round(interpolate_prob_of_exceedance(dist, 8.0));
     double prob_120 = round(interpolate_prob_of_exceedance(dist, 12.0));
     double prob_180 = round(interpolate_prob_of_exceedance(dist, 18.0));
     double prob_240 = round(interpolate_prob_of_exceedance(dist, 24.0));
 
+    double mode1 = round(probability_dist_get_mode(pdf, 1) * 10.0) / 10.0;
+    double mode2 = round(probability_dist_get_mode(pdf, 2) * 10.0) / 10.0;
+    double wgt2 = round(probability_dist_get_mode_weight(pdf, 2) * 100.0) / 100.0;
+    double mode3 = round(probability_dist_get_mode(pdf, 3) * 10.0) / 10.0;
+    double wgt3 = round(probability_dist_get_mode_weight(pdf, 3) * 100.0) / 100.0;
+
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
 
-    table_set_value(tbl, 1, row, pm_value);
+    table_set_value(tbl, 1, row, p10th);
+    table_set_value(tbl, 2, row, p25th);
+    table_set_value(tbl, 3, row, p50th);
+    table_set_value(tbl, 4, row, p75th);
+    table_set_value(tbl, 5, row, p90th);
 
-    table_set_value(tbl, 2, row, p10th);
-    table_set_value(tbl, 3, row, p25th);
-    table_set_value(tbl, 4, row, p50th);
-    table_set_value(tbl, 5, row, p75th);
-    table_set_value(tbl, 6, row, p90th);
+    table_set_value(tbl, 6, row, prob_01);
+    table_set_value(tbl, 7, row, prob_05);
+    table_set_value(tbl, 8, row, prob_10);
+    table_set_value(tbl, 9, row, prob_30);
+    table_set_value(tbl, 10, row, prob_60);
+    table_set_value(tbl, 11, row, prob_80);
+    table_set_value(tbl, 12, row, prob_120);
+    table_set_value(tbl, 13, row, prob_180);
+    table_set_value(tbl, 14, row, prob_240);
 
-    table_set_value(tbl, 7, row, prob_01);
-    table_set_value(tbl, 8, row, prob_05);
-    table_set_value(tbl, 9, row, prob_10);
-    table_set_value(tbl, 10, row, prob_20);
-    table_set_value(tbl, 11, row, prob_40);
-    table_set_value(tbl, 12, row, prob_60);
-    table_set_value(tbl, 13, row, prob_80);
-    table_set_value(tbl, 14, row, prob_120);
-    table_set_value(tbl, 15, row, prob_180);
-    table_set_value(tbl, 16, row, prob_240);
+    table_set_value(tbl, 15, row, mode1);
+    table_set_value(tbl, 16, row, mode2);
+    table_set_value(tbl, 17, row, wgt2);
+    table_set_value(tbl, 18, row, mode3);
+    table_set_value(tbl, 19, row, wgt3);
+
+    probability_dist_free(pdf);
 
     tbl_state->row++;
 
@@ -105,35 +114,44 @@ show_snow_summary(struct NBMData const *nbm, int hours)
         return;
     }
 
-    struct Table *tbl = table_new(17, num_rows);
+    struct Table *tbl = table_new(20, num_rows);
     build_title_snow(nbm, tbl, hours);
 
     // clang-format off
     table_add_column(tbl, 0,  Table_ColumnType_TEXT, left_col_title,     "%s", 19);
-    table_add_column(tbl, 1,  Table_ColumnType_VALUE, "Snow",        "%6.2lf",  6);
-    table_add_column(tbl, 2,  Table_ColumnType_VALUE, "10th",        "%4.1lf",  4);
-    table_add_column(tbl, 3,  Table_ColumnType_VALUE, "25th",        "%4.1lf",  4);
-    table_add_column(tbl, 4,  Table_ColumnType_VALUE, "50th",        "%4.1lf",  4);
-    table_add_column(tbl, 5,  Table_ColumnType_VALUE, "75th",        "%4.1lf",  4);
-    table_add_column(tbl, 6,  Table_ColumnType_VALUE, "90th",        "%4.1lf",  4);
-    table_add_column(tbl, 7,  Table_ColumnType_VALUE,  "0.1",        "%5.0lf",  5);
-    table_add_column(tbl, 8,  Table_ColumnType_VALUE,  "0.5",        "%5.0lf",  5);
-    table_add_column(tbl, 9,  Table_ColumnType_VALUE,  "1.0",        "%5.0lf",  5);
-    table_add_column(tbl, 10, Table_ColumnType_VALUE,  "2.0",        "%5.0lf",  5);
-    table_add_column(tbl, 11, Table_ColumnType_VALUE,  "4.0",        "%5.0lf",  5);
-    table_add_column(tbl, 12, Table_ColumnType_VALUE,  "6.0",        "%5.0lf",  5);
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,  "8.0",        "%5.0lf",  5);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,  "12.0",       "%5.0lf",  5);
-    table_add_column(tbl, 15, Table_ColumnType_VALUE,  "18.0",       "%5.0lf",  5);
-    table_add_column(tbl, 16, Table_ColumnType_VALUE,  "24.0",       "%5.0lf",  5);
+    table_add_column(tbl, 1,  Table_ColumnType_VALUE, "10th",        "%4.1lf",  4);
+    table_add_column(tbl, 2,  Table_ColumnType_VALUE, "25th",        "%4.1lf",  4);
+    table_add_column(tbl, 3,  Table_ColumnType_VALUE, "50th",        "%4.1lf",  4);
+    table_add_column(tbl, 4,  Table_ColumnType_VALUE, "75th",        "%4.1lf",  4);
+    table_add_column(tbl, 5,  Table_ColumnType_VALUE, "90th",        "%4.1lf",  4);
+
+    table_add_column(tbl, 6,  Table_ColumnType_VALUE,  "0.1",        "%5.0lf",  5);
+    table_add_column(tbl, 7,  Table_ColumnType_VALUE,  "0.5",        "%5.0lf",  5);
+    table_add_column(tbl, 8,  Table_ColumnType_VALUE,  "1.0",        "%5.0lf",  5);
+    table_add_column(tbl, 9,  Table_ColumnType_VALUE,  "3.0",        "%5.0lf",  5);
+    table_add_column(tbl, 10, Table_ColumnType_VALUE,  "6.0",        "%5.0lf",  5);
+    table_add_column(tbl, 11, Table_ColumnType_VALUE,  "8.0",        "%5.0lf",  5);
+    table_add_column(tbl, 12, Table_ColumnType_VALUE,  "12.0",       "%5.0lf",  5);
+    table_add_column(tbl, 13, Table_ColumnType_VALUE,  "18.0",       "%5.0lf",  5);
+    table_add_column(tbl, 14, Table_ColumnType_VALUE,  "24.0",       "%5.0lf",  5);
+
+    table_add_column(tbl, 15, Table_ColumnType_VALUE,  "Mode-1",     "%6.1lf",  6);
+    table_add_column(tbl, 16, Table_ColumnType_VALUE,  "Mode-2",     "%6.1lf",  6);
+    table_add_column(tbl, 17, Table_ColumnType_VALUE,   "Wgt-2",     "%5.2lf",  5);
+    table_add_column(tbl, 18, Table_ColumnType_VALUE,  "Mode-3",     "%6.1lf",  6);
+    table_add_column(tbl, 19, Table_ColumnType_VALUE,   "Wgt-3",     "%5.2lf",  5);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
-    table_set_double_left_border(tbl, 2);
-    table_set_double_left_border(tbl, 7);
+    table_set_double_left_border(tbl, 6);
+    table_set_double_left_border(tbl, 15);
 
-    for (int i = 1; i <= 16; i++) {
+    for (int i = 1; i <= 15; i++) {
         table_set_blank_value(tbl, i, 0.0);
+    }
+
+    for (int i = 16; i <= 19; i++) {
+        table_set_blank_value(tbl, i, NAN);
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};

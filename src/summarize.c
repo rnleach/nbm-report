@@ -383,14 +383,13 @@ pdfpoint_from_percentiles(struct Percentile left, struct Percentile right)
 }
 
 static void
-probability_dist_smooth(struct ProbabilityDistribution *pdf)
+probability_dist_smooth(struct ProbabilityDistribution *pdf, double smooth_radius)
 {
     struct PDFPoint *new = calloc(pdf->size, sizeof(struct PDFPoint));
     assert(new);
 
     // Smooth with a Gaussian Kernel Smoother
-    double const radius = 0.02;
-
+    double radius = smooth_radius;
     for (size_t i = 0; i < pdf->size; i++) {
         double center = pdfpoint_center(pdf->pnts[i]);
         double numerator = 0.0;
@@ -433,7 +432,8 @@ probability_dist_normalize(struct ProbabilityDistribution *pdf)
 
 static void
 probability_dist_fill_in_dist(struct ProbabilityDistribution *pdf,
-                              struct CumulativeDistribution *cdf, double abs_min, double abs_max)
+                              struct CumulativeDistribution *cdf, double abs_min, double abs_max,
+                              double smooth_radius)
 {
     // Handle the left edge first.
     pdf->pnts[0] = pdfpoint_from_percentiles((struct Percentile){.pct = 0.0, .val = abs_min},
@@ -451,7 +451,7 @@ probability_dist_fill_in_dist(struct ProbabilityDistribution *pdf,
         pdf->pnts[i] = pdfpoint_from_percentiles(left, right);
     }
 
-    probability_dist_smooth(pdf);
+    probability_dist_smooth(pdf, smooth_radius);
     probability_dist_normalize(pdf);
 }
 
@@ -489,7 +489,8 @@ probability_dist_fill_in_modes(struct ProbabilityDistribution *pdf)
 }
 
 struct ProbabilityDistribution *
-probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double abs_max)
+probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double abs_max,
+                      double smooth_radius)
 {
     assert(cdf);
     assert(cdf->size > 4);
@@ -504,7 +505,7 @@ probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double
 
     struct ProbabilityDistribution *pdf = probability_dist_new(cdf->size + 1);
 
-    probability_dist_fill_in_dist(pdf, cdf, abs_min, abs_max);
+    probability_dist_fill_in_dist(pdf, cdf, abs_min, abs_max, smooth_radius);
     probability_dist_fill_in_modes(pdf);
 
     return pdf;

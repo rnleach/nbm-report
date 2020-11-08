@@ -130,9 +130,12 @@ typedef struct ProbabilityDistribution ProbabilityDistribution;
  * \param abs_max is the absolute maximum value considered in the PDF. The CDFs may not actually
  * include the max and min values in them, so we use these parameters to set hard limits. If there
  * is data in the distribution, it will be clipped to this level.
+ * \param smooth_radius is a size scale parameter for guassian smoothing of the PDF when
+ * calculating the modes. If this is too small the data will be too noisy and find to many
+ * modes that are too close together.
  */
 ProbabilityDistribution *probability_dist_calc(CumulativeDistribution *cdf, double abs_min,
-                                               double abs_max);
+                                               double abs_max, double smooth_radius);
 
 /** Get the number of modes (local maxima) in a \c ProbabilityDistribution. */
 int probability_dist_num_modes(ProbabilityDistribution *pdf);
