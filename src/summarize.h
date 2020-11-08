@@ -21,12 +21,12 @@ typedef double *(*Extractor)(void *);
  */
 typedef time_t (*SummarizeDate)(time_t const *);
 
+/** Filter values out for consideration. */
+typedef bool (*KeepFilter)(time_t const *);
+
 /*-------------------------------------------------------------------------------------------------
  *                  Extract values from the NBM and insert them into the summary.
  *-----------------------------------------------------------------------------------------------*/
-
-/** Filter values out for consideration. */
-typedef bool (*KeepFilter)(time_t const *);
 
 /** Extract a single value per day from the provided column.
  *
@@ -92,22 +92,3 @@ time_t summary_date_12z(time_t const *valid_time);
  * matches NBM timing anyway. This works for sky cover and any hourly or six hourly NBM component.
  */
 time_t summary_date_06z(time_t const *valid_time);
-
-/*-------------------------------------------------------------------------------------------------
- *                                 Accumulator implementations.
- *-----------------------------------------------------------------------------------------------*/
-
-// The iterators should only return 1 value a day for these, so just use that single value.
-double accum_daily_rh_t(double acc, double val);
-
-/** Sum all values to get a total. */
-double accum_sum(double acc, double val);
-
-/** Keep the maximum value, ignoring NaNs. */
-double accum_max(double acc, double val);
-
-/** Just keep the last value. */
-double accum_last(double _acc, double val);
-
-/** Average the values. */
-double accum_avg(double acc, double val);

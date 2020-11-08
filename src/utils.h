@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +20,10 @@
         }                                                                                          \
     }
 
-/** Compare \c time_t values which are used as keys in the GLib \c Tree.
+/*-------------------------------------------------------------------------------------------------
+ *                         Compare function for soring time_t in ascending order.
+ *-----------------------------------------------------------------------------------------------*/
+/** Compare \c time_t values which are used as keys in the GLib \c Tree or \c qsort.
  *
  * Dates are sorted in ascending order.
  */
@@ -30,6 +34,18 @@ int time_t_compare_func(void const *a, void const *b, void *user_data);
  *-----------------------------------------------------------------------------------------------*/
 /** How to accumulate values from a day, eg take the first, last, sum, max, min. */
 typedef double (*Accumulator)(double acc, double val);
+
+/** Sum all values to get a total. */
+double accum_sum(double acc, double val);
+
+/** Keep the maximum value, ignoring NaNs. */
+double accum_max(double acc, double val);
+
+/** Just keep the last value. */
+double accum_last(double _acc, double val);
+
+/** Average the values. */
+double accum_avg(double acc, double val);
 
 /*-------------------------------------------------------------------------------------------------
  *                                          Converters

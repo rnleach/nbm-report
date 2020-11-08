@@ -180,22 +180,20 @@ build_daily_summaries(NBMData const *nbm)
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      daily_summary_new, daily_summary_access_max_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMAX12hr_2 m above ground_ens std dev", keep_all,
                                      summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
-                                     accum_daily_rh_t, daily_summary_new,
-                                     daily_summary_access_max_t_std);
+                                     accum_last, daily_summary_new, daily_summary_access_max_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      daily_summary_new, daily_summary_access_min_t);
 
     extract_daily_summary_for_column(sums, nbm, "TMIN12hr_2 m above ground_ens std dev", keep_all,
                                      summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
-                                     accum_daily_rh_t, daily_summary_new,
-                                     daily_summary_access_min_t_std);
+                                     accum_last, daily_summary_new, daily_summary_access_min_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_06z,
                                      mm_to_in, accum_last, daily_summary_new,

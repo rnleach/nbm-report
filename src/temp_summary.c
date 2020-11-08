@@ -151,51 +151,51 @@ extract_temperature_data(NBMData const *nbm)
     GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_10% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint_10th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_25% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint_25th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_50% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint_50th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_75% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint_75th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_90% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_mint_90th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_10% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt_10th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_25% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt_25th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_50% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt_50th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_75% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt_75th);
 
     extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_90% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_daily_rh_t,
+                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
                                      temp_sum_new, temp_sum_access_maxt_90th);
 
     return sums;
