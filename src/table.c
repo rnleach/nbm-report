@@ -18,7 +18,7 @@ struct Column {
     bool double_left_border;
     double *values1;
     double *values2;
-    bool blank_zeros;
+    double blank_value;
 };
 
 static double *
@@ -68,7 +68,7 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
     strncpy(fmt_buf, col_fmt, fmt_len);
     ptr->col_format = fmt_buf;
 
-    ptr->blank_zeros = false;
+    ptr->blank_value = -1.0e-6; // A very, very unlikely value.
 }
 
 static void
@@ -175,12 +175,12 @@ table_set_double_left_border(struct Table *tbl, int col_num)
 }
 
 void
-table_set_blank_zeros(struct Table *tbl, int col_num)
+table_set_blank_value(struct Table *tbl, int col_num, double value)
 {
     assert(tbl->num_cols > col_num);
     assert(col_num >= 0);
 
-    tbl->cols[col_num].blank_zeros = true;
+    tbl->cols[col_num].blank_value = value;
 }
 
 void
@@ -371,7 +371,7 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
     case Table_ColumnType_VALUE: {
         double val = col->values1[row_num];
 
-        if (val == 0.0 && col->blank_zeros) {
+        if (val == col->blank_value || (isnan(val) && isnan(col->blank_value))) {
             for (int i = 0; i < col->col_width; i++) {
                 next[i] = ' ';
             }

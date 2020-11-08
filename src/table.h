@@ -64,11 +64,11 @@ void table_add_column(struct Table *tbl, int col_num, enum ColumnType type, char
 /** Set the left border of a column to have a double border */
 void table_set_double_left_border(struct Table *tbl, int col_num);
 
-/** Set zero values to be blanked out and print nothing for a column.
+/** Set a sentinel value to be blanked out and print nothing for a column.
  *
  * This has no affect on text or avg-std columns.
  */
-void table_set_blank_zeros(struct Table *tbl, int col_num);
+void table_set_blank_value(struct Table *tbl, int col_num, double value);
 
 /** Add a string value to a column.
  *

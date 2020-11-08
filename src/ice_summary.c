@@ -118,7 +118,7 @@ show_ice_summary(struct NBMData const *nbm, int hours)
     table_set_double_left_border(tbl, 7);
 
     for (int i = 1; i <= 11; i++) {
-        table_set_blank_zeros(tbl, i);
+        table_set_blank_value(tbl, i, 0.0);
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};

@@ -294,9 +294,9 @@ show_daily_summary(struct NBMData const *nbm)
     table_add_column(tbl, 9, Table_ColumnType_VALUE,     "Snow",      "%5.1lf ",              6);
     // clang-format on
 
-    table_set_blank_zeros(tbl, 7);
-    table_set_blank_zeros(tbl, 8);
-    table_set_blank_zeros(tbl, 9);
+    table_set_blank_value(tbl, 7, 0.0);
+    table_set_blank_value(tbl, 8, 0.0);
+    table_set_blank_value(tbl, 9, 0.0);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(sums, add_row_to_table, &state);

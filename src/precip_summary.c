@@ -142,7 +142,11 @@ show_precip_summary(struct NBMData const *nbm, int hours)
     table_set_double_left_border(tbl, 13);
 
     for (int i = 1; i <= 13; i++) {
-        table_set_blank_zeros(tbl, i);
+        table_set_blank_value(tbl, i, 0.0);
+    }
+
+    for (int i = 14; i <= 17; i++) {
+        table_set_blank_value(tbl, i, NAN);
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
