@@ -107,17 +107,25 @@ main(int argc, char *argv[argc + 1])
     if (opt_args.show_temperature)
         show_temperature_summary(parsed_nbm_data);
 
-    if (opt_args.show_snow || opt_args.show_rain || opt_args.show_ice) {
-        for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
-            if (opt_args.show_rain) {
-                show_precip_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-            }
-            if (opt_args.show_snow) {
-                show_snow_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-            }
-            if (opt_args.show_ice) {
-                show_ice_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-            }
+    for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
+        if (opt_args.show_rain) {
+            show_precip_summary(parsed_nbm_data, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_precip_scenarios) {
+            show_precip_scenarios(parsed_nbm_data, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_snow) {
+            show_snow_summary(parsed_nbm_data, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_snow_scenarios) {
+            show_snow_scenarios(parsed_nbm_data, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_ice) {
+            show_ice_summary(parsed_nbm_data, opt_args.accum_hours[i]);
         }
     }
 

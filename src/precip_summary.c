@@ -13,20 +13,48 @@
 
 #include <glib.h>
 
+#define SUMMARY 0
+#define SCENARIOS 1
+
 static void
-build_title_liquid(NBMData const *nbm, Table *tbl, int hours)
+build_title(NBMData const *nbm, Table *tbl, int hours, int type)
 {
     char title_buf[256] = {0};
     time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
-    sprintf(title_buf, "%d Hr Probabilistic Precipitation for %s (%s) - ", hours,
-            nbm_data_site_name(nbm), nbm_data_site_id(nbm));
+
+    if (type == SUMMARY) {
+        sprintf(title_buf, "%d Hr Probabilistic Precipitation for %s (%s) - ", hours,
+                nbm_data_site_name(nbm), nbm_data_site_id(nbm));
+    } else if (type == SCENARIOS) {
+        sprintf(title_buf, "%d Hr Precipitation Scenarios for %s (%s) - ", hours,
+                nbm_data_site_name(nbm), nbm_data_site_id(nbm));
+    } else {
+        assert(false);
+    }
+
     int len = strlen(title_buf);
     strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
 
     table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
+static GTree *
+build_cdfs(NBMData const *nbm, int hours)
+{
+    char percentile_format[32] = {0};
+    char deterministic_precip_key[32] = {0};
+
+    sprintf(percentile_format, "APCP%dhr_surface_%%d%%%% level", hours);
+    sprintf(deterministic_precip_key, "APCP%dhr_surface", hours);
+
+    GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_precip_key, mm_to_in);
+
+    return cdfs;
+}
+/*-------------------------------------------------------------------------------------------------
+ *                                      Precipitation Summary
+ *-----------------------------------------------------------------------------------------------*/
 static int
 add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 {
@@ -94,15 +122,12 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 void
 show_precip_summary(NBMData const *nbm, int hours)
 {
-    char percentile_format[32] = {0};
-    char deterministic_precip_key[32] = {0};
-    char left_col_title[32] = {0};
+    assert(nbm);
 
-    sprintf(percentile_format, "APCP%dhr_surface_%%d%%%% level", hours);
-    sprintf(deterministic_precip_key, "APCP%dhr_surface", hours);
+    char left_col_title[32] = {0};
     sprintf(left_col_title, "%d Hrs Ending", hours);
 
-    GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_precip_key, mm_to_in);
+    GTree *cdfs = build_cdfs(nbm, hours);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
 
     int num_rows = g_tree_nnodes(cdfs);
@@ -113,7 +138,7 @@ show_precip_summary(NBMData const *nbm, int hours)
     }
 
     Table *tbl = table_new(18, num_rows);
-    build_title_liquid(nbm, tbl, hours);
+    build_title(nbm, tbl, hours, SUMMARY);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
@@ -157,4 +182,32 @@ show_precip_summary(NBMData const *nbm, int hours)
     g_tree_unref(cdfs);
 
     table_free(&tbl);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                      Precipitation Scenarios
+ *-----------------------------------------------------------------------------------------------*/
+void
+show_precip_scenarios(NBMData const *nbm, int hours)
+{
+    assert(nbm);
+
+    char left_col_title[32] = {0};
+    sprintf(left_col_title, "%d Hrs Ending", hours);
+
+    GTree *cdfs = build_cdfs(nbm, hours);
+    Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
+
+    int num_rows = g_tree_nnodes(cdfs);
+    if (num_rows == 0) {
+        printf("\n\n     ***** No precipitation scenarios for accumulation period %d. *****\n\n",
+               hours);
+        return;
+    }
+
+    Table *tbl = table_new(18, num_rows);
+    build_title(nbm, tbl, hours, SCENARIOS);
+
+    // TODO
+    assert(false);
 }

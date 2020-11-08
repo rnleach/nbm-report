@@ -13,8 +13,11 @@
 
 #include <glib.h>
 
+#define SUMMARY 0
+#define SCENARIOS 1
+
 static void
-build_title_snow(NBMData const *nbm, Table *tbl, int hours)
+build_title(NBMData const *nbm, Table *tbl, int hours, int mode)
 {
 
     char title_buf[256] = {0};
@@ -28,6 +31,22 @@ build_title_snow(NBMData const *nbm, Table *tbl, int hours)
     table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
+static GTree *
+build_cdfs(NBMData const *nbm, int hours)
+{
+    char percentile_format[32] = {0};
+    char deterministic_snow_key[32] = {0};
+
+    sprintf(percentile_format, "ASNOW%dhr_surface_%%d%%%% level", hours);
+    sprintf(deterministic_snow_key, "ASNOW%dhr_surface", hours);
+
+    GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
+
+    return cdfs;
+}
+/*-------------------------------------------------------------------------------------------------
+ *                                      Precipitation Summary
+ *-----------------------------------------------------------------------------------------------*/
 static int
 add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 {
@@ -97,15 +116,11 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 void
 show_snow_summary(NBMData const *nbm, int hours)
 {
-    char percentile_format[32] = {0};
-    char deterministic_snow_key[32] = {0};
     char left_col_title[32] = {0};
 
-    sprintf(percentile_format, "ASNOW%dhr_surface_%%d%%%% level", hours);
-    sprintf(deterministic_snow_key, "ASNOW%dhr_surface", hours);
     sprintf(left_col_title, "%d Hrs Ending / in.", hours);
 
-    GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
+    GTree *cdfs = build_cdfs(nbm, hours);
     Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
 
     int num_rows = g_tree_nnodes(cdfs);
@@ -115,7 +130,7 @@ show_snow_summary(NBMData const *nbm, int hours)
     }
 
     Table *tbl = table_new(20, num_rows);
-    build_title_snow(nbm, tbl, hours);
+    build_title(nbm, tbl, hours, SUMMARY);
 
     // clang-format off
     table_add_column(tbl, 0,  Table_ColumnType_TEXT, left_col_title,     "%s", 19);
@@ -162,4 +177,31 @@ show_snow_summary(NBMData const *nbm, int hours)
     g_tree_unref(cdfs);
 
     table_free(&tbl);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                      Precipitation Scenarios
+ *-----------------------------------------------------------------------------------------------*/
+void
+show_snow_scenarios(NBMData const *nbm, int hours)
+{
+    assert(nbm);
+
+    char left_col_title[32] = {0};
+    sprintf(left_col_title, "%d Hrs Ending", hours);
+
+    GTree *cdfs = build_cdfs(nbm, hours);
+    Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
+
+    int num_rows = g_tree_nnodes(cdfs);
+    if (num_rows == 0) {
+        printf("\n\n     ***** No snow scenarios for accumulation period %d. *****\n\n", hours);
+        return;
+    }
+
+    Table *tbl = table_new(18, num_rows);
+    build_title(nbm, tbl, hours, SCENARIOS);
+
+    // TODO
+    assert(false);
 }

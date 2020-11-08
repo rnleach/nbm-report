@@ -9,9 +9,11 @@ struct OptArgs {
     bool show_rain;
     bool show_snow;
     bool show_ice;
+    bool show_temperature;
+    bool show_precip_scenarios;
+    bool show_snow_scenarios;
     int num_accum_periods;
     int accum_hours[4];
-    bool show_temperature;
     bool error_parsing_options;
 };
 

@@ -63,6 +63,20 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of temperatures",
      .arg_description = 0},
+    {.long_name = "precip-scenarios",
+     .short_name = 0,
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show precipitation scenarios",
+     .arg_description = 0},
+    {.long_name = "snow-scenarios",
+     .short_name = 0,
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show snow scenarios",
+     .arg_description = 0},
     {.long_name = "verbose",
      .short_name = 'v',
      .flags = G_OPTION_FLAG_NONE,
@@ -97,6 +111,10 @@ option_callback(const char *name, const char *value, void *data, GError **unused
         opts->show_ice = true;
     } else if (strcmp(name, "--temperature") == 0 || strcmp(name, "-t") == 0) {
         opts->show_temperature = true;
+    } else if (strcmp(name, "--precip-scenarios") == 0) {
+        opts->show_precip_scenarios = true;
+    } else if (strcmp(name, "--snow-scenarios") == 0) {
+        opts->show_snow_scenarios = true;
     } else if (strcmp(name, "--accumulation-period") == 0 || strcmp(name, "-a") == 0) {
         if (opts->num_accum_periods < sizeof(opts->accum_hours)) {
             opts->accum_hours[opts->num_accum_periods] = atoi(value);
@@ -124,6 +142,8 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .num_accum_periods = 0,
         .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
+        .show_precip_scenarios = false,
+        .show_snow_scenarios = false,
         .error_parsing_options = false,
     };
 
