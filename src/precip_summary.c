@@ -31,7 +31,8 @@ static int
 add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    struct CumulativeDistribution *dist = value;
+    CumulativeDistribution *dist = value;
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0);
     struct TableFillerState *tbl_state = state;
     struct Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
@@ -50,8 +51,12 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     double prob_050 = round(interpolate_prob_of_exceedance(dist, 0.50));
     double prob_075 = round(interpolate_prob_of_exceedance(dist, 0.75));
     double prob_100 = round(interpolate_prob_of_exceedance(dist, 1.0));
-    double prob_150 = round(interpolate_prob_of_exceedance(dist, 1.5));
-    double prob_200 = round(interpolate_prob_of_exceedance(dist, 2.0));
+
+    double mode1 = round(probability_dist_get_mode(pdf, 1) * 100.0) / 100.0;
+    double mode2 = round(probability_dist_get_mode(pdf, 2) * 100.0) / 100.0;
+    double wgt2 = round(probability_dist_get_mode_weight(pdf, 2) * 100.0) / 100.0;
+    double mode3 = round(probability_dist_get_mode(pdf, 3) * 100.0) / 100.0;
+    double wgt3 = round(probability_dist_get_mode_weight(pdf, 3) * 100.0) / 100.0;
 
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
@@ -72,10 +77,16 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     table_set_value(tbl, 10, row, prob_050);
     table_set_value(tbl, 11, row, prob_075);
     table_set_value(tbl, 12, row, prob_100);
-    table_set_value(tbl, 13, row, prob_150);
-    table_set_value(tbl, 14, row, prob_200);
+
+    table_set_value(tbl, 13, row, mode1);
+    table_set_value(tbl, 14, row, mode2);
+    table_set_value(tbl, 15, row, wgt2);
+    table_set_value(tbl, 16, row, mode3);
+    table_set_value(tbl, 17, row, wgt3);
 
     tbl_state->row++;
+
+    probability_dist_free(pdf);
 
     return false;
 }
@@ -101,7 +112,7 @@ show_precip_summary(struct NBMData const *nbm, int hours)
         return;
     }
 
-    struct Table *tbl = table_new(15, num_rows);
+    struct Table *tbl = table_new(18, num_rows);
     build_title_liquid(nbm, tbl, hours);
 
     // clang-format off
@@ -118,15 +129,19 @@ show_precip_summary(struct NBMData const *nbm, int hours)
     table_add_column(tbl, 10, Table_ColumnType_VALUE,        "0.50", "%5.0lf",  5);
     table_add_column(tbl, 11, Table_ColumnType_VALUE,        "0.75", "%5.0lf",  5);
     table_add_column(tbl, 12, Table_ColumnType_VALUE,        "1.00", "%5.0lf",  5);
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,        "1.50", "%5.0lf",  5);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,        "2.00", "%5.0lf",  5);
+    table_add_column(tbl, 13, Table_ColumnType_VALUE,      "Mode-1", "%6.2lf",  6);
+    table_add_column(tbl, 14, Table_ColumnType_VALUE,      "Mode-2", "%6.2lf",  6);
+    table_add_column(tbl, 15, Table_ColumnType_VALUE,       "Wgt-2", "%5.2lf",  5);
+    table_add_column(tbl, 16, Table_ColumnType_VALUE,      "Mode-3", "%6.2lf",  6);
+    table_add_column(tbl, 17, Table_ColumnType_VALUE,       "Wgt-3", "%5.2lf",  5);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 2);
     table_set_double_left_border(tbl, 7);
+    table_set_double_left_border(tbl, 13);
 
-    for (int i = 1; i <= 14; i++) {
+    for (int i = 1; i <= 13; i++) {
         table_set_blank_zeros(tbl, i);
     }
 
