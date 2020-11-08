@@ -82,7 +82,8 @@ is_valid_accum_period(int hours)
     return hours == 6 || hours == 12 || hours == 24 || hours == 48 || hours == 72;
 }
 
-static gboolean option_callback(const char *name, const char *value, void *data, GError **unused)
+static gboolean
+option_callback(const char *name, const char *value, void *data, GError **unused)
 {
     struct OptArgs *opts = data;
 
@@ -159,4 +160,3 @@ ERR_RETURN:;
 
     return result;
 }
-

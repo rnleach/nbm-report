@@ -20,4 +20,3 @@ struct OptArgs {
  * This routine may also set some global configuration variables, like a verbose flage.
  */
 struct OptArgs parse_cmd_line(int argc, char *argv[argc + 1]);
-
