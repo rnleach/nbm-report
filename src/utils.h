@@ -19,6 +19,24 @@
         }                                                                                          \
     }
 
+/** Compare \c time_t values which are used as keys in the GLib \c Tree.
+ *
+ * Dates are sorted in ascending order.
+ */
+int time_t_compare_func(void const *a, void const *b, void *user_data);
+
+/*-------------------------------------------------------------------------------------------------
+ *                                          Accumulators
+ *-----------------------------------------------------------------------------------------------*/
+/** How to accumulate values from a day, eg take the first, last, sum, max, min. */
+typedef double (*Accumulator)(double acc, double val);
+
+/*-------------------------------------------------------------------------------------------------
+ *                                          Converters
+ *-----------------------------------------------------------------------------------------------*/
+/** Convert the value extracted from the NBM into the desired units. */
+typedef double (*Converter)(double);
+
 static inline double
 kelvin_to_fahrenheit(double k)
 {

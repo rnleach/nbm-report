@@ -1,6 +1,6 @@
 #include "precip_summary.h"
+#include "distributions.h"
 #include "nbm_data.h"
-#include "summarize.h"
 #include "table.h"
 #include "utils.h"
 
