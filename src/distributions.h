@@ -51,6 +51,20 @@ double interpolate_prob_of_exceedance(CumulativeDistribution *cdf, double target
  */
 double cumulative_dist_percentile_value(CumulativeDistribution *cdf, double target_percentile);
 
+/** Get the maximum value in the \c CumulativeDistribution.
+ *
+ * Note that this may not be 100th percentile if the data only went up to the 90th or 99th as is
+ * the case with our data.
+ */
+double cumulative_dist_max_value(CumulativeDistribution *cdf);
+
+/** Get the minimum value in the \c CumulativeDistribution.
+ *
+ * Note that this may not be 0th percentile if the data started at the 1st percentile, as is often
+ * the case with our data.
+ */
+double cumulative_dist_min_value(CumulativeDistribution *cdf);
+
 /** Free a CDF object. */
 void cumulative_dist_free(void *);
 
@@ -66,17 +80,11 @@ typedef struct ProbabilityDistribution ProbabilityDistribution;
 /** Create a \c ProbabilityDistribution from a \c CumulativeDistribution.
  *
  * \param cdf the \c CumulativeDistribution to use as the source of this PDF.
- * \param abs_min is the absolute minimum value considered in the PDF. For many variables, like
- * precipitation and snow, could be zero.
- * \param abs_max is the absolute maximum value considered in the PDF. The CDFs may not actually
- * include the max and min values in them, so we use these parameters to set hard limits. If there
- * is data in the distribution, it will be clipped to this level.
  * \param smooth_radius is a size scale parameter for guassian smoothing of the PDF when
  * calculating the modes. If this is too small the data will be too noisy and find to many
  * modes that are too close together.
  */
-ProbabilityDistribution *probability_dist_calc(CumulativeDistribution *cdf, double abs_min,
-                                               double abs_max, double smooth_radius);
+ProbabilityDistribution *probability_dist_calc(CumulativeDistribution *cdf, double smooth_radius);
 
 /** Free resources associated with a \c ProbabilityDistribution */
 void probability_dist_free(void *);

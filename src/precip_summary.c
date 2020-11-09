@@ -16,19 +16,21 @@
 #define SUMMARY 0
 #define SCENARIOS 1
 
+extern char *global_save_dir;
+
 static void
-build_title(NBMData const *nbm, Table *tbl, int hours, int type)
+build_title(NBMData const *nbm, Table *tbl, char const *name, char const *id, time_t init_time,
+        int hours, int type)
 {
     char title_buf[256] = {0};
-    time_t init_time = nbm_data_init_time(nbm);
     struct tm init = *gmtime(&init_time);
 
     if (type == SUMMARY) {
         sprintf(title_buf, "%d Hr Probabilistic Precipitation for %s (%s) - ", hours,
-                nbm_data_site_name(nbm), nbm_data_site_id(nbm));
+                name, id);
     } else if (type == SCENARIOS) {
         sprintf(title_buf, "%d Hr Precipitation Scenarios for %s (%s) - ", hours,
-                nbm_data_site_name(nbm), nbm_data_site_id(nbm));
+                name, id);
     } else {
         assert(false);
     }
@@ -52,6 +54,55 @@ build_cdfs(NBMData const *nbm, int hours)
 
     return cdfs;
 }
+
+struct Files {
+    FILE *cdf_f;
+    FILE *pdf_f;
+};
+
+static int
+print_dists(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    CumulativeDistribution *dist = value;
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.02);
+    struct Files *files = state;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
+
+    fprintf(files->cdf_f, "\n\n# Period ending: %s\n", datebuf);
+    fprintf(files->pdf_f, "\n\n# Period ending: %s\n", datebuf);
+
+    cumulative_dist_write(dist, files->cdf_f);
+    probability_dist_write(pdf, files->pdf_f);
+
+    return false;
+}
+
+static void
+save_distributions(GTree *cdfs)
+{
+
+    char cdf_path[256] = {0};
+    sprintf(cdf_path, "%s/cdfs.dat", global_save_dir);
+
+    char pdf_path[256] = {0};
+    sprintf(pdf_path, "%s/pdfs.dat", global_save_dir);
+
+    FILE *cdf_f = fopen(cdf_path, "w");
+    Stopif(!cdf_f, return, "Unable to open cdfs.dat");
+
+    FILE *pdf_f = fopen(pdf_path, "w");
+    Stopif(!pdf_f, return, "Unable to open pdfs.dat");
+
+    struct Files f = {.cdf_f = cdf_f, .pdf_f = pdf_f};
+
+    g_tree_foreach(cdfs, print_dists, &f);
+
+    fclose(cdf_f);
+    fclose(pdf_f);
+}
 /*-------------------------------------------------------------------------------------------------
  *                                      Precipitation Summary
  *-----------------------------------------------------------------------------------------------*/
@@ -60,7 +111,7 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
     CumulativeDistribution *dist = value;
-    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0, 0.02);
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.02);
     struct TableFillerState *tbl_state = state;
     Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
@@ -108,7 +159,8 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_precip_summary(NBMData const *nbm, int hours)
+show_precip_summary(NBMData const *nbm, char const *name, char const *id, time_t init_time,
+        int hours)
 {
     assert(nbm);
 
@@ -126,7 +178,7 @@ show_precip_summary(NBMData const *nbm, int hours)
     }
 
     Table *tbl = table_new(13, num_rows);
-    build_title(nbm, tbl, hours, SUMMARY);
+    build_title(nbm, tbl, name, id, init_time, hours, SUMMARY);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
@@ -172,7 +224,7 @@ add_row_scenario_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
     CumulativeDistribution *dist = value;
-    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0, 0.02);
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.02);
     struct TableFillerState *tbl_state = state;
     Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
@@ -210,7 +262,8 @@ add_row_scenario_to_table(void *key, void *value, void *state)
 }
 
 void
-show_precip_scenarios(NBMData const *nbm, int hours)
+show_precip_scenarios(NBMData const *nbm, char const *name, char const *id, time_t init_time,
+        int hours)
 {
     assert(nbm);
 
@@ -220,6 +273,10 @@ show_precip_scenarios(NBMData const *nbm, int hours)
     GTree *cdfs = build_cdfs(nbm, hours);
     Stopif(!cdfs, return, "Error extracting CDFs for QPF.");
 
+    if(global_save_dir) {
+        save_distributions(cdfs);
+    }
+
     int num_rows = g_tree_nnodes(cdfs);
     if (num_rows == 0) {
         printf("\n\n     ***** No precipitation scenarios for accumulation period %d. *****\n\n",
@@ -228,7 +285,7 @@ show_precip_scenarios(NBMData const *nbm, int hours)
     }
 
     Table *tbl = table_new(17, num_rows);
-    build_title(nbm, tbl, hours, SCENARIOS);
+    build_title(nbm, tbl,  name, id, init_time, hours, SCENARIOS);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);

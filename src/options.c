@@ -15,11 +15,13 @@ static gboolean option_callback(const char *name, const char *value, void *data,
  *                                      Global Options
  *-----------------------------------------------------------------------------------------------*/
 bool global_verbose = false;
+char *global_save_dir = 0;
 
 /*-------------------------------------------------------------------------------------------------
  *                            Command line options configuration
  *-----------------------------------------------------------------------------------------------*/
 static GOptionEntry entries[] = {
+
     {.long_name = "accumulation-period",
      .short_name = 'a',
      .flags = G_OPTION_FLAG_NONE,
@@ -28,6 +30,7 @@ static GOptionEntry entries[] = {
      .description = "the number of hours to report accumulation summaries, H must be 6, 12, 24, "
                     "48, or 72 hours.",
      .arg_description = "H"},
+
     {.long_name = "no-summary",
      .short_name = 'n',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -35,6 +38,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "skip the overall summary",
      .arg_description = 0},
+    
     {.long_name = "precipitation",
      .short_name = 'r',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -42,6 +46,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of precipitation",
      .arg_description = 0},
+    
     {.long_name = "snow",
      .short_name = 's',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -49,6 +54,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of snow",
      .arg_description = 0},
+    
     {.long_name = "ice",
      .short_name = 'i',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -56,6 +62,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of ice forecast",
      .arg_description = 0},
+    
     {.long_name = "temperature",
      .short_name = 't',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -63,6 +70,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of temperatures",
      .arg_description = 0},
+    
     {.long_name = "precip-scenarios",
      .short_name = 0,
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -70,6 +78,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show precipitation scenarios",
      .arg_description = 0},
+    
     {.long_name = "snow-scenarios",
      .short_name = 0,
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -77,6 +86,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show snow scenarios",
      .arg_description = 0},
+    
     {.long_name = "verbose",
      .short_name = 'v',
      .flags = G_OPTION_FLAG_NONE,
@@ -84,6 +94,15 @@ static GOptionEntry entries[] = {
      .arg_data = &global_verbose,
      .description = "show verbose output.",
      .arg_description = 0},
+    
+    {.long_name = "save-dir",
+     .short_name = 0,
+     .flags = G_OPTION_FLAG_FILENAME,
+     .arg = G_OPTION_ARG_FILENAME,
+     .arg_data = &global_save_dir,
+     .description = "directory to save text output of the CDFs and PDFs",
+     .arg_description = "PATH"},
+    
     {0},
 };
 

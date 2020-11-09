@@ -2,6 +2,8 @@
 #include <locale.h>
 #include <math.h>
 
+#include <glib.h>
+
 // Program developed headers
 #include "cache.h"
 #include "daily_summary.h"
@@ -16,6 +18,7 @@
 #include "temp_summary.h"
 #include "utils.h"
 
+extern char *global_save_dir;
 /*-------------------------------------------------------------------------------------------------
  *                                    Program Setup and Teardown.
  *-----------------------------------------------------------------------------------------------*/
@@ -30,6 +33,7 @@ program_initialization()
 static void
 program_finalization()
 {
+    g_free(global_save_dir);
     download_module_finalize();
     cache_finalize();
 }
@@ -78,26 +82,34 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
     if (opt_args.show_temperature)
         show_temperature_summary(nbm);
 
-    for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
+    if (opt_args.show_rain || opt_args.show_precip_scenarios || opt_args.show_snow ||
+        opt_args.show_snow_scenarios || opt_args.show_ice) {
 
-        if (opt_args.show_rain) {
-            show_precip_summary(nbm, opt_args.accum_hours[i]);
-        }
+        time_t init_time = nbm_data_init_time(nbm);
+        char const *name = nbm_data_site_name(nbm);
+        char const *id = nbm_data_site_id(nbm);
 
-        if (opt_args.show_precip_scenarios) {
-            show_precip_scenarios(nbm, opt_args.accum_hours[i]);
-        }
+        for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
 
-        if (opt_args.show_snow) {
-            show_snow_summary(nbm, opt_args.accum_hours[i]);
-        }
+            if (opt_args.show_rain) {
+                show_precip_summary(nbm, name, id, init_time, opt_args.accum_hours[i]);
+            }
 
-        if (opt_args.show_snow_scenarios) {
-            show_snow_scenarios(nbm, opt_args.accum_hours[i]);
-        }
+            if (opt_args.show_precip_scenarios) {
+                show_precip_scenarios(nbm, name, id, init_time, opt_args.accum_hours[i]);
+            }
 
-        if (opt_args.show_ice) {
-            show_ice_summary(nbm, opt_args.accum_hours[i]);
+            if (opt_args.show_snow) {
+                show_snow_summary(nbm, opt_args.accum_hours[i]);
+            }
+
+            if (opt_args.show_snow_scenarios) {
+                show_snow_scenarios(nbm, opt_args.accum_hours[i]);
+            }
+
+            if (opt_args.show_ice) {
+                show_ice_summary(nbm, opt_args.accum_hours[i]);
+            }
         }
     }
 }
