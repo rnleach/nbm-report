@@ -94,3 +94,30 @@ double probability_dist_get_mode_weight(ProbabilityDistribution *pdf, int mode_n
 
 /** Free resources associated with a \c ProbabilityDistribution */
 void probability_dist_free(void *);
+
+/*-------------------------------------------------------------------------------------------------
+ *                                          Scenarios
+ *-----------------------------------------------------------------------------------------------*/
+/** A scenario */
+typedef struct Scenario Scenario;
+
+/** Free memeory associated with a scenario. */
+void scenario_free(void *ptr);
+
+/** Get the value with the highest probability density in this scenario. */
+double scenario_get_mode(Scenario const *sc);
+
+/** Get the lowest value in this scenario. */
+double scenario_get_minimum(Scenario const *sc);
+
+/** Get the highest value in this scenario. */
+double scenario_get_maximum(Scenario const *sc);
+
+/** Get the probability associated with this scenario. */
+double scenario_get_probability(Scenario const *sc);
+
+/** Analyze a probability distribution and provide a list of scenarios.
+ *
+ * \returns a list of scenarios sorted from highest to lowest probability.
+ */
+GList *find_scenarios(ProbabilityDistribution const *pdf);

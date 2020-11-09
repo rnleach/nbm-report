@@ -80,12 +80,6 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     double prob_075 = round(interpolate_prob_of_exceedance(dist, 0.75));
     double prob_100 = round(interpolate_prob_of_exceedance(dist, 1.0));
 
-    double mode1 = round(probability_dist_get_mode(pdf, 1) * 100.0) / 100.0;
-    double mode2 = round(probability_dist_get_mode(pdf, 2) * 100.0) / 100.0;
-    double wgt2 = round(probability_dist_get_mode_weight(pdf, 2) * 100.0) / 100.0;
-    double mode3 = round(probability_dist_get_mode(pdf, 3) * 100.0) / 100.0;
-    double wgt3 = round(probability_dist_get_mode_weight(pdf, 3) * 100.0) / 100.0;
-
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
@@ -105,12 +99,6 @@ add_row_prob_liquid_exceedence_to_table(void *key, void *value, void *state)
     table_set_value(tbl, 10, row, prob_050);
     table_set_value(tbl, 11, row, prob_075);
     table_set_value(tbl, 12, row, prob_100);
-
-    table_set_value(tbl, 13, row, mode1);
-    table_set_value(tbl, 14, row, mode2);
-    table_set_value(tbl, 15, row, wgt2);
-    table_set_value(tbl, 16, row, mode3);
-    table_set_value(tbl, 17, row, wgt3);
 
     tbl_state->row++;
 
@@ -137,41 +125,33 @@ show_precip_summary(NBMData const *nbm, int hours)
         return;
     }
 
-    Table *tbl = table_new(18, num_rows);
+    Table *tbl = table_new(13, num_rows);
     build_title(nbm, tbl, hours, SUMMARY);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
+
     table_add_column(tbl,  1, Table_ColumnType_VALUE,      "Precip", "%6.2lf",  6);
     table_add_column(tbl,  2, Table_ColumnType_VALUE,        "10th", "%5.2lf",  5);
     table_add_column(tbl,  3, Table_ColumnType_VALUE,        "25th", "%5.2lf",  5);
     table_add_column(tbl,  4, Table_ColumnType_VALUE,        "50th", "%5.2lf",  5);
     table_add_column(tbl,  5, Table_ColumnType_VALUE,        "75th", "%5.2lf",  5);
     table_add_column(tbl,  6, Table_ColumnType_VALUE,        "90th", "%5.2lf",  5);
+
     table_add_column(tbl,  7, Table_ColumnType_VALUE,        "0.01", "%5.0lf",  5);
     table_add_column(tbl,  8, Table_ColumnType_VALUE,        "0.10", "%5.0lf",  5);
     table_add_column(tbl,  9, Table_ColumnType_VALUE,        "0.25", "%5.0lf",  5);
     table_add_column(tbl, 10, Table_ColumnType_VALUE,        "0.50", "%5.0lf",  5);
     table_add_column(tbl, 11, Table_ColumnType_VALUE,        "0.75", "%5.0lf",  5);
     table_add_column(tbl, 12, Table_ColumnType_VALUE,        "1.00", "%5.0lf",  5);
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,      "Mode-1", "%6.2lf",  6);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,      "Mode-2", "%6.2lf",  6);
-    table_add_column(tbl, 15, Table_ColumnType_VALUE,       "Wgt-2", "%5.2lf",  5);
-    table_add_column(tbl, 16, Table_ColumnType_VALUE,      "Mode-3", "%6.2lf",  6);
-    table_add_column(tbl, 17, Table_ColumnType_VALUE,       "Wgt-3", "%5.2lf",  5);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 2);
     table_set_double_left_border(tbl, 7);
-    table_set_double_left_border(tbl, 13);
 
-    for (int i = 1; i <= 13; i++) {
+    for (int i = 1; i <= 12; i++) {
         table_set_blank_value(tbl, i, 0.0);
-    }
-
-    for (int i = 14; i <= 17; i++) {
-        table_set_blank_value(tbl, i, NAN);
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
@@ -187,6 +167,48 @@ show_precip_summary(NBMData const *nbm, int hours)
 /*-------------------------------------------------------------------------------------------------
  *                                      Precipitation Scenarios
  *-----------------------------------------------------------------------------------------------*/
+static int
+add_row_scenario_to_table(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    CumulativeDistribution *dist = value;
+    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.0, 5.0, 0.02);
+    struct TableFillerState *tbl_state = state;
+    Table *tbl = tbl_state->tbl;
+    int row = tbl_state->row;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
+
+    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
+
+    GList *scenarios = find_scenarios(pdf);
+
+    size_t scenario_num = 1;
+    for (GList *curr = scenarios; curr && scenario_num <= 4; curr = curr->next, scenario_num++) {
+        struct Scenario *sc = curr->data;
+
+        double min = round(scenario_get_minimum(sc) * 100.0) / 100.0;
+        double mode = round(scenario_get_mode(sc) * 100.0) / 100.0;
+        double max = round(scenario_get_maximum(sc) * 100.0) / 100.0;
+        double prob = round(scenario_get_probability(sc) * 100.0);
+
+        int start_col = (scenario_num - 1) * 4 + 1;
+
+        table_set_value(tbl, start_col + 0, row, min);
+        table_set_value(tbl, start_col + 1, row, mode);
+        table_set_value(tbl, start_col + 2, row, max);
+        table_set_value(tbl, start_col + 3, row, prob);
+    }
+
+    g_clear_list(&scenarios, scenario_free);
+    probability_dist_free(pdf);
+
+    tbl_state->row++;
+
+    return false;
+}
+
 void
 show_precip_scenarios(NBMData const *nbm, int hours)
 {
@@ -205,9 +227,55 @@ show_precip_scenarios(NBMData const *nbm, int hours)
         return;
     }
 
-    Table *tbl = table_new(18, num_rows);
+    Table *tbl = table_new(17, num_rows);
     build_title(nbm, tbl, hours, SCENARIOS);
 
-    // TODO
-    assert(false);
+    // clang-format off
+    table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
+
+    table_add_column(tbl,  1, Table_ColumnType_VALUE,       "Min-1", "%5.2lf",  5);
+    table_add_column(tbl,  2, Table_ColumnType_VALUE,       "Mode1", "%5.2lf",  5);
+    table_add_column(tbl,  3, Table_ColumnType_VALUE,       "Max-1", "%5.2lf",  5);
+    table_add_column(tbl,  4, Table_ColumnType_VALUE,       "Prob1", "%5.0lf",  5);
+    
+    table_add_column(tbl,  5, Table_ColumnType_VALUE,       "Min-2", "%5.2lf",  5);
+    table_add_column(tbl,  6, Table_ColumnType_VALUE,       "Mode2", "%5.2lf",  5);
+    table_add_column(tbl,  7, Table_ColumnType_VALUE,       "Max-2", "%5.2lf",  5);
+    table_add_column(tbl,  8, Table_ColumnType_VALUE,       "Prob2", "%5.0lf",  5);
+    
+    table_add_column(tbl,  9, Table_ColumnType_VALUE,       "Min-3", "%5.2lf",  5);
+    table_add_column(tbl, 10, Table_ColumnType_VALUE,       "Mode3", "%5.2lf",  5);
+    table_add_column(tbl, 11, Table_ColumnType_VALUE,       "Max-3", "%5.2lf",  5);
+    table_add_column(tbl, 12, Table_ColumnType_VALUE,       "Prob3", "%5.0lf",  5);
+
+    table_add_column(tbl, 13, Table_ColumnType_VALUE,       "Min-4", "%5.2lf",  5);
+    table_add_column(tbl, 14, Table_ColumnType_VALUE,       "Mode4", "%5.2lf",  5);
+    table_add_column(tbl, 15, Table_ColumnType_VALUE,       "Max-4", "%5.2lf",  5);
+    table_add_column(tbl, 16, Table_ColumnType_VALUE,       "Prob4", "%5.0lf",  5);
+    // clang-format on
+
+    table_set_double_left_border(tbl, 1);
+    table_set_double_left_border(tbl, 5);
+    table_set_double_left_border(tbl, 9);
+    table_set_double_left_border(tbl, 13);
+
+    for (int i = 1; i <= 2; i++) {
+        table_set_blank_value(tbl, i, 0.0);
+    }
+
+    table_set_blank_value(tbl, 3, NAN);
+    table_set_blank_value(tbl, 4, 100.0);
+
+    for (int i = 5; i <= 16; i++) {
+        table_set_blank_value(tbl, i, NAN);
+    }
+
+    struct TableFillerState state = {.row = 0, .tbl = tbl};
+    g_tree_foreach(cdfs, add_row_scenario_to_table, &state);
+
+    table_display(tbl, stdout);
+
+    g_tree_unref(cdfs);
+
+    table_free(&tbl);
 }

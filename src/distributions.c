@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include <glib.h>
+
 /*-------------------------------------------------------------------------------------------------
  *                                    CDF implementations.
  *-----------------------------------------------------------------------------------------------*/
@@ -257,11 +258,18 @@ pdfpoint_weight(struct PDFPoint p)
 static double
 pdfpoint_center(struct PDFPoint p)
 {
-    if (p.bin_min_edge == 0.0) {
-        return 0.0;
+    return (p.bin_max_edge + p.bin_min_edge) / 2.0;
+}
+
+static double
+pdfpoint_probability_area(struct PDFPoint p)
+{
+    double width = p.bin_max_edge - p.bin_min_edge;
+    if (width > 0.0) {
+        return width * p.bin_val;
     }
 
-    return (p.bin_max_edge + p.bin_min_edge) / 2.0;
+    return 0.0;
 }
 
 static int
@@ -357,16 +365,13 @@ probability_dist_smooth(struct ProbabilityDistribution *pdf, double smooth_radiu
 static void
 probability_dist_normalize(struct ProbabilityDistribution *pdf)
 {
-    double max_weight = 0.0;
+    double total_area = 0.0;
     for (size_t i = 0; i < pdf->size; i++) {
-        double weight = pdfpoint_weight(pdf->pnts[i]);
-        if (weight > max_weight) {
-            max_weight = weight;
-        }
+        total_area += pdfpoint_probability_area(pdf->pnts[i]);
     }
 
     for (size_t i = 0; i < pdf->size; i++) {
-        pdf->pnts[i].bin_val /= max_weight;
+        pdf->pnts[i].bin_val /= total_area;
     }
 }
 
@@ -488,4 +493,130 @@ probability_dist_free(void *ptr)
 
     free(pdf->pnts);
     free(pdf);
+}
+
+/*-------------------------------------------------------------------------------------------------
+ *                                  Scenario implementations.
+ *-----------------------------------------------------------------------------------------------*/
+struct Scenario {
+    double min;
+    double max;
+    double mode;
+    double prob;
+};
+
+static struct Scenario *
+scenario_allocate(void)
+{
+    struct Scenario *ptr = calloc(1, sizeof(struct Scenario));
+    assert(ptr);
+
+    ptr->mode = NAN;
+
+    return ptr;
+}
+
+void
+scenario_free(void *ptr)
+{
+    free(ptr);
+}
+
+double
+scenario_get_mode(struct Scenario const *sc)
+{
+    return sc->mode;
+}
+
+double
+scenario_get_minimum(struct Scenario const *sc)
+{
+    return sc->min;
+}
+
+double
+scenario_get_maximum(struct Scenario const *sc)
+{
+    return sc->max;
+}
+
+double
+scenario_get_probability(struct Scenario const *sc)
+{
+    return sc->prob;
+}
+
+static int
+scenario_cmp_descending_prob(void const *a, void const *b)
+{
+    struct Scenario const *sa = a;
+    struct Scenario const *sb = b;
+
+    if (sa->prob > sb->prob) {
+        return -1;
+    }
+
+    if (sa->prob < sb->prob) {
+        return 1;
+    }
+
+    return 0;
+}
+
+#define TRENDING_UP 1
+#define NO_TREND 0
+#define TRENDING_DOWN -1
+
+GList *
+find_scenarios(ProbabilityDistribution const *pdf)
+{
+    GList *scenarios = 0;
+
+    struct Scenario *curr = scenario_allocate();
+    int trending0 = NO_TREND;
+    double prob_area = 0.0;
+
+    curr->min = pdf->pnts[0].bin_min_edge;
+    if (pdf->pnts[1].bin_val < pdf->pnts[0].bin_val) {
+        // We are starting at a max
+        curr->mode = pdf->pnts[0].bin_min_edge;
+        trending0 = TRENDING_DOWN;
+    } else {
+        trending0 = TRENDING_UP;
+    }
+
+    double weight0 = pdfpoint_weight(pdf->pnts[0]);
+    for (size_t i = 1; i < pdf->size; i++) {
+        double weight1 = pdfpoint_weight(pdf->pnts[i]);
+        int trending1 = weight1 < weight0 ? TRENDING_DOWN : TRENDING_UP;
+
+        if (trending0 == TRENDING_UP && trending1 == TRENDING_DOWN) {
+            // At a max
+            curr->mode = pdfpoint_center(pdf->pnts[i - 1]);
+        } else if (trending0 == TRENDING_DOWN && trending1 == TRENDING_UP) {
+            // At a min - start a new scenario
+            curr->max = pdf->pnts[i].bin_min_edge;
+            curr->prob = prob_area;
+            prob_area = 0.0;
+
+            scenarios = g_list_insert_sorted(scenarios, curr, scenario_cmp_descending_prob);
+            curr = scenario_allocate();
+            curr->min = pdf->pnts[i].bin_min_edge;
+        }
+
+        prob_area += pdfpoint_probability_area(pdf->pnts[i]);
+
+        weight0 = weight1;
+        trending0 = trending1;
+    }
+
+    struct PDFPoint last = pdf->pnts[pdf->size - 1];
+    if (isnan(curr->mode)) {
+        curr->mode = pdfpoint_center(last);
+    }
+    curr->max = NAN;
+    curr->prob = prob_area;
+    scenarios = g_list_insert_sorted(scenarios, curr, scenario_cmp_descending_prob);
+
+    return scenarios;
 }
