@@ -54,6 +54,9 @@ double cumulative_dist_percentile_value(CumulativeDistribution *cdf, double targ
 /** Free a CDF object. */
 void cumulative_dist_free(void *);
 
+/** Write a cumulative distribution to a file. */
+void cumulative_dist_write(CumulativeDistribution *cdf, FILE *f);
+
 /*-------------------------------------------------------------------------------------------------
  *                                  Probability Distributions
  *-----------------------------------------------------------------------------------------------*/
@@ -75,25 +78,11 @@ typedef struct ProbabilityDistribution ProbabilityDistribution;
 ProbabilityDistribution *probability_dist_calc(CumulativeDistribution *cdf, double abs_min,
                                                double abs_max, double smooth_radius);
 
-/** Get the number of modes (local maxima) in a \c ProbabilityDistribution. */
-int probability_dist_num_modes(ProbabilityDistribution *pdf);
-
-/** Get the value of the mode.
- *
- * If the distribution has more than one mode, then get the \c mode_num mode. \c mode_num 1 is the
- * mode with the largest probabiltiy in the PDF, and the next modes arrive in decreasing order. If
- * there is no \c mode_num mode, then \c NAN is returned.
- */
-double probability_dist_get_mode(ProbabilityDistribution *pdf, int mode_num);
-
-/** Get the weight, or probability value associated with a num.
- *
- * \see \c probability_dist_get_mode() for an explanation of \c mode_num.
- */
-double probability_dist_get_mode_weight(ProbabilityDistribution *pdf, int mode_num);
-
 /** Free resources associated with a \c ProbabilityDistribution */
 void probability_dist_free(void *);
+
+/** Write a probability distribution to a file. */
+void probability_dist_write(ProbabilityDistribution *pdf, FILE *f);
 
 /*-------------------------------------------------------------------------------------------------
  *                                          Scenarios

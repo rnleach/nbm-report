@@ -137,11 +137,38 @@ cumulative_dist_pm_value(struct CumulativeDistribution const *ptr)
     return ptr->quantile_mapped_value;
 }
 
+#if 0
+static void
+cumulative_dist_dedup(struct CumulativeDistribution *ptr)
+{
+    assert(ptr->sorted);
+
+    for(size_t i = 0; i < ptr->size; i++) {
+        size_t num_dups = 0;
+        size_t j = i + 1;
+
+        while(j < ptr->size && ptr->percentiles[i].val == ptr->percentiles[j].val) {
+            num_dups++;
+            j++;
+        }
+
+        if (num_dups > 0) {
+            struct Percentile *dest = &ptr->percentiles[i + 1];
+            struct Percentile *src = &ptr->percentiles[i + num_dups + 1];
+            size_t stride = ptr->size - (i +  num_dups);
+            memmove(dest, src, stride);
+            ptr->size -= num_dups;
+        }
+    }
+}
+#endif
+
 static void
 cumulative_dist_sort(struct CumulativeDistribution *ptr)
 {
     qsort(ptr->percentiles, ptr->size, sizeof(struct Percentile), percentile_compare);
     ptr->sorted = true;
+    // cumulative_dist_dedup(ptr);
 }
 
 double
@@ -244,56 +271,37 @@ cumulative_dist_free(void *void_cdf)
  *                                 ProbabilityDistribution implementations.
  *-----------------------------------------------------------------------------------------------*/
 struct PDFPoint {
-    double bin_min_edge;
-    double bin_max_edge;
-    double bin_val;
+    double min;
+    double max;
+    double density;
 };
 
 static double
-pdfpoint_weight(struct PDFPoint p)
+pdfpoint_density(struct PDFPoint p)
 {
-    return p.bin_val;
+    return p.density;
 }
 
 static double
 pdfpoint_center(struct PDFPoint p)
 {
-    return (p.bin_max_edge + p.bin_min_edge) / 2.0;
+    return (p.max + p.min) / 2.0;
 }
 
 static double
 pdfpoint_probability_area(struct PDFPoint p)
 {
-    double width = p.bin_max_edge - p.bin_min_edge;
+    double width = p.max - p.min;
     if (width > 0.0) {
-        return width * p.bin_val;
+        return width * p.density;
     }
 
     return 0.0;
 }
 
-static int
-pdfpoint_compare_decreasing_weight_order(void const *a, void const *b)
-{
-    struct PDFPoint const *pa = a;
-    struct PDFPoint const *pb = b;
-
-    double weight_a = pdfpoint_weight(*pa);
-    double weight_b = pdfpoint_weight(*pb);
-
-    if (weight_a > weight_b)
-        return -1;
-    if (weight_a < weight_b)
-        return 1;
-    return 0;
-}
-
-#define MAX_NUM_MODES 5
 struct ProbabilityDistribution {
     int size;
     struct PDFPoint *pnts;
-    struct PDFPoint modes[MAX_NUM_MODES];
-    int num_modes;
 };
 
 static struct ProbabilityDistribution *
@@ -305,11 +313,7 @@ probability_dist_new(int capacity)
     struct PDFPoint *pnts = calloc(capacity, sizeof(struct PDFPoint));
     assert(pnts);
 
-    *pdf = (struct ProbabilityDistribution){.size = capacity, .pnts = pnts, .num_modes = 0};
-    for (size_t i = 0; i < MAX_NUM_MODES; i++) {
-        pdf->modes[i] =
-            (struct PDFPoint){.bin_min_edge = -1.0, .bin_max_edge = 1.0, .bin_val = 0.0};
-    }
+    *pdf = (struct ProbabilityDistribution){.size = capacity, .pnts = pnts};
 
     return pdf;
 }
@@ -322,11 +326,9 @@ pdfpoint_from_percentiles(struct Percentile left, struct Percentile right)
     double width = right.val - left.val;
 
     if (width > 0.0) {
-        return (struct PDFPoint){
-            .bin_min_edge = left.val, .bin_max_edge = right.val, .bin_val = rise / width};
+        return (struct PDFPoint){.min = left.val, .max = right.val, .density = rise / width};
     } else {
-        return (struct PDFPoint){
-            .bin_min_edge = left.val, .bin_max_edge = right.val, .bin_val = 0.0};
+        return (struct PDFPoint){.min = left.val, .max = right.val, .density = 0.0};
     }
 }
 
@@ -345,15 +347,15 @@ probability_dist_smooth(struct ProbabilityDistribution *pdf, double smooth_radiu
         for (size_t j = 0; j < pdf->size; j++) {
             double other_center = pdfpoint_center(pdf->pnts[j]);
             double k = exp(-(pow(center - other_center, 2.0)) / (2.0 * radius * radius));
-            numerator += pdfpoint_weight(pdf->pnts[j]) * k;
+            numerator += pdfpoint_density(pdf->pnts[j]) * k;
             denom += k;
         }
 
         new[i] = pdf->pnts[i];
         if (denom > 0.0) {
-            new[i].bin_val = numerator / denom;
+            new[i].density = numerator / denom;
         } else {
-            new[i].bin_val = 0.0;
+            new[i].density = 0.0;
         }
     }
 
@@ -371,7 +373,7 @@ probability_dist_normalize(struct ProbabilityDistribution *pdf)
     }
 
     for (size_t i = 0; i < pdf->size; i++) {
-        pdf->pnts[i].bin_val /= total_area;
+        pdf->pnts[i].density /= total_area;
     }
 }
 
@@ -400,39 +402,6 @@ probability_dist_fill_in_dist(struct ProbabilityDistribution *pdf,
     probability_dist_normalize(pdf);
 }
 
-static void
-probability_dist_fill_in_modes(struct ProbabilityDistribution *pdf)
-{
-    double weight0 = pdfpoint_weight(pdf->pnts[0]);
-    bool uptrend = true;
-    for (size_t i = 1; i < pdf->size; i++) {
-        double weight1 = pdfpoint_weight(pdf->pnts[i]);
-
-        if (weight1 < weight0 && uptrend) {
-            if (pdf->num_modes < MAX_NUM_MODES) {
-                pdf->modes[pdf->num_modes] = pdf->pnts[i - 1];
-                pdf->num_modes++;
-                qsort(pdf->modes, pdf->num_modes, sizeof(struct PDFPoint),
-                      pdfpoint_compare_decreasing_weight_order);
-            } else {
-                if (weight1 >= pdfpoint_weight(pdf->modes[MAX_NUM_MODES - 1])) {
-                    pdf->modes[MAX_NUM_MODES - 1] = pdf->pnts[i - 1];
-                    qsort(pdf->modes, pdf->num_modes, sizeof(struct PDFPoint),
-                          pdfpoint_compare_decreasing_weight_order);
-                }
-            }
-        }
-
-        if (weight1 >= weight0) {
-            uptrend = true;
-        } else {
-            uptrend = false;
-        }
-
-        weight0 = weight1;
-    }
-}
-
 struct ProbabilityDistribution *
 probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double abs_max,
                       double smooth_radius)
@@ -451,39 +420,8 @@ probability_dist_calc(struct CumulativeDistribution *cdf, double abs_min, double
     struct ProbabilityDistribution *pdf = probability_dist_new(cdf->size + 1);
 
     probability_dist_fill_in_dist(pdf, cdf, abs_min, abs_max, smooth_radius);
-    probability_dist_fill_in_modes(pdf);
 
     return pdf;
-}
-
-int
-probability_dist_num_modes(struct ProbabilityDistribution *pdf)
-{
-    return pdf->num_modes;
-}
-
-double
-probability_dist_get_mode(struct ProbabilityDistribution *pdf, int mode_num)
-{
-    assert(mode_num <= MAX_NUM_MODES);
-
-    if (mode_num > pdf->num_modes) {
-        return NAN;
-    }
-
-    return pdfpoint_center(pdf->modes[mode_num - 1]);
-}
-
-double
-probability_dist_get_mode_weight(struct ProbabilityDistribution *pdf, int mode_num)
-{
-    assert(mode_num <= MAX_NUM_MODES);
-
-    if (mode_num > pdf->num_modes) {
-        return NAN;
-    }
-
-    return pdfpoint_weight(pdf->modes[mode_num - 1]);
 }
 
 void
@@ -576,37 +514,37 @@ find_scenarios(ProbabilityDistribution const *pdf)
     int trending0 = NO_TREND;
     double prob_area = 0.0;
 
-    curr->min = pdf->pnts[0].bin_min_edge;
-    if (pdf->pnts[1].bin_val < pdf->pnts[0].bin_val) {
+    curr->min = pdf->pnts[0].min;
+    if (pdf->pnts[1].density < pdf->pnts[0].density) {
         // We are starting at a max
-        curr->mode = pdf->pnts[0].bin_min_edge;
+        curr->mode = pdf->pnts[0].min;
         trending0 = TRENDING_DOWN;
     } else {
         trending0 = TRENDING_UP;
     }
 
-    double weight0 = pdfpoint_weight(pdf->pnts[0]);
+    double density0 = pdfpoint_density(pdf->pnts[0]);
     for (size_t i = 1; i < pdf->size; i++) {
-        double weight1 = pdfpoint_weight(pdf->pnts[i]);
-        int trending1 = weight1 < weight0 ? TRENDING_DOWN : TRENDING_UP;
+        double density1 = pdfpoint_density(pdf->pnts[i]);
+        int trending1 = density1 < density0 ? TRENDING_DOWN : TRENDING_UP;
 
         if (trending0 == TRENDING_UP && trending1 == TRENDING_DOWN) {
             // At a max
             curr->mode = pdfpoint_center(pdf->pnts[i - 1]);
         } else if (trending0 == TRENDING_DOWN && trending1 == TRENDING_UP) {
             // At a min - start a new scenario
-            curr->max = pdf->pnts[i].bin_min_edge;
+            curr->max = pdf->pnts[i].min;
             curr->prob = prob_area;
             prob_area = 0.0;
 
             scenarios = g_list_insert_sorted(scenarios, curr, scenario_cmp_descending_prob);
             curr = scenario_allocate();
-            curr->min = pdf->pnts[i].bin_min_edge;
+            curr->min = pdf->pnts[i].min;
         }
 
         prob_area += pdfpoint_probability_area(pdf->pnts[i]);
 
-        weight0 = weight1;
+        density0 = density1;
         trending0 = trending1;
     }
 
