@@ -65,6 +65,43 @@ alert_age(NBMData const *nbm)
 }
 
 /*-------------------------------------------------------------------------------------------------
+ *                                    Main Output
+ *-----------------------------------------------------------------------------------------------*/
+static void
+do_output(NBMData const *nbm, struct OptArgs opt_args)
+{
+    alert_age(nbm);
+
+    if (opt_args.show_summary)
+        show_daily_summary(nbm);
+
+    if (opt_args.show_temperature)
+        show_temperature_summary(nbm);
+
+    for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
+
+        if (opt_args.show_rain) {
+            show_precip_summary(nbm, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_precip_scenarios) {
+            show_precip_scenarios(nbm, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_snow) {
+            show_snow_summary(nbm, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_snow_scenarios) {
+            show_snow_scenarios(nbm, opt_args.accum_hours[i]);
+        }
+
+        if (opt_args.show_ice) {
+            show_ice_summary(nbm, opt_args.accum_hours[i]);
+        }
+    }
+}
+/*-------------------------------------------------------------------------------------------------
  *                                    Main Program
  *-----------------------------------------------------------------------------------------------*/
 int
@@ -99,35 +136,7 @@ main(int argc, char *argv[argc + 1])
     parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
     Stopif(!parsed_nbm_data, goto EXIT_ERR, "Error parsing %s.", file_name);
 
-    alert_age(parsed_nbm_data);
-
-    if (opt_args.show_summary)
-        show_daily_summary(parsed_nbm_data);
-
-    if (opt_args.show_temperature)
-        show_temperature_summary(parsed_nbm_data);
-
-    for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
-        if (opt_args.show_rain) {
-            show_precip_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-        }
-
-        if (opt_args.show_precip_scenarios) {
-            show_precip_scenarios(parsed_nbm_data, opt_args.accum_hours[i]);
-        }
-
-        if (opt_args.show_snow) {
-            show_snow_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-        }
-
-        if (opt_args.show_snow_scenarios) {
-            show_snow_scenarios(parsed_nbm_data, opt_args.accum_hours[i]);
-        }
-
-        if (opt_args.show_ice) {
-            show_ice_summary(parsed_nbm_data, opt_args.accum_hours[i]);
-        }
-    }
+    do_output(parsed_nbm_data, opt_args);
 
     exit_code = EXIT_SUCCESS;
 
