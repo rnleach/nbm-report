@@ -543,6 +543,10 @@ show_temp_scenarios(struct TempSum *tsum)
     table_set_double_left_border(tbl, 9);
     table_set_double_left_border(tbl, 13);
 
+    for (int i = 1; i <= 16; i++) {
+        table_set_blank_value(tbl, i, NAN);
+    }
+
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(max_scenarios, add_row_scenario_to_table, &state);
 
@@ -587,6 +591,10 @@ show_temp_scenarios(struct TempSum *tsum)
     table_set_double_left_border(tbl, 5);
     table_set_double_left_border(tbl, 9);
     table_set_double_left_border(tbl, 13);
+
+    for (int i = 1; i <= 16; i++) {
+        table_set_blank_value(tbl, i, NAN);
+    }
 
     state = (struct TableFillerState){.row = 0, .tbl = tbl};
     g_tree_foreach(min_scenarios, add_row_scenario_to_table, &state);
