@@ -15,7 +15,6 @@ static gboolean option_callback(const char *name, const char *value, void *data,
  *                                      Global Options
  *-----------------------------------------------------------------------------------------------*/
 bool global_verbose = false;
-char *global_save_dir = 0;
 
 /*-------------------------------------------------------------------------------------------------
  *                            Command line options configuration
@@ -38,7 +37,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "skip the overall summary",
      .arg_description = 0},
-    
+
     {.long_name = "precipitation",
      .short_name = 'r',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -46,7 +45,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of precipitation",
      .arg_description = 0},
-    
+
     {.long_name = "snow",
      .short_name = 's',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -54,7 +53,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of snow",
      .arg_description = 0},
-    
+
     {.long_name = "ice",
      .short_name = 'i',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -62,7 +61,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of ice forecast",
      .arg_description = 0},
-    
+
     {.long_name = "temperature",
      .short_name = 't',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -70,7 +69,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show summary of temperatures",
      .arg_description = 0},
-    
+
     {.long_name = "precip-scenarios",
      .short_name = 0,
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -78,7 +77,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show precipitation scenarios",
      .arg_description = 0},
-    
+
     {.long_name = "snow-scenarios",
      .short_name = 0,
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -86,7 +85,7 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "show snow scenarios",
      .arg_description = 0},
-    
+
     {.long_name = "verbose",
      .short_name = 'v',
      .flags = G_OPTION_FLAG_NONE,
@@ -94,15 +93,23 @@ static GOptionEntry entries[] = {
      .arg_data = &global_verbose,
      .description = "show verbose output.",
      .arg_description = 0},
-    
+
     {.long_name = "save-dir",
      .short_name = 0,
      .flags = G_OPTION_FLAG_FILENAME,
-     .arg = G_OPTION_ARG_FILENAME,
-     .arg_data = &global_save_dir,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
      .description = "directory to save text output of the CDFs and PDFs",
      .arg_description = "PATH"},
-    
+
+    {.long_name = "save-prefix",
+     .short_name = 0,
+     .flags = G_OPTION_FLAG_FILENAME,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "how to prefix a file name.",
+     .arg_description = "PREFIX"},
+
     {0},
 };
 
@@ -142,6 +149,10 @@ option_callback(const char *name, const char *value, void *data, GError **unused
             fprintf(stderr, "Too many accumulation periods!\n");
             return false;
         }
+    } else if (strcmp(name, "--save-dir") == 0) {
+        asprintf(&opts->save_dir, "%s", value);
+    } else if (strcmp(name, "--save-prefix") == 0) {
+        asprintf(&opts->save_prefix, "%s", value);
     } else {
         return false;
     }

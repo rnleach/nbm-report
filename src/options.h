@@ -15,6 +15,8 @@ struct OptArgs {
     int num_accum_periods;
     int accum_hours[4];
     bool error_parsing_options;
+    char *save_dir;
+    char *save_prefix;
 };
 
 /** Parse the command line and populate a \c struct \c OptArgs.
