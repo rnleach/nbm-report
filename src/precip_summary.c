@@ -198,7 +198,7 @@ create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
     CumulativeDistribution *cdf = val;
     GTree *pdfs = data;
 
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.02);
+    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.01);
 
     g_tree_insert(pdfs, key, pdf);
 
