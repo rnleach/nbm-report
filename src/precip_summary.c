@@ -1,6 +1,6 @@
-#include "precip_summary.h"
 #include "distributions.h"
 #include "nbm_data.h"
+#include "precip_summary.h"
 #include "table.h"
 #include "utils.h"
 
@@ -439,13 +439,14 @@ precip_sum_save(struct PrecipSum *psum, char const *directory, char const *file_
         sep = "_";
 
     char cdf_path[256] = {0};
-    sprintf(cdf_path, "%s/%s%scdfs.dat", directory, file_prefix ? file_prefix : "", sep);
+    sprintf(cdf_path, "%s/%s%sprecip_cdfs.dat", directory, file_prefix ? file_prefix : "", sep);
 
     char pdf_path[256] = {0};
-    sprintf(pdf_path, "%s/%s%spdfs.dat", directory, file_prefix ? file_prefix : "", sep);
+    sprintf(pdf_path, "%s/%s%sprecip_pdfs.dat", directory, file_prefix ? file_prefix : "", sep);
 
     char scenario_path[256] = {0};
-    sprintf(scenario_path, "%s/%s%sscenarios.dat", directory, file_prefix ? file_prefix : "", sep);
+    sprintf(scenario_path, "%s/%s%sprecip_scenarios.dat", directory, file_prefix ? file_prefix : "",
+            sep);
 
     FILE *cdf_f = fopen(cdf_path, "w");
     Stopif(!cdf_f, return, "Unable to open cdfs.dat");
