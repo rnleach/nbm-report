@@ -228,7 +228,7 @@ cumulative_dist_percentile_value(struct CumulativeDistribution *cdf, double targ
     struct Percentile *ps = cdf->percentiles;
     int sz = cdf->size;
 
-    assert(sz > 1);
+    assert(sz > 0);
 
     // Bracket the target percentile
     int left = 0, right = 0;
@@ -240,9 +240,19 @@ cumulative_dist_percentile_value(struct CumulativeDistribution *cdf, double targ
         }
     }
 
-    // If unable to bracket, then it wasn't available.
-    if (left == 0 && right == 0)
+    // If unable to bracket, see if we are below the lowest percentile. If that is the case, then
+    // just return the lowest percentiles value. In most cases this will be 0.0 for snow and
+    // precipitation. However, with temperatures this would be incorrect and NAN would be a better
+    // value. Fortuneately we have a detailed temperature distribution, so this should not be an
+    // issue.
+    if (left == 0 && right == 0) {
+        if (ps[0].pct > target_percentile) {
+            return ps[0].val;
+        }
+
+        // If unable to bracket, then it wasn't available.
         return NAN;
+    }
 
     double left_pct = ps[left].pct;
     double right_pct = ps[right].pct;
