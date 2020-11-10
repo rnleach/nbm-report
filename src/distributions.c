@@ -414,7 +414,6 @@ struct ProbabilityDistribution *
 probability_dist_calc(struct CumulativeDistribution *cdf, double smooth_radius)
 {
     assert(cdf);
-    assert(cdf->size > 4);
 
     if (!cdf->sorted) {
         cumulative_dist_sort(cdf);
