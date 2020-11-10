@@ -382,7 +382,7 @@ write_cdf(void *key, void *value, void *state)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+    fprintf(f, "\n\n\"Period ending: %s\"\n", datebuf);
 
     cumulative_dist_write(dist, f);
 
@@ -399,7 +399,7 @@ write_pdf(void *key, void *value, void *state)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+    fprintf(f, "\n\n\"Period ending: %s\"\n", datebuf);
 
     probability_dist_write(dist, f);
 
@@ -416,7 +416,7 @@ write_scenario(void *key, void *value, void *state)
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
-    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+    fprintf(f, "\n\n\"Period ending: %s\"\n", datebuf);
 
     for (GList *curr = scenarios; curr; curr = curr->next) {
         Scenario *sc = curr->data;
