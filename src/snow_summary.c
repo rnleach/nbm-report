@@ -13,23 +13,17 @@
 
 #include <glib.h>
 
-#define SUMMARY 0
-#define SCENARIOS 1
+struct SnowSum {
+    char *id;
+    char *name;
+    time_t init_time;
 
-static void
-build_title(NBMData const *nbm, Table *tbl, int hours, int mode)
-{
+    int accum_hours;
 
-    char title_buf[256] = {0};
-    time_t init_time = nbm_data_init_time(nbm);
-    struct tm init = *gmtime(&init_time);
-    sprintf(title_buf, "%d Hr Probabilistic Snow for %s (%s) - ", hours, nbm_data_site_name(nbm),
-            nbm_data_site_id(nbm));
-    int len = strlen(title_buf);
-    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
-
-    table_add_title(tbl, strlen(title_buf), title_buf);
-}
+    GTree *cdfs;
+    GTree *pdfs;
+    GTree *scenarios;
+};
 
 static GTree *
 build_cdfs(NBMData const *nbm, int hours)
@@ -41,12 +35,61 @@ build_cdfs(NBMData const *nbm, int hours)
     sprintf(deterministic_snow_key, "ASNOW%dhr_surface", hours);
 
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
+    Stopif(!cdfs, return 0, "Error extracting CDFs for snow.");
 
     return cdfs;
 }
-/*-------------------------------------------------------------------------------------------------
- *                                      Precipitation Summary
- *-----------------------------------------------------------------------------------------------*/
+
+struct SnowSum *
+snow_sum_build(NBMData const *nbm, int accum_hours)
+{
+    struct SnowSum *new = calloc(1, sizeof(struct SnowSum));
+    assert(new);
+
+    new->id = strdup(nbm_data_site_id(nbm));
+    new->name = strdup(nbm_data_site_name(nbm));
+    new->init_time = nbm_data_init_time(nbm);
+
+    new->accum_hours = accum_hours;
+
+    new->cdfs = build_cdfs(nbm, accum_hours);
+    Stopif(!new->cdfs, goto ERR_RETURN, "Error extracting CDFs for snow.");
+
+    new->pdfs = 0;
+    new->scenarios = 0;
+
+    return new;
+
+ERR_RETURN:
+    snow_sum_free(&new);
+    return 0;
+}
+
+#define SUMMARY 0
+#define SCENARIOS 1
+
+static void
+build_title(struct SnowSum const *ssum, Table *tbl, int type)
+{
+    char title_buf[256] = {0};
+    struct tm init = *gmtime(&ssum->init_time);
+
+    if (type == SUMMARY) {
+        sprintf(title_buf, "%d Hr Probabilistic Snow for %s (%s) - ", ssum->accum_hours, ssum->name,
+                ssum->id);
+    } else if (type == SCENARIOS) {
+        sprintf(title_buf, "%d Hr Snow Scenarios for %s (%s) - ", ssum->accum_hours, ssum->name,
+                ssum->id);
+    } else {
+        assert(false);
+    }
+
+    int len = strlen(title_buf);
+    strftime(&title_buf[len], sizeof(title_buf) - len, " %Y/%m/%d %Hz", &init);
+
+    table_add_title(tbl, strlen(title_buf), title_buf);
+}
+
 static int
 add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 {
@@ -99,23 +142,25 @@ add_row_prob_snow_exceedence_to_table(void *key, void *value, void *state)
 }
 
 void
-show_snow_summary(NBMData const *nbm, int hours)
+show_snow_summary(struct SnowSum const *ssum)
 {
+    assert(ssum);
+
     char left_col_title[32] = {0};
+    sprintf(left_col_title, "%d Hrs Ending / in.", ssum->accum_hours);
 
-    sprintf(left_col_title, "%d Hrs Ending / in.", hours);
-
-    GTree *cdfs = build_cdfs(nbm, hours);
-    Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
+    GTree *cdfs = ssum->cdfs;
+    assert(cdfs);
 
     int num_rows = g_tree_nnodes(cdfs);
     if (num_rows == 0) {
-        printf("\n\n     ***** No snow summary for accumulation period %d. *****\n\n", hours);
+        printf("\n\n     ***** No snow summary for accumulation period %d. *****\n\n",
+               ssum->accum_hours);
         return;
     }
 
     Table *tbl = table_new(15, num_rows);
-    build_title(nbm, tbl, hours, SUMMARY);
+    build_title(ssum, tbl, SUMMARY);
 
     // clang-format off
     table_add_column(tbl, 0,  Table_ColumnType_TEXT, left_col_title,     "%s", 19);
@@ -142,25 +187,82 @@ show_snow_summary(NBMData const *nbm, int hours)
     for (int i = 1; i <= 14; i++) {
         table_set_blank_value(tbl, i, 0.0);
     }
+
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(cdfs, add_row_prob_snow_exceedence_to_table, &state);
 
     table_display(tbl, stdout);
 
-    g_tree_unref(cdfs);
-
     table_free(&tbl);
 }
 
-/*-------------------------------------------------------------------------------------------------
- *                                      Precipitation Scenarios
- *-----------------------------------------------------------------------------------------------*/
+static int
+create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
+{
+    CumulativeDistribution *cdf = val;
+    GTree *pdfs = data;
+
+    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.2);
+
+    g_tree_insert(pdfs, key, pdf);
+
+    return false;
+}
+
+static void
+snow_sum_build_pdfs(struct SnowSum *ssum)
+{
+    assert(ssum && ssum->cdfs);
+
+    // Don't free the keys, we'll just point those to the same location as the keys
+    // used in the GTree of CDFs.
+    GTree *pdfs = g_tree_new_full(time_t_compare_func, 0, 0, probability_dist_free);
+
+    g_tree_foreach(ssum->cdfs, create_pdf_from_cdf_and_add_too_pdf_tree, pdfs);
+
+    ssum->pdfs = pdfs;
+}
+
+static int
+create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, void *data)
+{
+    ProbabilityDistribution *pdf = val;
+    GTree *scenarios = data;
+
+    GList *scs = find_scenarios(pdf);
+
+    g_tree_insert(scenarios, key, scs);
+
+    return false;
+}
+
+static void
+free_glist_of_scenarios(void *ptr)
+{
+    GList *scs = ptr;
+    g_clear_list(&scs, scenario_free);
+}
+
+static void
+snow_sum_build_scenarios(struct SnowSum *ssum)
+{
+    assert(ssum && ssum->cdfs && ssum->pdfs);
+
+    // Don't free the keys, we'll just point those to the same location as the keys
+    // used in the GTree of CDFs.
+    GTree *scenarios = g_tree_new_full(time_t_compare_func, 0, 0, free_glist_of_scenarios);
+
+    g_tree_foreach(ssum->pdfs, create_scenarios_from_pdf_and_add_too_scenario_tree, scenarios);
+
+    ssum->scenarios = scenarios;
+}
+
 static int
 add_row_scenario_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    CumulativeDistribution *dist = value;
-    ProbabilityDistribution *pdf = probability_dist_calc(dist, 0.2);
+    GList *scenarios = value;
+
     struct TableFillerState *tbl_state = state;
     Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
@@ -169,8 +271,6 @@ add_row_scenario_to_table(void *key, void *value, void *state)
     strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
 
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
-
-    GList *scenarios = find_scenarios(pdf);
 
     size_t scenario_num = 1;
     for (GList *curr = scenarios; curr && scenario_num <= 4; curr = curr->next, scenario_num++) {
@@ -189,33 +289,40 @@ add_row_scenario_to_table(void *key, void *value, void *state)
         table_set_value(tbl, start_col + 3, row, prob);
     }
 
-    g_clear_list(&scenarios, scenario_free);
-    probability_dist_free(pdf);
-
     tbl_state->row++;
 
     return false;
 }
 
 void
-show_snow_scenarios(NBMData const *nbm, int hours)
+show_snow_scenarios(struct SnowSum *ssum)
 {
-    assert(nbm);
+    assert(ssum);
+    if (!ssum->pdfs) {
+        snow_sum_build_pdfs(ssum);
+    }
+
+    if (!ssum->scenarios) {
+        snow_sum_build_scenarios(ssum);
+    }
+
+    assert(ssum->pdfs && ssum->scenarios);
 
     char left_col_title[32] = {0};
-    sprintf(left_col_title, "%d Hrs Ending", hours);
+    sprintf(left_col_title, "%d Hrs Ending", ssum->accum_hours);
 
-    GTree *cdfs = build_cdfs(nbm, hours);
-    Stopif(!cdfs, return, "Error extracting CDFs for Snow.");
+    GTree *scenarios = ssum->scenarios;
+    assert(scenarios);
 
-    int num_rows = g_tree_nnodes(cdfs);
+    int num_rows = g_tree_nnodes(scenarios);
     if (num_rows == 0) {
-        printf("\n\n     ***** No snow scenarios for accumulation period %d. *****\n\n", hours);
+        printf("\n\n     ***** No snow scenarios for accumulation period %d. *****\n\n",
+               ssum->accum_hours);
         return;
     }
 
     Table *tbl = table_new(17, num_rows);
-    build_title(nbm, tbl, hours, SCENARIOS);
+    build_title(ssum, tbl, SCENARIOS);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
@@ -258,11 +365,128 @@ show_snow_scenarios(NBMData const *nbm, int hours)
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
-    g_tree_foreach(cdfs, add_row_scenario_to_table, &state);
+    g_tree_foreach(scenarios, add_row_scenario_to_table, &state);
 
     table_display(tbl, stdout);
 
-    g_tree_unref(cdfs);
-
     table_free(&tbl);
+}
+
+static int
+write_cdf(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    CumulativeDistribution *dist = value;
+    FILE *f = state;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
+
+    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+
+    cumulative_dist_write(dist, f);
+
+    return false;
+}
+
+static int
+write_pdf(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    ProbabilityDistribution *dist = value;
+    FILE *f = state;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
+
+    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+
+    probability_dist_write(dist, f);
+
+    return false;
+}
+
+static int
+write_scenario(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    GList *scenarios = value;
+    FILE *f = state;
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), "%a, %Y-%m-%d %HZ", gmtime(vt));
+
+    fprintf(f, "\n\n# Period ending: %s\n", datebuf);
+
+    for (GList *curr = scenarios; curr; curr = curr->next) {
+        Scenario *sc = curr->data;
+
+        fprintf(f, "%8lf %8lf %8lf %8lf\n", scenario_get_minimum(sc), scenario_get_mode(sc),
+                scenario_get_maximum(sc), scenario_get_probability(sc));
+    }
+
+    return false;
+}
+
+void
+snow_sum_save(struct SnowSum *ssum, char const *directory, char const *file_prefix)
+{
+    assert(ssum && ssum->cdfs);
+
+    if (!ssum->pdfs) {
+        snow_sum_build_pdfs(ssum);
+    }
+
+    if (!ssum->scenarios) {
+        snow_sum_build_scenarios(ssum);
+    }
+
+    char *sep = "";
+    if (file_prefix)
+        sep = "_";
+
+    char cdf_path[256] = {0};
+    sprintf(cdf_path, "%s/%s%ssnow_cdfs.dat", directory, file_prefix ? file_prefix : "", sep);
+
+    char pdf_path[256] = {0};
+    sprintf(pdf_path, "%s/%s%ssnow_pdfs.dat", directory, file_prefix ? file_prefix : "", sep);
+
+    char scenario_path[256] = {0};
+    sprintf(scenario_path, "%s/%s%ssnow_scenarios.dat", directory, file_prefix ? file_prefix : "",
+            sep);
+
+    FILE *cdf_f = fopen(cdf_path, "w");
+    Stopif(!cdf_f, return, "Unable to open cdfs.dat");
+
+    FILE *pdf_f = fopen(pdf_path, "w");
+    Stopif(!pdf_f, return, "Unable to open pdfs.dat");
+
+    FILE *scenario_f = fopen(scenario_path, "w");
+    Stopif(!scenario_f, return, "Unable to open scenarios.dat");
+
+    g_tree_foreach(ssum->cdfs, write_cdf, cdf_f);
+    g_tree_foreach(ssum->pdfs, write_pdf, pdf_f);
+    g_tree_foreach(ssum->scenarios, write_scenario, scenario_f);
+
+    fclose(cdf_f);
+    fclose(pdf_f);
+    fclose(scenario_f);
+}
+
+void
+snow_sum_free(struct SnowSum **ssum)
+{
+    assert(ssum);
+
+    struct SnowSum *ptr = *ssum;
+
+    if (ptr) {
+        free(ptr->id);
+        free(ptr->name);
+        g_tree_unref(ptr->scenarios);
+        g_tree_unref(ptr->pdfs);
+        g_tree_unref(ptr->cdfs);
+    }
+
+    free(ptr);
 }

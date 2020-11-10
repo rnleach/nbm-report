@@ -101,12 +101,23 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
             precip_sum_free(&psum);
         }
 
-        if (opt_args.show_snow) {
-            show_snow_summary(nbm, opt_args.accum_hours[i]);
-        }
+        if (opt_args.show_snow || opt_args.show_snow_scenarios) {
 
-        if (opt_args.show_snow_scenarios) {
-            show_snow_scenarios(nbm, opt_args.accum_hours[i]);
+            SnowSum *ssum = snow_sum_build(nbm, opt_args.accum_hours[i]);
+
+            if (opt_args.show_snow) {
+                show_snow_summary(ssum);
+            }
+
+            if (opt_args.show_snow_scenarios) {
+                show_snow_scenarios(ssum);
+            }
+
+            if (opt_args.save_dir) {
+                snow_sum_save(ssum, opt_args.save_dir, opt_args.save_prefix);
+            }
+
+            snow_sum_free(&ssum);
         }
 
         if (opt_args.show_ice) {

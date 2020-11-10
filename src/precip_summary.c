@@ -1,6 +1,6 @@
+#include "precip_summary.h"
 #include "distributions.h"
 #include "nbm_data.h"
-#include "precip_summary.h"
 #include "table.h"
 #include "utils.h"
 
@@ -306,6 +306,7 @@ show_precip_scenarios(struct PrecipSum *psum)
     sprintf(left_col_title, "%d Hrs Ending", psum->accum_hours);
 
     GTree *scenarios = psum->scenarios;
+    assert(scenarios);
 
     int num_rows = g_tree_nnodes(scenarios);
     if (num_rows == 0) {
