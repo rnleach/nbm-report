@@ -77,8 +77,22 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
     if (opt_args.show_summary)
         show_daily_summary(nbm);
 
-    if (opt_args.show_temperature)
-        show_temperature_summary(nbm);
+    if (opt_args.show_temperature || opt_args.show_temperature_scenarios) {
+        TempSum *tsum = temp_sum_build(nbm);
+
+        if (opt_args.show_temperature) {
+            show_temp_summary(tsum);
+        }
+        if (opt_args.show_temperature_scenarios) {
+            show_temp_scenarios(tsum);
+        }
+
+        if (opt_args.save_dir) {
+            temp_sum_save(tsum, opt_args.save_dir, opt_args.save_prefix);
+        }
+
+        temp_sum_free(&tsum);
+    }
 
     for (int i = 0; i < sizeof(opt_args.accum_hours) && opt_args.accum_hours[i]; i++) {
 

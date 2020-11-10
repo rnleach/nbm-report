@@ -10,6 +10,7 @@ struct OptArgs {
     bool show_snow;
     bool show_ice;
     bool show_temperature;
+    bool show_temperature_scenarios;
     bool show_precip_scenarios;
     bool show_snow_scenarios;
     int num_accum_periods;
