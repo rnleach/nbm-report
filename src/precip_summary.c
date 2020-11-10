@@ -1,6 +1,6 @@
+#include "precip_summary.h"
 #include "distributions.h"
 #include "nbm_data.h"
-#include "precip_summary.h"
 #include "table.h"
 #include "utils.h"
 
@@ -435,7 +435,8 @@ precip_sum_save(struct PrecipSum *psum, char const *directory, char const *file_
     }
 
     char *sep = "";
-    if(file_prefix) sep = "_";
+    if (file_prefix)
+        sep = "_";
 
     char cdf_path[256] = {0};
     sprintf(cdf_path, "%s/%s%scdfs.dat", directory, file_prefix ? file_prefix : "", sep);

@@ -307,12 +307,6 @@ pdfpoint_density(struct PDFPoint p)
 static double
 pdfpoint_center(struct PDFPoint p)
 {
-    if (isnan(p.max)) {
-        return p.min;
-    }
-    if (isnan(p.min)) {
-        return p.max;
-    }
     return (p.max + p.min) / 2.0;
 }
 
@@ -320,11 +314,9 @@ static double
 pdfpoint_probability_area(struct PDFPoint p)
 {
     double width = p.max - p.min;
-    if (width > 0.0) { // Fails on NAN
-        return width * p.density;
-    }
+    assert(width > 0.0);
 
-    return p.density;
+    return width * p.density;
 }
 
 struct ProbabilityDistribution {
@@ -352,14 +344,9 @@ pdfpoint_from_percentiles(struct Percentile left, struct Percentile right)
     double rise = right.pct - left.pct;
     assert(rise > 0.0);
     double width = right.val - left.val;
+    assert(width > 0.0);
 
-    double density = NAN;
-
-    if (width > 0.0) {
-        density = rise / width;
-    } else if (isnan(width)) {
-        density = rise;
-    }
+    double density = rise / width;
 
     return (struct PDFPoint){.min = left.val, .max = right.val, .density = density};
 }
@@ -413,19 +400,9 @@ static void
 probability_dist_fill_in_dist(struct ProbabilityDistribution *pdf,
                               struct CumulativeDistribution *cdf, double smooth_radius)
 {
-    // Handle the left edge first.
-    pdf->pnts[0] =
-        pdfpoint_from_percentiles((struct Percentile){.pct = 0.0, .val = NAN}, cdf->percentiles[0]);
-
-    // Handle the right edge next
-    int pdf_idx = pdf->size - 1;
-    pdf->pnts[pdf_idx] = pdfpoint_from_percentiles(cdf->percentiles[pdf_idx - 1],
-                                                   (struct Percentile){.pct = 100.0, .val = NAN});
-
-    // Loop through to get the rest.
-    for (size_t i = 1; i < pdf->size - 1; i++) {
-        struct Percentile left = cdf->percentiles[i - 1];
-        struct Percentile right = cdf->percentiles[i];
+    for (size_t i = 0; i < pdf->size; i++) {
+        struct Percentile left = cdf->percentiles[i];
+        struct Percentile right = cdf->percentiles[i + 1];
         pdf->pnts[i] = pdfpoint_from_percentiles(left, right);
     }
 
@@ -443,7 +420,7 @@ probability_dist_calc(struct CumulativeDistribution *cdf, double smooth_radius)
         cumulative_dist_sort(cdf);
     }
 
-    struct ProbabilityDistribution *pdf = probability_dist_new(cdf->size + 1);
+    struct ProbabilityDistribution *pdf = probability_dist_new(cdf->size - 1);
 
     probability_dist_fill_in_dist(pdf, cdf, smooth_radius);
 
