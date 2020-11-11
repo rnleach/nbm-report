@@ -479,9 +479,16 @@ precip_sum_free(struct PrecipSum **psum)
     if (ptr) {
         free(ptr->id);
         free(ptr->name);
-        g_tree_unref(ptr->scenarios);
-        g_tree_unref(ptr->pdfs);
-        g_tree_unref(ptr->cdfs);
+
+        if (ptr->scenarios) {
+            g_tree_unref(ptr->scenarios);
+        }
+        if (ptr->pdfs) {
+            g_tree_unref(ptr->pdfs);
+        }
+        if (ptr->cdfs) {
+            g_tree_unref(ptr->cdfs);
+        }
     }
 
     free(ptr);

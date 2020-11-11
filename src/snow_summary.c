@@ -1,6 +1,6 @@
-#include "snow_summary.h"
 #include "distributions.h"
 #include "nbm_data.h"
+#include "snow_summary.h"
 #include "table.h"
 #include "utils.h"
 
@@ -483,9 +483,16 @@ snow_sum_free(struct SnowSum **ssum)
     if (ptr) {
         free(ptr->id);
         free(ptr->name);
-        g_tree_unref(ptr->scenarios);
-        g_tree_unref(ptr->pdfs);
-        g_tree_unref(ptr->cdfs);
+
+        if (ptr->scenarios) {
+            g_tree_unref(ptr->scenarios);
+        }
+        if (ptr->pdfs) {
+            g_tree_unref(ptr->pdfs);
+        }
+        if (ptr->cdfs) {
+            g_tree_unref(ptr->cdfs);
+        }
     }
 
     free(ptr);
