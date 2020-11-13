@@ -612,4 +612,3 @@ free_glist_of_scenarios(void *ptr)
     GList *scs = ptr;
     g_clear_list(&scs, scenario_free);
 }
-

@@ -131,4 +131,3 @@ int create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, vo
 
 /** Free a glist of scenarios. */
 void free_glist_of_scenarios(void *ptr);
-

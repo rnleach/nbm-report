@@ -1,6 +1,6 @@
+#include "snow_summary.h"
 #include "distributions.h"
 #include "nbm_data.h"
-#include "snow_summary.h"
 #include "table.h"
 #include "utils.h"
 
