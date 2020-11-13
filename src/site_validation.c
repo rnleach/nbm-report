@@ -200,12 +200,14 @@ process_col(void *data, size_t num_bytes, void *state)
 }
 
 static void
-process_row(int unused, void *state)
+process_row(int finish_flag, void *state)
 {
     struct CSVState *st = state;
 
     if (st->invalid_record) {
-        if (global_verbose) {
+        // Check the finish flag too in order to silence this when called from csv_fini, which will
+        // just have an empty line and cause the record to be invalid.
+        if (global_verbose && finish_flag != -1) {
             fprintf(stderr, "\nInvalid record encountered in locations.csv\n");
             fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n", st->id, st->name, st->state,
                     st->lat, st->lon);
