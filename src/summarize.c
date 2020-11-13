@@ -21,7 +21,7 @@ extract_daily_summary_for_column(GTree *sums, NBMData const *nbm, char const *co
                                  Accumulator accumulate, Creator create_new, Extractor extract)
 {
     NBMDataRowIterator *it = nbm_data_rows(nbm, col_name);
-    Stopif(!it, exit(EXIT_FAILURE), "error creating iterator.");
+    Stopif(!it, exit(EXIT_FAILURE), "error creating iterator for %s", col_name);
 
     struct NBMDataRowIteratorValueView view = nbm_data_row_iterator_next(it);
     while (view.valid_time && view.value) {
