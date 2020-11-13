@@ -72,7 +72,13 @@ alert_age(NBMData const *nbm)
 static void
 do_output(NBMData const *nbm, struct OptArgs opt_args)
 {
-    alert_age(nbm);
+    // Check the time we requested data for, if it is more than an hour ago, don't bother alerting
+    // for the age, since we are probably requesting an archived run and not the most recent. If
+    // it is more recent than an hour, we probably requested the most recent run and should be
+    // alerted if it is too old.
+    if (difftime(time(0), opt_args.request_time) < 3600.0) {
+        alert_age(nbm);
+    }
 
     if (opt_args.show_summary)
         show_daily_summary(nbm);
@@ -157,7 +163,7 @@ main(int argc, char *argv[argc + 1])
     struct OptArgs opt_args = parse_cmd_line(argc, argv);
     Stopif(opt_args.error_parsing_options, goto EXIT_ERR, "Error parsing command line.");
 
-    validation = site_validation_create(opt_args.site, time(0));
+    validation = site_validation_create(opt_args.site, opt_args.request_time);
     if (site_validation_failed(validation)) {
         site_validation_print_failure_message(validation);
         goto EXIT_ERR;

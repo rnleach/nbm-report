@@ -30,6 +30,14 @@ static GOptionEntry entries[] = {
                     "48, or 72 hours.",
      .arg_description = "H"},
 
+    {.long_name = "ice",
+     .short_name = 'i',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of ice forecast",
+     .arg_description = 0},
+
     {.long_name = "no-summary",
      .short_name = 'n',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -52,14 +60,6 @@ static GOptionEntry entries[] = {
      .arg = G_OPTION_ARG_CALLBACK,
      .arg_data = option_callback,
      .description = "show summary of snow",
-     .arg_description = 0},
-
-    {.long_name = "ice",
-     .short_name = 'i',
-     .flags = G_OPTION_FLAG_NO_ARG,
-     .arg = G_OPTION_ARG_CALLBACK,
-     .arg_data = option_callback,
-     .description = "show summary of ice forecast",
      .arg_description = 0},
 
     {.long_name = "temperature",
@@ -94,13 +94,14 @@ static GOptionEntry entries[] = {
      .description = "show snow scenarios",
      .arg_description = 0},
 
-    {.long_name = "verbose",
-     .short_name = 'v',
+    {.long_name = "request-time",
+     .short_name = 0,
      .flags = G_OPTION_FLAG_NONE,
-     .arg = G_OPTION_ARG_NONE,
-     .arg_data = &global_verbose,
-     .description = "show verbose output.",
-     .arg_description = 0},
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "Process as if the request were being made at an earlier date. All entries are"
+                    " assumed to be in UTC.",
+     .arg_description = "YYYY-MM-DD-HH"},
 
     {.long_name = "save-dir",
      .short_name = 0,
@@ -117,6 +118,14 @@ static GOptionEntry entries[] = {
      .arg_data = option_callback,
      .description = "how to prefix a file name.",
      .arg_description = "PREFIX"},
+
+    {.long_name = "verbose",
+     .short_name = 'v',
+     .flags = G_OPTION_FLAG_NONE,
+     .arg = G_OPTION_ARG_NONE,
+     .arg_data = &global_verbose,
+     .description = "show verbose output.",
+     .arg_description = 0},
 
     {0},
 };
@@ -150,6 +159,12 @@ option_callback(const char *name, const char *value, void *data, GError **unused
     } else if (strcmp(name, "--precip-scenarios") == 0) {
         opts->show_precip_scenarios = true;
     } else if (strcmp(name, "--snow-scenarios") == 0) {
+        opts->show_snow_scenarios = true;
+    } else if (strcmp(name, "--request-time") == 0) {
+        struct tm req_time = {0};
+        char *next_char = strptime(value, "%Y-%m-%d-%H", &req_time);
+        Stopif(!next_char, return false, "Error parsing request time: %s", value);
+        opts->request_time = timegm(&req_time);
         opts->show_snow_scenarios = true;
     } else if (strcmp(name, "--accumulation-period") == 0 || strcmp(name, "-a") == 0) {
         if (opts->num_accum_periods < sizeof(opts->accum_hours)) {
@@ -185,6 +200,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .show_temperature_scenarios = false,
         .show_precip_scenarios = false,
         .show_snow_scenarios = false,
+        .request_time = 0,
         .error_parsing_options = false,
     };
 
@@ -203,6 +219,12 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         Stopif(!is_valid_accum_period(result.accum_hours[i]), goto ERR_RETURN,
                "Invalid accumulation period: %d - %d", i, result.accum_hours[i]);
     }
+
+    // If request time was not given, assume it is now.
+    if (result.request_time == 0) {
+        result.request_time = time(0);
+    }
+
     Stopif(argc < 2, goto ERR_RETURN, "Missing site argument.");
 
     result.site = argv[1];
