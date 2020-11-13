@@ -196,19 +196,6 @@ show_snow_summary(struct SnowSum const *ssum)
     table_free(&tbl);
 }
 
-static int
-create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
-{
-    CumulativeDistribution *cdf = val;
-    GTree *pdfs = data;
-
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.2);
-
-    g_tree_insert(pdfs, key, pdf);
-
-    return false;
-}
-
 static void
 snow_sum_build_pdfs(struct SnowSum *ssum)
 {
@@ -221,26 +208,6 @@ snow_sum_build_pdfs(struct SnowSum *ssum)
     g_tree_foreach(ssum->cdfs, create_pdf_from_cdf_and_add_too_pdf_tree, pdfs);
 
     ssum->pdfs = pdfs;
-}
-
-static int
-create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, void *data)
-{
-    ProbabilityDistribution *pdf = val;
-    GTree *scenarios = data;
-
-    GList *scs = find_scenarios(pdf);
-
-    g_tree_insert(scenarios, key, scs);
-
-    return false;
-}
-
-static void
-free_glist_of_scenarios(void *ptr)
-{
-    GList *scs = ptr;
-    g_clear_list(&scs, scenario_free);
 }
 
 static void

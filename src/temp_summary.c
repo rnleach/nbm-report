@@ -274,19 +274,6 @@ temp_sum_build_cdfs(struct TempSum *tsum)
     tsum->min_cdfs = min_cdfs;
 }
 
-static int
-create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
-{
-    CumulativeDistribution *cdf = val;
-    GTree *pdfs = data;
-
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.5);
-
-    g_tree_insert(pdfs, key, pdf);
-
-    return false;
-}
-
 static void
 temp_sum_build_pdfs(struct TempSum *tsum)
 {
@@ -307,26 +294,6 @@ temp_sum_build_pdfs(struct TempSum *tsum)
 
     tsum->max_pdfs = max_pdfs;
     tsum->min_pdfs = min_pdfs;
-}
-
-static int
-create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, void *data)
-{
-    ProbabilityDistribution *pdf = val;
-    GTree *scenarios = data;
-
-    GList *scs = find_scenarios(pdf);
-
-    g_tree_insert(scenarios, key, scs);
-
-    return false;
-}
-
-static void
-free_glist_of_scenarios(void *ptr)
-{
-    GList *scs = ptr;
-    g_clear_list(&scs, scenario_free);
 }
 
 static void
