@@ -209,7 +209,7 @@ process_row(int finish_flag, void *state)
         // just have an empty line and cause the record to be invalid.
         if (global_verbose && finish_flag != -1) {
             fprintf(stderr, "\nInvalid record encountered in locations.csv\n");
-            fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n", st->id, st->name, st->state,
+            fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n\n", st->id, st->name, st->state,
                     st->lat, st->lon);
         }
     } else {
