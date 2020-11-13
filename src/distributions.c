@@ -179,8 +179,6 @@ interpolate_prob_of_exceedance(struct CumulativeDistribution *cdf, double target
     struct Percentile *ps = cdf->percentiles;
     int sz = cdf->size;
 
-    assert(sz > 1);
-
     // Bracket the target value
     int left = 0, right = 0;
     for (int i = 1; i < sz; i++) {
@@ -324,7 +322,10 @@ static double
 pdfpoint_probability_area(struct PDFPoint p)
 {
     double width = p.max - p.min;
-    assert(width > 0.0);
+    // This should only happen in cases with 1 value in the cdf/pdf
+    if (width <= 0.0) {
+        return 1.0;
+    }
 
     return width * p.density;
 }
