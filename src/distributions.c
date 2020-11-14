@@ -581,19 +581,6 @@ find_scenarios(ProbabilityDistribution const *pdf)
 }
 
 int
-create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
-{
-    CumulativeDistribution *cdf = val;
-    GTree *pdfs = data;
-
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.01);
-
-    g_tree_insert(pdfs, key, pdf);
-
-    return false;
-}
-
-int
 create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, void *data)
 {
     ProbabilityDistribution *pdf = val;

@@ -123,9 +123,6 @@ GList *find_scenarios(ProbabilityDistribution const *pdf);
  *                  utility functions for working with collections of distributions
  *-----------------------------------------------------------------------------------------------*/
 
-/** Function to be used in GLIB g_tree_foreach for mapping a CDF to a PDF. */
-int create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data);
-
 /** Function to be used in GLIB g_tree_foreach for mapping a PDF to scenarios.. */
 int create_scenarios_from_pdf_and_add_too_scenario_tree(void *key, void *val, void *data);
 
