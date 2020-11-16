@@ -14,139 +14,6 @@
 #include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
- *                                    Daily Temperature Summary
- *-----------------------------------------------------------------------------------------------*/
-struct DailyTempSum {
-    double mint;
-    double mint_10th;
-    double mint_25th;
-    double mint_50th;
-    double mint_75th;
-    double mint_90th;
-
-    double maxt;
-    double maxt_10th;
-    double maxt_25th;
-    double maxt_50th;
-    double maxt_75th;
-    double maxt_90th;
-};
-
-static bool
-temperature_sum_not_printable(struct DailyTempSum const *sum)
-{
-    return isnan(sum->maxt) || isnan(sum->maxt_10th);
-}
-
-static void *
-temp_sum_new()
-{
-    struct DailyTempSum *new = malloc(sizeof(struct DailyTempSum));
-    assert(new);
-
-    *new = (struct DailyTempSum){
-        .mint = NAN,
-        .mint_10th = NAN,
-        .mint_25th = NAN,
-        .mint_50th = NAN,
-        .mint_75th = NAN,
-        .mint_90th = NAN,
-        .maxt = NAN,
-        .maxt_10th = NAN,
-        .maxt_25th = NAN,
-        .maxt_50th = NAN,
-        .maxt_75th = NAN,
-        .maxt_90th = NAN,
-    };
-
-    return (void *)new;
-}
-
-static double *
-temp_sum_access_mint(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint;
-}
-
-static double *
-temp_sum_access_mint_10th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint_10th;
-}
-
-static double *
-temp_sum_access_mint_25th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint_25th;
-}
-
-static double *
-temp_sum_access_mint_50th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint_50th;
-}
-
-static double *
-temp_sum_access_mint_75th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint_75th;
-}
-
-static double *
-temp_sum_access_mint_90th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->mint_90th;
-}
-
-static double *
-temp_sum_access_maxt(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt;
-}
-
-static double *
-temp_sum_access_maxt_10th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt_10th;
-}
-
-static double *
-temp_sum_access_maxt_25th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt_25th;
-}
-
-static double *
-temp_sum_access_maxt_50th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt_50th;
-}
-
-static double *
-temp_sum_access_maxt_75th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt_75th;
-}
-
-static double *
-temp_sum_access_maxt_90th(void *sm)
-{
-    struct DailyTempSum *sum = sm;
-    return &sum->maxt_90th;
-}
-
-/*-------------------------------------------------------------------------------------------------
  *                                    Full Temperature Summary
  *-----------------------------------------------------------------------------------------------*/
 struct TempSum {
@@ -155,8 +22,6 @@ struct TempSum {
     time_t init_time;
 
     NBMData const *src;
-
-    GTree *dailys;
 
     GTree *max_cdfs;
     GTree *max_pdfs;
@@ -179,8 +44,6 @@ temp_sum_build(NBMData const *nbm)
 
     new->src = nbm;
 
-    new->dailys = 0;
-
     new->max_pdfs = 0;
     new->max_cdfs = 0;
     new->max_scenarios = 0;
@@ -190,65 +53,6 @@ temp_sum_build(NBMData const *nbm)
     new->min_scenarios = 0;
 
     return new;
-}
-
-static void
-temp_sum_build_dailys(struct TempSum *tsum)
-{
-    assert(tsum && tsum->src);
-
-    GTree *sums = g_tree_new_full(time_t_compare_func, 0, free, free);
-    NBMData const *nbm = tsum->src;
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_10% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint_10th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_25% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint_25th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_50% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint_50th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_75% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint_75th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Min_2 m above ground_90% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_mint_90th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_10% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt_10th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_25% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt_25th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_50% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt_50th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_75% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt_75th);
-
-    extract_daily_summary_for_column(sums, nbm, "TMP_Max_2 m above ground_90% level", keep_all,
-                                     summary_date_06z, kelvin_to_fahrenheit, accum_last,
-                                     temp_sum_new, temp_sum_access_maxt_90th);
-
-    tsum->dailys = sums;
 }
 
 static void
@@ -358,35 +162,67 @@ build_title(struct TempSum const *tsum, Table *tbl, char const *desc, int type)
 }
 
 static int
-add_summary_row_to_table(void *key, void *value, void *state)
+add_min_summary_row_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    struct DailyTempSum *sum = value;
+    CumulativeDistribution *cdf = value;
     struct TableFillerState *tbl_state = state;
     Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
 
-    if (temperature_sum_not_printable(sum))
-        return false;
+    double mint = round(cumulative_dist_pm_value(cdf));
+
+    double mint_10th = round(cumulative_dist_percentile_value(cdf, 10.0));
+    double mint_25th = round(cumulative_dist_percentile_value(cdf, 25.0));
+    double mint_50th = round(cumulative_dist_percentile_value(cdf, 50.0));
+    double mint_75th = round(cumulative_dist_percentile_value(cdf, 75.0));
+    double mint_90th = round(cumulative_dist_percentile_value(cdf, 90.0));
 
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), " %a, %Y-%m-%d ", gmtime(vt));
 
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
 
-    table_set_value(tbl, 1, row, sum->mint);
-    table_set_value(tbl, 2, row, sum->mint_10th);
-    table_set_value(tbl, 3, row, sum->mint_25th);
-    table_set_value(tbl, 4, row, sum->mint_50th);
-    table_set_value(tbl, 5, row, sum->mint_75th);
-    table_set_value(tbl, 6, row, sum->mint_90th);
+    table_set_value(tbl, 1, row, mint);
+    table_set_value(tbl, 2, row, mint_10th);
+    table_set_value(tbl, 3, row, mint_25th);
+    table_set_value(tbl, 4, row, mint_50th);
+    table_set_value(tbl, 5, row, mint_75th);
+    table_set_value(tbl, 6, row, mint_90th);
 
-    table_set_value(tbl, 7, row, sum->maxt);
-    table_set_value(tbl, 8, row, sum->maxt_10th);
-    table_set_value(tbl, 9, row, sum->maxt_25th);
-    table_set_value(tbl, 10, row, sum->maxt_50th);
-    table_set_value(tbl, 11, row, sum->maxt_75th);
-    table_set_value(tbl, 12, row, sum->maxt_90th);
+    tbl_state->row++;
+
+    return false;
+}
+
+static int
+add_max_summary_row_to_table(void *key, void *value, void *state)
+{
+    time_t *vt = key;
+    CumulativeDistribution *cdf = value;
+    struct TableFillerState *tbl_state = state;
+    Table *tbl = tbl_state->tbl;
+    int row = tbl_state->row;
+
+    double maxt = round(cumulative_dist_pm_value(cdf));
+
+    double maxt_10th = round(cumulative_dist_percentile_value(cdf, 10.0));
+    double maxt_25th = round(cumulative_dist_percentile_value(cdf, 25.0));
+    double maxt_50th = round(cumulative_dist_percentile_value(cdf, 50.0));
+    double maxt_75th = round(cumulative_dist_percentile_value(cdf, 75.0));
+    double maxt_90th = round(cumulative_dist_percentile_value(cdf, 90.0));
+
+    char datebuf[64] = {0};
+    strftime(datebuf, sizeof(datebuf), " %a, %Y-%m-%d ", gmtime(vt));
+
+    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
+
+    table_set_value(tbl, 1, row, maxt);
+    table_set_value(tbl, 2, row, maxt_10th);
+    table_set_value(tbl, 3, row, maxt_25th);
+    table_set_value(tbl, 4, row, maxt_50th);
+    table_set_value(tbl, 5, row, maxt_75th);
+    table_set_value(tbl, 6, row, maxt_90th);
 
     tbl_state->row++;
 
@@ -436,12 +272,18 @@ add_row_scenario_to_table(void *key, void *value, void *state)
 void
 show_temp_summary(struct TempSum *tsum)
 {
-    if (!tsum->dailys) {
-        temp_sum_build_dailys(tsum);
+    if (!tsum->max_cdfs || !tsum->min_cdfs) {
+        temp_sum_build_cdfs(tsum);
     }
 
-    GTree *temps = tsum->dailys;
-    Table *tbl = table_new(13, g_tree_nnodes(temps));
+    GTree *max_temps = tsum->max_cdfs;
+    GTree *min_temps = tsum->min_cdfs;
+
+    int num_max_rows = g_tree_nnodes(max_temps);
+    int num_min_rows = g_tree_nnodes(min_temps);
+    int num_rows = num_max_rows > num_min_rows ? num_max_rows : num_min_rows;
+
+    Table *tbl = table_new(13, num_rows);
     build_title(tsum, tbl, 0, SUMMARY);
 
     // clang-format off
@@ -463,8 +305,11 @@ show_temp_summary(struct TempSum *tsum)
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 7);
 
-    struct TableFillerState state = {.row = 0, .tbl = tbl};
-    g_tree_foreach(temps, add_summary_row_to_table, &state);
+    struct TableFillerState state = {.row = num_rows - num_max_rows, .tbl = tbl};
+    g_tree_foreach(max_temps, add_max_summary_row_to_table, &state);
+
+    state = (struct TableFillerState){.row = num_rows - num_min_rows, .tbl = tbl};
+    g_tree_foreach(min_temps, add_min_summary_row_to_table, &state);
 
     table_display(tbl, stdout);
     table_free(&tbl);
@@ -703,10 +548,6 @@ temp_sum_free(struct TempSum **tsum)
 {
 
     struct TempSum *ptr = *tsum;
-
-    if (ptr->dailys) {
-        g_tree_unref(ptr->dailys);
-    }
 
     if (ptr->max_cdfs) {
         g_tree_unref(ptr->max_cdfs);
