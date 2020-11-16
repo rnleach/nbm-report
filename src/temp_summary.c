@@ -14,7 +14,7 @@
 #include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
- *                                    Full Temperature Summary
+ *                                      Temperature Summary
  *-----------------------------------------------------------------------------------------------*/
 struct TempSum {
     char *id;
@@ -217,12 +217,12 @@ add_max_summary_row_to_table(void *key, void *value, void *state)
 
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
 
-    table_set_value(tbl, 1, row, maxt);
-    table_set_value(tbl, 2, row, maxt_10th);
-    table_set_value(tbl, 3, row, maxt_25th);
-    table_set_value(tbl, 4, row, maxt_50th);
-    table_set_value(tbl, 5, row, maxt_75th);
-    table_set_value(tbl, 6, row, maxt_90th);
+    table_set_value(tbl, 7, row, maxt);
+    table_set_value(tbl, 8, row, maxt_10th);
+    table_set_value(tbl, 9, row, maxt_25th);
+    table_set_value(tbl, 10, row, maxt_50th);
+    table_set_value(tbl, 11, row, maxt_75th);
+    table_set_value(tbl, 12, row, maxt_90th);
 
     tbl_state->row++;
 
@@ -253,12 +253,7 @@ add_row_scenario_to_table(void *key, void *value, void *state)
         double max = round(scenario_get_maximum(sc));
         double prob = round(scenario_get_probability(sc) * 100.0);
 
-        int start_col = (scenario_num - 1) * 4 + 1;
-
-        table_set_value(tbl, start_col + 0, row, min);
-        table_set_value(tbl, start_col + 1, row, mode);
-        table_set_value(tbl, start_col + 2, row, max);
-        table_set_value(tbl, start_col + 3, row, prob);
+        table_set_scenario(tbl, scenario_num, row, mode, min, max, prob);
     }
 
     tbl_state->row++;
@@ -336,39 +331,24 @@ show_temp_scenarios(struct TempSum *tsum)
         return;
     }
 
-    Table *tbl = table_new(17, num_rows);
+    Table *tbl = table_new(5, num_rows);
     build_title(tsum, tbl, "Max", SCENARIOS);
 
     // clang-format off
-    table_add_column(tbl,  0, Table_ColumnType_TEXT,  "Day/Date",          "%s", 17);
+    table_add_column(tbl, 0, Table_ColumnType_TEXT,     "Day/Date",   "%s",                               17);
     
-    table_add_column(tbl,  1, Table_ColumnType_VALUE,    "Min-1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  2, Table_ColumnType_VALUE,    "Mode1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  3, Table_ColumnType_VALUE,    "Max-1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  4, Table_ColumnType_VALUE,    "Prob1",    " %4.0lf ",  6);
-
-    table_add_column(tbl,  5, Table_ColumnType_VALUE,    "Min-2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  6, Table_ColumnType_VALUE,    "Mode2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  7, Table_ColumnType_VALUE,    "Max-2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  8, Table_ColumnType_VALUE,    "Prob2",    " %4.0lf ",  6);
-
-    table_add_column(tbl,  9, Table_ColumnType_VALUE,    "Min-3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 10, Table_ColumnType_VALUE,    "Mode3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 11, Table_ColumnType_VALUE,    "Max-3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 12, Table_ColumnType_VALUE,    "Prob3",    " %4.0lf ",  6);
-
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,    "Min-4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,    "Mode4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 15, Table_ColumnType_VALUE,    "Max-4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 16, Table_ColumnType_VALUE,    "Prob4",    " %4.0lf ",  6);
+    table_add_column(tbl, 1, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 2, Table_ColumnType_SCENARIO, "Scenario 2", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 3, Table_ColumnType_SCENARIO, "Scenario 3", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 4, Table_ColumnType_SCENARIO, "Scenario 4", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
-    table_set_double_left_border(tbl, 5);
-    table_set_double_left_border(tbl, 9);
-    table_set_double_left_border(tbl, 13);
+    table_set_double_left_border(tbl, 2);
+    table_set_double_left_border(tbl, 3);
+    table_set_double_left_border(tbl, 4);
 
-    for (int i = 1; i <= 16; i++) {
+    for (int i = 1; i <= 4; i++) {
         table_set_blank_value(tbl, i, NAN);
     }
 
@@ -385,39 +365,24 @@ show_temp_scenarios(struct TempSum *tsum)
         return;
     }
 
-    tbl = table_new(17, num_rows);
+    tbl = table_new(5, num_rows);
     build_title(tsum, tbl, "Min", SCENARIOS);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT,  "Day/Date",          "%s", 17);
     
-    table_add_column(tbl,  1, Table_ColumnType_VALUE,    "Min-1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  2, Table_ColumnType_VALUE,    "Mode1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  3, Table_ColumnType_VALUE,    "Max-1",   " %3.0lf° ",  6);
-    table_add_column(tbl,  4, Table_ColumnType_VALUE,    "Prob1",    " %4.0lf ",  6);
-
-    table_add_column(tbl,  5, Table_ColumnType_VALUE,    "Min-2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  6, Table_ColumnType_VALUE,    "Mode2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  7, Table_ColumnType_VALUE,    "Max-2",   " %3.0lf° ",  6);
-    table_add_column(tbl,  8, Table_ColumnType_VALUE,    "Prob2",    " %4.0lf ",  6);
-
-    table_add_column(tbl,  9, Table_ColumnType_VALUE,    "Min-3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 10, Table_ColumnType_VALUE,    "Mode3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 11, Table_ColumnType_VALUE,    "Max-3",   " %3.0lf° ",  6);
-    table_add_column(tbl, 12, Table_ColumnType_VALUE,    "Prob3",    " %4.0lf ",  6);
-
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,    "Min-4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,    "Mode4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 15, Table_ColumnType_VALUE,    "Max-4",   " %3.0lf° ",  6);
-    table_add_column(tbl, 16, Table_ColumnType_VALUE,    "Prob4",    " %4.0lf ",  6);
+    table_add_column(tbl, 1, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 2, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 3, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 4, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
-    table_set_double_left_border(tbl, 5);
-    table_set_double_left_border(tbl, 9);
-    table_set_double_left_border(tbl, 13);
+    table_set_double_left_border(tbl, 2);
+    table_set_double_left_border(tbl, 3);
+    table_set_double_left_border(tbl, 4);
 
-    for (int i = 1; i <= 16; i++) {
+    for (int i = 1; i <= 4; i++) {
         table_set_blank_value(tbl, i, NAN);
     }
 

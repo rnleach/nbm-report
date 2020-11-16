@@ -257,12 +257,7 @@ add_row_scenario_to_table(void *key, void *value, void *state)
         double max = round(scenario_get_maximum(sc) * 100.0) / 100.0;
         double prob = round(scenario_get_probability(sc) * 100.0);
 
-        int start_col = (scenario_num - 1) * 4 + 1;
-
-        table_set_value(tbl, start_col + 0, row, min);
-        table_set_value(tbl, start_col + 1, row, mode);
-        table_set_value(tbl, start_col + 2, row, max);
-        table_set_value(tbl, start_col + 3, row, prob);
+        table_set_scenario(tbl, scenario_num, row, mode, min, max, prob);
     }
 
     tbl_state->row++;
@@ -297,48 +292,22 @@ show_precip_scenarios(struct PrecipSum *psum)
         return;
     }
 
-    Table *tbl = table_new(17, num_rows);
+    Table *tbl = table_new(5, num_rows);
     build_title(psum, tbl, SCENARIOS);
 
     // clang-format off
     table_add_column(tbl,  0, Table_ColumnType_TEXT, left_col_title,     "%s", 19);
 
-    table_add_column(tbl,  1, Table_ColumnType_VALUE,       "Min-1", "%5.2lf",  5);
-    table_add_column(tbl,  2, Table_ColumnType_VALUE,       "Mode1", "%5.2lf",  5);
-    table_add_column(tbl,  3, Table_ColumnType_VALUE,       "Max-1", "%5.2lf",  5);
-    table_add_column(tbl,  4, Table_ColumnType_VALUE,       "Prob1", "%5.0lf",  5);
-    
-    table_add_column(tbl,  5, Table_ColumnType_VALUE,       "Min-2", "%5.2lf",  5);
-    table_add_column(tbl,  6, Table_ColumnType_VALUE,       "Mode2", "%5.2lf",  5);
-    table_add_column(tbl,  7, Table_ColumnType_VALUE,       "Max-2", "%5.2lf",  5);
-    table_add_column(tbl,  8, Table_ColumnType_VALUE,       "Prob2", "%5.0lf",  5);
-    
-    table_add_column(tbl,  9, Table_ColumnType_VALUE,       "Min-3", "%5.2lf",  5);
-    table_add_column(tbl, 10, Table_ColumnType_VALUE,       "Mode3", "%5.2lf",  5);
-    table_add_column(tbl, 11, Table_ColumnType_VALUE,       "Max-3", "%5.2lf",  5);
-    table_add_column(tbl, 12, Table_ColumnType_VALUE,       "Prob3", "%5.0lf",  5);
-
-    table_add_column(tbl, 13, Table_ColumnType_VALUE,       "Min-4", "%5.2lf",  5);
-    table_add_column(tbl, 14, Table_ColumnType_VALUE,       "Mode4", "%5.2lf",  5);
-    table_add_column(tbl, 15, Table_ColumnType_VALUE,       "Max-4", "%5.2lf",  5);
-    table_add_column(tbl, 16, Table_ColumnType_VALUE,       "Prob4", "%5.0lf",  5);
+    table_add_column(tbl,  1, Table_ColumnType_SCENARIO, "Scenario-1", "%4.2lf [%4.2lf-%4.2lf] %3.0lf", 20);
+    table_add_column(tbl,  2, Table_ColumnType_SCENARIO, "Scenario-2", "%4.2lf [%4.2lf-%4.2lf] %3.0lf", 20);
+    table_add_column(tbl,  3, Table_ColumnType_SCENARIO, "Scenario-3", "%4.2lf [%4.2lf-%4.2lf] %3.0lf", 20);
+    table_add_column(tbl,  4, Table_ColumnType_SCENARIO, "Scenario-4", "%4.2lf [%4.2lf-%4.2lf] %3.0lf", 20);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
-    table_set_double_left_border(tbl, 5);
-    table_set_double_left_border(tbl, 9);
-    table_set_double_left_border(tbl, 13);
-
-    for (int i = 1; i <= 2; i++) {
-        table_set_blank_value(tbl, i, 0.0);
-    }
-
-    table_set_blank_value(tbl, 3, NAN);
-    table_set_blank_value(tbl, 4, 100.0);
-
-    for (int i = 5; i <= 16; i++) {
-        table_set_blank_value(tbl, i, NAN);
-    }
+    table_set_double_left_border(tbl, 2);
+    table_set_double_left_border(tbl, 3);
+    table_set_double_left_border(tbl, 4);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(scenarios, add_row_scenario_to_table, &state);

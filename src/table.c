@@ -18,6 +18,8 @@ struct Column {
     bool double_left_border;
     double *values1;
     double *values2;
+    double *values3;
+    double *values4;
     double blank_value;
 };
 
@@ -43,6 +45,10 @@ column_init(struct Column ptr[static 1], enum ColumnType type, int num_rows, int
         ptr->text_values = calloc(num_rows, sizeof(char *));
         assert(ptr->text_values);
         break;
+    case Table_ColumnType_SCENARIO:
+        ptr->values3 = column_new_double_vec(num_rows);
+        ptr->values4 = column_new_double_vec(num_rows);
+        // Intentional Fall through.
     case Table_ColumnType_AVG_STDEV:
         ptr->values2 = column_new_double_vec(num_rows);
         // Intentional Fall through.
@@ -86,6 +92,8 @@ column_free(struct Column *ptr, int num_rows)
     free(ptr->text_values);
     free(ptr->values1);
     free(ptr->values2);
+    free(ptr->values3);
+    free(ptr->values4);
 }
 
 struct Table {
@@ -234,6 +242,27 @@ table_set_avg_std(struct Table *tbl, int col_num, int row_num, double avg, doubl
 
     col->values1[row_num] = avg;
     col->values2[row_num] = stdev;
+
+    tbl->printable[row_num] = true;
+}
+
+void
+table_set_scenario(struct Table *tbl, int col_num, int row_num, double mode, double min_val,
+                   double max_val, double prob)
+{
+    assert(tbl->num_cols > col_num);
+    assert(tbl->num_rows > row_num);
+    assert(col_num >= 0 && row_num >= 0);
+
+    struct Column *col = &tbl->cols[col_num];
+
+    Stopif(col->col_type != Table_ColumnType_SCENARIO, exit(EXIT_FAILURE),
+           "Can't assign scenario values to column.");
+
+    col->values1[row_num] = mode;
+    col->values2[row_num] = min_val;
+    col->values3[row_num] = max_val;
+    col->values4[row_num] = prob;
 
     tbl->printable[row_num] = true;
 }
@@ -395,6 +424,40 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
         double stdev = col->values2[row_num];
 
         sprintf(small_buf, fmt, avg, stdev);
+        sprintf(next, "%*s", col->col_width, small_buf);
+        break;
+    }
+    case Table_ColumnType_SCENARIO: {
+        double mode = col->values1[row_num];
+        double min_val = col->values2[row_num];
+        double max_val = col->values3[row_num];
+        double prob = col->values4[row_num];
+
+        // Force all "blank" values to NANs
+        if (mode == col->blank_value) {
+            mode = NAN;
+        }
+        if (min_val == col->blank_value) {
+            min_val = NAN;
+        }
+        if (max_val == col->blank_value) {
+            max_val = NAN;
+        }
+
+        if (isnan(mode)) {
+            // DO NOTHING, print nothing
+        } else {
+            sprintf(small_buf, fmt, mode, min_val, max_val, prob);
+        }
+
+        // Remove NAN's from the string.
+        char *nan_val = 0;
+        while ((nan_val = strstr(small_buf, "nan"))) {
+            nan_val[0] = ' ';
+            nan_val[1] = ' ';
+            nan_val[2] = ' ';
+        }
+
         sprintf(next, "%*s", col->col_width, small_buf);
         break;
     }

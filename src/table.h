@@ -10,6 +10,7 @@ enum ColumnType {
     Table_ColumnType_TEXT,
     Table_ColumnType_VALUE,
     Table_ColumnType_AVG_STDEV,
+    Table_ColumnType_SCENARIO,
 };
 
 /** A state type useful for use with callbacks that take a \c void \c * \c user_data argument. */
@@ -107,6 +108,17 @@ void table_set_value(Table *tbl, int col_num, int row_num, double value);
  * overwrites the value at \c col_num, \c row_num.
  */
 void table_set_avg_std(Table *tbl, int col_num, int row_num, double avg, double stdev);
+
+/** Add a scenario value to the table.
+ *
+ * If the column type does not match (i.e. it's not a Table_ColumnType_SCENARIO column), then it
+ * will abort the program.
+ *
+ * All double values in the table default to NaN, which is printed as a ' - ' or blank string. This
+ * overwrites the value at \c col_num, \c row_num.
+ */
+void table_set_scenario(Table *tbl, int col_num, int row_num, double mode, double min_val,
+                        double max_val, double prob);
 
 /** Display the table. */
 void table_display(Table *tbl, FILE *out);
