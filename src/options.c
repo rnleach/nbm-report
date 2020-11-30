@@ -165,7 +165,6 @@ option_callback(const char *name, const char *value, void *data, GError **unused
         char *next_char = strptime(value, "%Y-%m-%d-%H", &req_time);
         Stopif(!next_char, return false, "Error parsing request time: %s", value);
         opts->request_time = timegm(&req_time);
-        opts->show_snow_scenarios = true;
     } else if (strcmp(name, "--accumulation-period") == 0 || strcmp(name, "-a") == 0) {
         if (opts->num_accum_periods < sizeof(opts->accum_hours)) {
             opts->accum_hours[opts->num_accum_periods] = atoi(value);
