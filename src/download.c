@@ -65,7 +65,11 @@ build_download_url(char const file_name[static 1], time_t data_init_time)
     int day = init_time.tm_mday;
     int hour = init_time.tm_hour;
 
-    if (year >= 2020 && month >= 9 && day >= 23) {
+    // NBM 4.0 started on 9/23/2020
+    struct tm nbm_version_4_starts_tm = {.tm_year = 2020 - 1900, .tm_mon = 9 - 1, .tm_mday = 23};
+    time_t nbm_version_4_starts = timegm(&nbm_version_4_starts_tm);
+
+    if (data_init_time > nbm_version_4_starts) {
         // NBM 4.0
         sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s", base_url, year, month, day, hour,
                 url_file_name);
@@ -153,10 +157,13 @@ download_file(char const file_name[static 1], time_t init_time)
     if (res) {
         long response_code = 0;
         int res2 = curl_easy_getinfo(lcl_curl, CURLINFO_RESPONSE_CODE, &response_code);
-        Stopif(res2, goto ERR_RETURN, "curel_easy_getinfo failed: %s", curl_easy_strerror(res2));
+        Stopif(res2, goto ERR_RETURN, "curl_easy_getinfo failed: %s", curl_easy_strerror(res2));
 
         if (response_code == 404) {
             res = CURLE_OK; // 0
+            if (global_verbose) {
+                printf("file not available: %s\n", url);
+            }
         }
     }
 
