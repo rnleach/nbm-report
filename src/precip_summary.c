@@ -2,10 +2,9 @@
 #include <string.h>
 
 #include "distributions.h"
-#include "nbm_data.h"
+#include "nbm.h"
 #include "precip_summary.h"
 #include "table.h"
-#include "utils.h"
 
 #include <glib.h>
 

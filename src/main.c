@@ -1,19 +1,17 @@
 // standard lib
 #include <locale.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <glib.h>
 
+#include <nbm.h>
+
 // Program developed headers
-#include "cache.h"
 #include "daily_summary.h"
-#include "download.h"
 #include "ice_summary.h"
-#include "nbm_data.h"
 #include "options.h"
 #include "precip_summary.h"
-#include "raw_nbm_data.h"
-#include "site_validation.h"
 #include "snow_summary.h"
 #include "temp_summary.h"
 #include "utils.h"
@@ -25,15 +23,13 @@ static void
 program_initialization()
 {
     setlocale(LC_ALL, "");
-    cache_initialize();
-    download_module_initialize();
+    nbm_tools_initialize();
 }
 
 static void
 program_finalization()
 {
-    download_module_finalize();
-    cache_finalize();
+    nbm_tools_finalize();
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -155,8 +151,7 @@ main(int argc, char *argv[argc + 1])
 
     // Variables that hold allocated memory.
     SiteValidation *validation = 0;
-    RawNbmData *raw_nbm_data = 0;
-    NBMData *parsed_nbm_data = 0;
+    NBMData *nbm_data = 0;
 
     program_initialization();
 
@@ -169,24 +164,15 @@ main(int argc, char *argv[argc + 1])
         goto EXIT_ERR;
     }
 
-    char const *file_name = site_validation_file_name_alias(validation);
-    char const *site_nm = site_validation_site_name_alias(validation);
-    char const *site_id = site_validation_site_id_alias(validation);
-    time_t init_time = site_validation_init_time(validation);
+    nbm_data = retrieve_data(validation);
+    Stopif(!nbm_data, goto EXIT_ERR, "Error retrieving data for %s.", opt_args.site);
 
-    raw_nbm_data = retrieve_data_for_site(site_id, site_nm, file_name, init_time);
-    Stopif(!raw_nbm_data, goto EXIT_ERR, "Null data retrieved for %s.", opt_args.site);
-
-    parsed_nbm_data = parse_raw_nbm_data(raw_nbm_data);
-    Stopif(!parsed_nbm_data, goto EXIT_ERR, "Error parsing %s.", file_name);
-
-    do_output(parsed_nbm_data, opt_args);
+    do_output(nbm_data, opt_args);
 
     exit_code = EXIT_SUCCESS;
 
 EXIT_ERR:
-    nbm_data_free(&parsed_nbm_data);
-    raw_nbm_data_free(&raw_nbm_data);
+    nbm_data_free(&nbm_data);
     site_validation_free(&validation);
     program_finalization();
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nbm_data.h"
+#include "nbm.h"
 
 /**
  * Print a summary of the probability of reaching certain ice amounts.

@@ -1,8 +1,7 @@
 #include "snow_summary.h"
 #include "distributions.h"
-#include "nbm_data.h"
+#include "nbm.h"
 #include "table.h"
-#include "utils.h"
 
 #include <assert.h>
 #include <math.h>

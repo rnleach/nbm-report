@@ -1,10 +1,9 @@
 #include "options.h"
+#include "utils.h"
 
 #include <stdio.h>
 
 #include <glib.h>
-
-#include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
  *                                    Forward Declarations

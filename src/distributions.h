@@ -1,9 +1,10 @@
 #pragma once
 
+#include "utils.h"
+
 #include <glib.h>
 
-#include "nbm_data.h"
-#include "utils.h"
+#include "nbm.h"
 
 /*-------------------------------------------------------------------------------------------------
  *                                  Cumulative Distributions

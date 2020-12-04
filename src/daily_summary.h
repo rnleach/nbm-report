@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nbm_data.h"
+#include "nbm.h"
 
 /**
  * Print a summary of the max/min temperatures, humidity, wind, clouds, precipitation, etc.

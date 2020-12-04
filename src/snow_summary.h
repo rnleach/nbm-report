@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nbm_data.h"
+#include "nbm.h"
 
 /** A snow summary. */
 typedef struct SnowSum SnowSum;

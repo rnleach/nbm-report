@@ -1,7 +1,6 @@
 #include "summarize.h"
 
-#include "nbm_data.h"
-#include "utils.h"
+#include "nbm.h"
 
 #include <assert.h>
 #include <math.h>

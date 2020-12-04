@@ -1,8 +1,7 @@
 #include "daily_summary.h"
-#include "nbm_data.h"
+#include "nbm.h"
 #include "summarize.h"
 #include "table.h"
-#include "utils.h"
 
 #include <assert.h>
 #include <math.h>

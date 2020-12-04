@@ -1,4 +1,6 @@
-#include "nbm_data.h"
+#include "nbm.h"
+
+#include "utils.h"
 
 #include <stdbool.h>
 #include <time.h>

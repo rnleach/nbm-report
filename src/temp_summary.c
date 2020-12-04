@@ -11,7 +11,6 @@
 #include "summarize.h"
 #include "table.h"
 #include "temp_summary.h"
-#include "utils.h"
 
 /*-------------------------------------------------------------------------------------------------
  *                                      Temperature Summary
