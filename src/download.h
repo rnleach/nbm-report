@@ -31,7 +31,6 @@ RawNbmData *retrieve_data_for_site(char const site[static 1], char const site_nm
 /** Initialize all the components of the download module.
  *
  * Connect to the cache. If the cache doesn't exist, create it first and then connect.
- * Initialize cURL.
  *
  * This should be run during program initialization.
  */
