@@ -1,5 +1,6 @@
 #include "distributions.h"
 
+#include <assert.h>
 #include <math.h>
 
 #include <glib.h>

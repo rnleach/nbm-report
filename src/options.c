@@ -177,7 +177,7 @@ option_callback(const char *name, const char *value, void *data, GError **unused
         Stopif(retcode < 0, exit(EXIT_FAILURE), "out of memory");
     } else if (strcmp(name, "--save-prefix") == 0) {
         int retcode = asprintf(&opts->save_prefix, "%s", value);
-        Stopif(retcode < 0,  exit(EXIT_FAILURE),"out of memory");
+        Stopif(retcode < 0, exit(EXIT_FAILURE), "out of memory");
     } else {
         return false;
     }
