@@ -7,7 +7,7 @@
 
 #include <glib.h>
 
-#include "distributions.h"
+#include "nbm.h"
 #include "summarize.h"
 #include "table.h"
 #include "temp_summary.h"

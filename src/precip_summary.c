@@ -1,13 +1,14 @@
+#include "precip_summary.h"
+#include "table.h"
+#include "utils.h"
+
 #include <assert.h>
 #include <math.h>
 #include <string.h>
 
-#include "distributions.h"
-#include "nbm.h"
-#include "precip_summary.h"
-#include "table.h"
-
 #include <glib.h>
+
+#include "nbm.h"
 
 struct PrecipSum {
     char *id;
