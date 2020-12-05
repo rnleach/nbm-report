@@ -49,9 +49,6 @@ double accum_max(double acc, double val);
 /** Just keep the last value. */
 double accum_last(double _acc, double val);
 
-/** Average the values. */
-double accum_avg(double acc, double val);
-
 /*-------------------------------------------------------------------------------------------------
  *                                          Converters
  *-----------------------------------------------------------------------------------------------*/

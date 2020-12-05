@@ -207,10 +207,10 @@ build_daily_summaries(NBMData const *nbm)
                                      daily_summary_access_prob_ltg);
 
     extract_daily_summary_for_column(sums, nbm, "TCDC_surface", keep_mrn, summary_date_06z, id_func,
-                                     accum_avg, daily_summary_new, daily_summary_access_mrn_sky);
+                                     accum_max, daily_summary_new, daily_summary_access_mrn_sky);
 
     extract_daily_summary_for_column(sums, nbm, "TCDC_surface", keep_aft, summary_date_06z, id_func,
-                                     accum_avg, daily_summary_new, daily_summary_access_aft_sky);
+                                     accum_max, daily_summary_new, daily_summary_access_aft_sky);
 
     extract_max_winds_to_summary(sums, nbm);
 

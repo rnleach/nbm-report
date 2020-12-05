@@ -46,15 +46,3 @@ accum_last(double _acc, double val)
     return val;
 }
 
-double
-accum_avg(double acc, double val)
-{
-    static int count = 0;
-    if (isnan(acc)) {
-        count = 1;
-        return val;
-    }
-
-    count++;
-    return acc * ((count - 1.0) / (double)count) + val / count;
-}
