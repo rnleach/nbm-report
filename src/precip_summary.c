@@ -22,6 +22,11 @@ struct PrecipSum {
     GTree *scenarios;
 };
 
+#define NUM_PROB_EXC_VALS 10
+static char const *exc_vals[NUM_PROB_EXC_VALS] = {
+    "0.254", "2.54", "6.35", "12.7", "25.4", "50.8", "101.6", "76.2", "127.0", "152.4",
+};
+
 static GTree *
 build_cdfs(NBMData const *nbm, int hours)
 {
@@ -33,6 +38,12 @@ build_cdfs(NBMData const *nbm, int hours)
 
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_precip_key, mm_to_in);
     Stopif(!cdfs, return 0, "Error extracting CDFs for QPF.");
+
+    char prob_exceedence_format[32] = {0};
+    sprintf(prob_exceedence_format, "APCP%dhr_surface_prob >%%s", hours);
+
+    cdfs = extract_exceedence_to_cdfs(cdfs, nbm, prob_exceedence_format, NUM_PROB_EXC_VALS,
+                                      exc_vals, mm_to_in);
 
     return cdfs;
 }
