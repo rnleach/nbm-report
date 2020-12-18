@@ -75,6 +75,11 @@ add_row_prob_ice_exceedence_to_table(void *key, void *value, void *state)
     return false;
 }
 
+#define NUM_PROB_EXC_VALS 5
+static char const *exc_vals[NUM_PROB_EXC_VALS] = {
+    "0.254", "2.54", "6.35", "12.7", "25.4",
+};
+
 void
 show_ice_summary(NBMData const *nbm, int hours)
 {
@@ -88,6 +93,12 @@ show_ice_summary(NBMData const *nbm, int hours)
 
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_ice_key, mm_to_in);
     Stopif(!cdfs, return, "Error extracting CDFs for Ice.");
+
+    char prob_exceedence_format[32] = {0};
+    sprintf(prob_exceedence_format, "FICEAC%dhr_surface_prob >%%s", hours);
+
+    cdfs = extract_exceedence_to_cdfs(cdfs, nbm, prob_exceedence_format, NUM_PROB_EXC_VALS,
+                                      exc_vals, mm_to_in);
 
     int num_rows = g_tree_nnodes(cdfs);
     if (num_rows == 0) {
