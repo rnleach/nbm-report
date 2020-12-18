@@ -25,6 +25,10 @@ struct SnowSum {
     GTree *scenarios;
 };
 
+#define NUM_PROB_EXC_VALS 10
+static char const *exc_vals[NUM_PROB_EXC_VALS] = {"0.00254", "0.0254", "0.0508", "0.1016", "0.1524",
+                                                  "0.2032",  "0.3048", "0.4572", "0.6096", "0.762"};
+
 static GTree *
 build_cdfs(NBMData const *nbm, int hours)
 {
@@ -37,6 +41,13 @@ build_cdfs(NBMData const *nbm, int hours)
     GTree *cdfs = extract_cdfs(nbm, percentile_format, deterministic_snow_key, m_to_in);
     Stopif(!cdfs, return 0, "Error extracting CDFs for snow.");
 
+    char prob_exceedence_format[32] = {0};
+    sprintf(prob_exceedence_format, "ASNOW%dhr_surface_prob >%%s", hours);
+
+    cdfs = extract_exceedence_to_cdfs(cdfs, nbm, prob_exceedence_format, NUM_PROB_EXC_VALS,
+                                      exc_vals, m_to_in);
+
+    printf("Return cdfs\n");
     return cdfs;
 }
 
