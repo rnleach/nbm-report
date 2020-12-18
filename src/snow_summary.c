@@ -212,7 +212,7 @@ create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
     CumulativeDistribution *cdf = val;
     GTree *pdfs = data;
 
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.2);
+    ProbabilityDistribution *pdf = probability_dist_calc(cdf);
 
     g_tree_insert(pdfs, key, pdf);
 
@@ -238,11 +238,8 @@ snow_sum_build_scenarios(struct SnowSum *ssum)
 {
     assert(ssum && ssum->cdfs && ssum->pdfs);
 
-    // Don't free the keys, we'll just point those to the same location as the keys
-    // used in the GTree of CDFs.
-    GTree *scenarios = g_tree_new_full(time_t_compare_func, 0, 0, free_glist_of_scenarios);
-
-    g_tree_foreach(ssum->pdfs, create_scenarios_from_pdf_and_add_too_scenario_tree, scenarios);
+    GTree *scenarios = create_scenarios_from_pdfs(ssum->pdfs, 0.2, 0.2);
+    assert(scenarios);
 
     ssum->scenarios = scenarios;
 }

@@ -83,7 +83,7 @@ create_pdf_from_cdf_and_add_too_pdf_tree(void *key, void *val, void *data)
     CumulativeDistribution *cdf = val;
     GTree *pdfs = data;
 
-    ProbabilityDistribution *pdf = probability_dist_calc(cdf, 0.5);
+    ProbabilityDistribution *pdf = probability_dist_calc(cdf);
 
     g_tree_insert(pdfs, key, pdf);
 
@@ -120,15 +120,10 @@ temp_sum_build_scenarios(struct TempSum *tsum)
         temp_sum_build_pdfs(tsum);
     }
 
-    // Don't free the keys, we'll just point those to the same location as the keys
-    // used in the GTree of CDFs.
-    GTree *max_scenarios = g_tree_new_full(time_t_compare_func, 0, 0, free_glist_of_scenarios);
-    GTree *min_scenarios = g_tree_new_full(time_t_compare_func, 0, 0, free_glist_of_scenarios);
-
-    g_tree_foreach(tsum->max_pdfs, create_scenarios_from_pdf_and_add_too_scenario_tree,
-                   max_scenarios);
-    g_tree_foreach(tsum->min_pdfs, create_scenarios_from_pdf_and_add_too_scenario_tree,
-                   min_scenarios);
+    GTree *max_scenarios = create_scenarios_from_pdfs(tsum->max_pdfs, 0.5, 0.5);
+    assert(max_scenarios);
+    GTree *min_scenarios = create_scenarios_from_pdfs(tsum->min_pdfs, 0.5, 0.5);
+    assert(min_scenarios);
 
     tsum->max_scenarios = max_scenarios;
     tsum->min_scenarios = min_scenarios;
