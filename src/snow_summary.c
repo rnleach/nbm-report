@@ -47,7 +47,6 @@ build_cdfs(NBMData const *nbm, int hours)
     cdfs = extract_exceedence_to_cdfs(cdfs, nbm, prob_exceedence_format, NUM_PROB_EXC_VALS,
                                       exc_vals, m_to_in);
 
-    printf("Return cdfs\n");
     return cdfs;
 }
 
