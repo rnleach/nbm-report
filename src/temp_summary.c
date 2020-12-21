@@ -366,9 +366,9 @@ show_temp_scenarios(struct TempSum *tsum)
     table_add_column(tbl,  0, Table_ColumnType_TEXT,  "Day/Date",          "%s", 17);
     
     table_add_column(tbl, 1, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
-    table_add_column(tbl, 2, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
-    table_add_column(tbl, 3, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
-    table_add_column(tbl, 4, Table_ColumnType_SCENARIO, "Scenario 1", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 2, Table_ColumnType_SCENARIO, "Scenario 2", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 3, Table_ColumnType_SCENARIO, "Scenario 3", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
+    table_add_column(tbl, 4, Table_ColumnType_SCENARIO, "Scenario 4", "%3.0lf° [%3.0lf-%3.0lf] %3.0lf%%", 19);
     // clang-format on
 
     table_set_double_left_border(tbl, 1);
