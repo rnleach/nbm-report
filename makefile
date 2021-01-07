@@ -14,24 +14,12 @@ LDLIBS = -flto -fPIC -lm
 CFLAGS += -D_DEFAULT_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 
 # libnbm
-CFLAGS += -I$(realpath ../nbm-tools/build/) 
-LDLIBS += -L$(realpath ../nbm-tools/build/) -lnbm
+CFLAGS += `pkg-config --cflags nbm-tools`
+LDLIBS += `pkg-config --libs nbm-tools`
 
 # glib
 CFLAGS += `pkg-config --cflags glib-2.0`
 LDLIBS += `pkg-config --libs glib-2.0`
-
-# cURL library
-LDLIBS += `curl-config --libs`
-
-# libcsv3 library
-LDLIBS += -lcsv
-
-# sqlite3 library for download cache
-LDLIBS += `pkg-config --libs sqlite3`
-
-# zlib for compression going into and out of the cache.
-LDLIBS += `pkg-config --libs zlib`
 # -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options
