@@ -313,6 +313,10 @@ show_precip_scenarios(struct PrecipSum *psum)
     table_add_column(tbl,  4, Table_ColumnType_SCENARIO, "Scenario-4", "%4.2lf [%4.2lf-%4.2lf] %3.0lf", 20);
     // clang-format on
 
+    for (int col = 1; col <= 4; col++) {
+        table_set_blank_value(tbl, col, 0.0);
+    }
+
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 2);
     table_set_double_left_border(tbl, 3);

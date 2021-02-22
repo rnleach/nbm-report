@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -437,15 +438,13 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
         if (mode == col->blank_value) {
             mode = NAN;
         }
-        if (min_val == col->blank_value) {
+        if (min_val == col->blank_value && max_val == col->blank_value) {
             min_val = NAN;
-        }
-        if (max_val == col->blank_value) {
             max_val = NAN;
         }
 
-        if (isnan(mode)) {
-            // DO NOTHING, print nothing
+        if (isnan(prob)) {
+            // print nothing - there is no scenario here.
         } else {
             sprintf(small_buf, fmt, mode, min_val, max_val, prob);
         }
@@ -456,6 +455,15 @@ print_table_value(struct Table *tbl, int col_num, int row_num, int buf_size, cha
             nan_val[0] = ' ';
             nan_val[1] = ' ';
             nan_val[2] = ' ';
+        }
+
+        // If all the values are zeros except the probability, only show the probability
+        if (isnan(mode) && isnan(min_val) && isnan(max_val) && !isnan(prob)) {
+            for (char *c = small_buf; *c; c++) {
+                if (!isdigit(*c)) {
+                    *c = ' ';
+                }
+            }
         }
 
         sprintf(next, "%*s", col->col_width, small_buf);

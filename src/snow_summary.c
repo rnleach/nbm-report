@@ -194,8 +194,8 @@ show_snow_summary(struct SnowSum const *ssum)
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 6);
 
-    for (int i = 1; i <= 14; i++) {
-        table_set_blank_value(tbl, i, 0.0);
+    for (int col = 1; col <= 14; col++) {
+        table_set_blank_value(tbl, col, 0.0);
     }
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
@@ -314,6 +314,10 @@ show_snow_scenarios(struct SnowSum *ssum)
     table_add_column(tbl,  3, Table_ColumnType_SCENARIO, "Scenario-3", "%4.1lf [%4.1lf-%4.1lf] %3.0lf", 21);
     table_add_column(tbl,  4, Table_ColumnType_SCENARIO, "Scenario-4", "%4.1lf [%4.1lf-%4.1lf] %3.0lf", 21);
     // clang-format on
+
+    for (int col = 1; col <= 4; col++) {
+        table_set_blank_value(tbl, col, 0.0);
+    }
 
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 2);
