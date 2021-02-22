@@ -24,7 +24,7 @@ struct PrecipSum {
 
 #define NUM_PROB_EXC_VALS 10
 static char const *exc_vals[NUM_PROB_EXC_VALS] = {
-    "0.254", "2.54", "6.35", "12.7", "25.4", "50.8", "101.6", "76.2", "127.0", "152.4",
+    "0.254", "2.54", "6.35", "12.7", "25.4", "50.8", "101.6", "76.2", "127", "152.4",
 };
 
 static GTree *
