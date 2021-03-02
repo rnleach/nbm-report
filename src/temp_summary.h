@@ -1,7 +1,5 @@
 #pragma once
 
-#include "nbm.h"
-
 /** A temperature summary. */
 typedef struct TempSum TempSum;
 

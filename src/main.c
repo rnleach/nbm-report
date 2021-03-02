@@ -5,10 +5,10 @@
 
 #include <glib.h>
 
-#include <nbm.h>
-
 // Program developed headers
+#include "cache.h"
 #include "daily_summary.h"
+#include "download.h"
 #include "ice_summary.h"
 #include "options.h"
 #include "precip_summary.h"
@@ -23,13 +23,15 @@ static void
 program_initialization()
 {
     setlocale(LC_ALL, "");
-    nbm_tools_initialize();
+    cache_initialize();
+    download_module_initialize();
 }
 
 static void
 program_finalization()
 {
-    nbm_tools_finalize();
+    download_module_finalize();
+    cache_finalize();
 }
 
 /*-------------------------------------------------------------------------------------------------

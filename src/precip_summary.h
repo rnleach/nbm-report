@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nbm.h"
+#include "nbm_data.h"
 
 /** A precipitation Summary. */
 typedef struct PrecipSum PrecipSum;

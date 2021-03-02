@@ -1,3 +1,4 @@
+#include "distributions.h"
 #include "ice_summary.h"
 #include "table.h"
 #include "utils.h"
@@ -10,8 +11,6 @@
 #include <time.h>
 
 #include <glib.h>
-
-#include "nbm.h"
 
 static void
 build_title_ice(NBMData const *nbm, Table *tbl, int hours)

@@ -1,5 +1,4 @@
-#include "nbm.h"
-
+#include "distributions.h"
 #include "utils.h"
 
 #include <stdbool.h>

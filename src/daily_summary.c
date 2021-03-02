@@ -1,5 +1,4 @@
 #include "daily_summary.h"
-#include "nbm.h"
 #include "summarize.h"
 #include "table.h"
 

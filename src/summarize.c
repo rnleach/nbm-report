@@ -1,7 +1,5 @@
 #include "summarize.h"
 
-#include "nbm.h"
-
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>

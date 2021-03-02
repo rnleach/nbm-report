@@ -1,3 +1,4 @@
+#include "distributions.h"
 #include "snow_summary.h"
 #include "table.h"
 #include "utils.h"
@@ -10,8 +11,6 @@
 #include <time.h>
 
 #include <glib.h>
-
-#include "nbm.h"
 
 struct SnowSum {
     char *id;
