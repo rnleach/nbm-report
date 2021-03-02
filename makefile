@@ -13,13 +13,25 @@ LDLIBS = -flto -fPIC -lm
 # enable some time functions for POSIX
 CFLAGS += -D_DEFAULT_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 
-# libnbm
-CFLAGS += `pkg-config --cflags nbm-tools`
-LDLIBS += `pkg-config --libs nbm-tools`
-
 # glib
 CFLAGS += `pkg-config --cflags glib-2.0`
 LDLIBS += `pkg-config --libs glib-2.0`
+#
+# cURL library
+CFLAGS += `curl-config --cflags`
+LDLIBS += `curl-config --libs`
+
+# libcsv3 library
+CFLAGS +=
+LDLIBS += -lcsv
+
+# sqlite3 library for download cache
+CFLAGS += `pkg-config --cflags sqlite3`
+LDLIBS += `pkg-config --libs sqlite3`
+
+# zlib for compression going into and out of the cache.
+CFLAGS += `pkg-config --cflags zlib`
+LDLIBS += `pkg-config --libs zlib`
 # -------------------------------------------------------------------------------------------------
 
 # Compiler and compiler options
