@@ -154,68 +154,60 @@ build_title(struct TempSum const *tsum, Table *tbl, char const *desc, int type)
     table_add_title(tbl, strlen(title_buf), title_buf);
 }
 
+struct CDF_Pair {
+    struct CumulativeDistribution *maxs;
+    struct CumulativeDistribution *mins;
+};
+
 static int
-add_min_summary_row_to_table(void *key, void *value, void *state)
+add_summary_row_to_table(void *key, void *value, void *state)
 {
     time_t *vt = key;
-    CumulativeDistribution *cdf = value;
+    struct CDF_Pair *pairs = value;
+    CumulativeDistribution *max_cdf = pairs->maxs;
+    CumulativeDistribution *min_cdf = pairs->mins;
     struct TableFillerState *tbl_state = state;
     Table *tbl = tbl_state->tbl;
     int row = tbl_state->row;
-
-    double mint = round(cumulative_dist_pm_value(cdf));
-
-    double mint_10th = round(cumulative_dist_percentile_value(cdf, 10.0));
-    double mint_25th = round(cumulative_dist_percentile_value(cdf, 25.0));
-    double mint_50th = round(cumulative_dist_percentile_value(cdf, 50.0));
-    double mint_75th = round(cumulative_dist_percentile_value(cdf, 75.0));
-    double mint_90th = round(cumulative_dist_percentile_value(cdf, 90.0));
 
     char datebuf[64] = {0};
     strftime(datebuf, sizeof(datebuf), " %a, %Y-%m-%d ", gmtime(vt));
 
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
 
-    table_set_value(tbl, 1, row, mint);
-    table_set_value(tbl, 2, row, mint_10th);
-    table_set_value(tbl, 3, row, mint_25th);
-    table_set_value(tbl, 4, row, mint_50th);
-    table_set_value(tbl, 5, row, mint_75th);
-    table_set_value(tbl, 6, row, mint_90th);
+    if (min_cdf) {
+        double mint = round(cumulative_dist_pm_value(min_cdf));
 
-    tbl_state->row++;
+        double mint_10th = round(cumulative_dist_percentile_value(min_cdf, 10.0));
+        double mint_25th = round(cumulative_dist_percentile_value(min_cdf, 25.0));
+        double mint_50th = round(cumulative_dist_percentile_value(min_cdf, 50.0));
+        double mint_75th = round(cumulative_dist_percentile_value(min_cdf, 75.0));
+        double mint_90th = round(cumulative_dist_percentile_value(min_cdf, 90.0));
 
-    return false;
-}
+        table_set_value(tbl, 1, row, mint);
+        table_set_value(tbl, 2, row, mint_10th);
+        table_set_value(tbl, 3, row, mint_25th);
+        table_set_value(tbl, 4, row, mint_50th);
+        table_set_value(tbl, 5, row, mint_75th);
+        table_set_value(tbl, 6, row, mint_90th);
+    }
 
-static int
-add_max_summary_row_to_table(void *key, void *value, void *state)
-{
-    time_t *vt = key;
-    CumulativeDistribution *cdf = value;
-    struct TableFillerState *tbl_state = state;
-    Table *tbl = tbl_state->tbl;
-    int row = tbl_state->row;
+    if (max_cdf) {
+        double maxt = round(cumulative_dist_pm_value(max_cdf));
 
-    double maxt = round(cumulative_dist_pm_value(cdf));
+        double maxt_10th = round(cumulative_dist_percentile_value(max_cdf, 10.0));
+        double maxt_25th = round(cumulative_dist_percentile_value(max_cdf, 25.0));
+        double maxt_50th = round(cumulative_dist_percentile_value(max_cdf, 50.0));
+        double maxt_75th = round(cumulative_dist_percentile_value(max_cdf, 75.0));
+        double maxt_90th = round(cumulative_dist_percentile_value(max_cdf, 90.0));
 
-    double maxt_10th = round(cumulative_dist_percentile_value(cdf, 10.0));
-    double maxt_25th = round(cumulative_dist_percentile_value(cdf, 25.0));
-    double maxt_50th = round(cumulative_dist_percentile_value(cdf, 50.0));
-    double maxt_75th = round(cumulative_dist_percentile_value(cdf, 75.0));
-    double maxt_90th = round(cumulative_dist_percentile_value(cdf, 90.0));
-
-    char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), " %a, %Y-%m-%d ", gmtime(vt));
-
-    table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
-
-    table_set_value(tbl, 7, row, maxt);
-    table_set_value(tbl, 8, row, maxt_10th);
-    table_set_value(tbl, 9, row, maxt_25th);
-    table_set_value(tbl, 10, row, maxt_50th);
-    table_set_value(tbl, 11, row, maxt_75th);
-    table_set_value(tbl, 12, row, maxt_90th);
+        table_set_value(tbl, 7, row, maxt);
+        table_set_value(tbl, 8, row, maxt_10th);
+        table_set_value(tbl, 9, row, maxt_25th);
+        table_set_value(tbl, 10, row, maxt_50th);
+        table_set_value(tbl, 11, row, maxt_75th);
+        table_set_value(tbl, 12, row, maxt_90th);
+    }
 
     tbl_state->row++;
 
@@ -254,6 +246,61 @@ add_row_scenario_to_table(void *key, void *value, void *state)
     return false;
 }
 
+static int
+add_max_to_pairs(void *key, void *value, void *data)
+{
+    time_t *vtp = key;
+    struct CumulativeDistribution *max_cdf = value;
+    GTree *pairs = data;
+
+    time_t vt = summary_date_06z(vtp);
+
+    struct CDF_Pair *val = 0;
+    if (!(val = g_tree_lookup(pairs, &vt))) {
+        time_t *key = malloc(sizeof(time_t));
+        *key = vt;
+        val = calloc(1, sizeof(struct CDF_Pair));
+        g_tree_insert(pairs, key, val);
+    }
+
+    val->maxs = max_cdf;
+
+    return false;
+}
+
+static int
+add_min_to_pairs(void *key, void *value, void *data)
+{
+    time_t *vtp = key;
+    struct CumulativeDistribution *min_cdf = value;
+    GTree *pairs = data;
+
+    time_t vt = summary_date_06z(vtp);
+
+    struct CDF_Pair *val = 0;
+    if (!(val = g_tree_lookup(pairs, &vt))) {
+        time_t *key = malloc(sizeof(time_t));
+        *key = vt;
+        val = calloc(1, sizeof(struct CDF_Pair));
+        g_tree_insert(pairs, key, val);
+    }
+
+    val->mins = min_cdf;
+
+    return false;
+}
+
+static GTree *
+create_joint_temperature_table(GTree *max_temps, GTree *min_temps)
+{
+    GTree *cdf_pairs = g_tree_new_full(time_t_compare_func, 0, free, 0);
+
+    g_tree_foreach(max_temps, add_max_to_pairs, cdf_pairs);
+    g_tree_foreach(min_temps, add_min_to_pairs, cdf_pairs);
+
+    return cdf_pairs;
+}
+
 /*-------------------------------------------------------------------------------------------------
  *                                    External API functions.
  *-----------------------------------------------------------------------------------------------*/
@@ -264,12 +311,9 @@ show_temp_summary(struct TempSum *tsum)
         temp_sum_build_cdfs(tsum);
     }
 
-    GTree *max_temps = tsum->max_cdfs;
-    GTree *min_temps = tsum->min_cdfs;
+    GTree *merge = create_joint_temperature_table(tsum->max_cdfs, tsum->min_cdfs);
 
-    int num_max_rows = g_tree_nnodes(max_temps);
-    int num_min_rows = g_tree_nnodes(min_temps);
-    int num_rows = num_max_rows > num_min_rows ? num_max_rows : num_min_rows;
+    int num_rows = g_tree_nnodes(merge);
 
     Table *tbl = table_new(13, num_rows);
     build_title(tsum, tbl, 0, SUMMARY);
@@ -293,11 +337,8 @@ show_temp_summary(struct TempSum *tsum)
     table_set_double_left_border(tbl, 1);
     table_set_double_left_border(tbl, 7);
 
-    struct TableFillerState state = {.row = num_rows - num_max_rows, .tbl = tbl};
-    g_tree_foreach(max_temps, add_max_summary_row_to_table, &state);
-
-    state = (struct TableFillerState){.row = num_rows - num_min_rows, .tbl = tbl};
-    g_tree_foreach(min_temps, add_min_summary_row_to_table, &state);
+    struct TableFillerState state = {.row = 0, .tbl = tbl};
+    g_tree_foreach(merge, add_summary_row_to_table, &state);
 
     table_display(tbl, stdout);
     table_free(&tbl);
@@ -394,7 +435,7 @@ write_cdf(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
@@ -411,7 +452,7 @@ write_pdf(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
@@ -428,7 +469,7 @@ write_scenario(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
