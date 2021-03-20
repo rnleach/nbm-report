@@ -53,6 +53,16 @@ temp_sum_build(NBMData const *nbm)
     return new;
 }
 
+static int
+map_valid_time_to_valid_date(void *key, void *value, void *_not_used)
+{
+    time_t *vt = key;
+
+    *vt = summary_date_06z(vt);
+
+    return false;
+}
+
 static void
 temp_sum_build_cdfs(struct TempSum *tsum)
 {
@@ -65,6 +75,11 @@ temp_sum_build_cdfs(struct TempSum *tsum)
     GTree *max_cdfs =
         extract_cdfs(nbm, max_percentile_format, deterministic_max_temp_key, kelvin_to_fahrenheit);
 
+    // This mapping will change the values of the keys in the tree, which is not generally safe. 
+    // However, in this case since we will not change the relative ordering of the keys, it is 
+    // safe.
+    g_tree_foreach(max_cdfs, map_valid_time_to_valid_date, 0);
+
     tsum->max_cdfs = max_cdfs;
 
     char *min_percentile_format = "TMP_Min_2 m above ground_%d%% level";
@@ -72,6 +87,11 @@ temp_sum_build_cdfs(struct TempSum *tsum)
 
     GTree *min_cdfs =
         extract_cdfs(nbm, min_percentile_format, deterministic_min_temp_key, kelvin_to_fahrenheit);
+
+    // This mapping will change the values of the keys in the tree, which is not generally safe. 
+    // However, in this case since we will not change the relative ordering of the keys, it is 
+    // safe.
+    g_tree_foreach(min_cdfs, map_valid_time_to_valid_date, 0);
 
     tsum->min_cdfs = min_cdfs;
 }
@@ -249,18 +269,14 @@ add_row_scenario_to_table(void *key, void *value, void *state)
 static int
 add_max_to_pairs(void *key, void *value, void *data)
 {
-    time_t *vtp = key;
+    time_t *vt = key;
     struct CumulativeDistribution *max_cdf = value;
     GTree *pairs = data;
 
-    time_t vt = summary_date_06z(vtp);
-
     struct CDF_Pair *val = 0;
-    if (!(val = g_tree_lookup(pairs, &vt))) {
-        time_t *key = malloc(sizeof(time_t));
-        *key = vt;
+    if (!(val = g_tree_lookup(pairs, vt))) {
         val = calloc(1, sizeof(struct CDF_Pair));
-        g_tree_insert(pairs, key, val);
+        g_tree_insert(pairs, vt, val);
     }
 
     val->maxs = max_cdf;
@@ -271,18 +287,14 @@ add_max_to_pairs(void *key, void *value, void *data)
 static int
 add_min_to_pairs(void *key, void *value, void *data)
 {
-    time_t *vtp = key;
+    time_t *vt = key;
     struct CumulativeDistribution *min_cdf = value;
     GTree *pairs = data;
 
-    time_t vt = summary_date_06z(vtp);
-
     struct CDF_Pair *val = 0;
-    if (!(val = g_tree_lookup(pairs, &vt))) {
-        time_t *key = malloc(sizeof(time_t));
-        *key = vt;
+    if (!(val = g_tree_lookup(pairs, vt))) {
         val = calloc(1, sizeof(struct CDF_Pair));
-        g_tree_insert(pairs, key, val);
+        g_tree_insert(pairs, vt, val);
     }
 
     val->mins = min_cdf;
@@ -293,7 +305,7 @@ add_min_to_pairs(void *key, void *value, void *data)
 static GTree *
 create_joint_temperature_table(GTree *max_temps, GTree *min_temps)
 {
-    GTree *cdf_pairs = g_tree_new_full(time_t_compare_func, 0, free, 0);
+    GTree *cdf_pairs = g_tree_new_full(time_t_compare_func, 0, 0, 0);
 
     g_tree_foreach(max_temps, add_max_to_pairs, cdf_pairs);
     g_tree_foreach(min_temps, add_min_to_pairs, cdf_pairs);
@@ -435,7 +447,7 @@ write_cdf(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
@@ -452,7 +464,7 @@ write_pdf(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
@@ -469,7 +481,7 @@ write_scenario(void *key, void *value, void *state)
     FILE *f = state;
 
     char datebuf[64] = {0};
-    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d %HZ", gmtime(vt));
+    strftime(datebuf, sizeof(datebuf), "%a %Y-%m-%d", gmtime(vt));
 
     fprintf(f, "\n\n\"%s\"\n", datebuf);
 
