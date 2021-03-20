@@ -1,7 +1,7 @@
 #pragma once
 
-#include "site_validation.h"
 #include "raw_nbm_data.h"
+#include "site_validation.h"
 
 /*-------------------------------------------------------------------------------------------------
  *                                             NBMData
@@ -120,4 +120,3 @@ void nbm_data_row_wind_iterator_free(NBMDataRowIteratorWind **);
  * object are set to null.
  */
 struct NBMDataRowIteratorWindValueView nbm_data_row_wind_iterator_next(NBMDataRowIteratorWind *);
-
