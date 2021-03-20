@@ -75,8 +75,8 @@ temp_sum_build_cdfs(struct TempSum *tsum)
     GTree *max_cdfs =
         extract_cdfs(nbm, max_percentile_format, deterministic_max_temp_key, kelvin_to_fahrenheit);
 
-    // This mapping will change the values of the keys in the tree, which is not generally safe. 
-    // However, in this case since we will not change the relative ordering of the keys, it is 
+    // This mapping will change the values of the keys in the tree, which is not generally safe.
+    // However, in this case since we will not change the relative ordering of the keys, it is
     // safe.
     g_tree_foreach(max_cdfs, map_valid_time_to_valid_date, 0);
 
@@ -88,8 +88,8 @@ temp_sum_build_cdfs(struct TempSum *tsum)
     GTree *min_cdfs =
         extract_cdfs(nbm, min_percentile_format, deterministic_min_temp_key, kelvin_to_fahrenheit);
 
-    // This mapping will change the values of the keys in the tree, which is not generally safe. 
-    // However, in this case since we will not change the relative ordering of the keys, it is 
+    // This mapping will change the values of the keys in the tree, which is not generally safe.
+    // However, in this case since we will not change the relative ordering of the keys, it is
     // safe.
     g_tree_foreach(min_cdfs, map_valid_time_to_valid_date, 0);
 
