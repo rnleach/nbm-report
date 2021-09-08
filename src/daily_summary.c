@@ -19,6 +19,8 @@ struct DailySummary {
     double max_t_std;
     double min_t_f;
     double min_t_std;
+    double min_rh;
+    double max_rh;
     double max_wind_mph;
     double max_wind_std;
     double max_wind_gust;
@@ -50,6 +52,8 @@ daily_summary_new()
         .max_t_std = NAN,
         .min_t_f = NAN,
         .min_t_std = NAN,
+        .min_rh = NAN,
+        .max_rh = NAN,
         .max_wind_mph = NAN,
         .max_wind_std = NAN,
         .max_wind_gust = NAN,
@@ -105,6 +109,20 @@ daily_summary_access_min_t_std(void *sm)
 {
     struct DailySummary *sum = sm;
     return &sum->min_t_std;
+}
+
+static double *
+daily_summary_access_min_rh(void *sm)
+{
+    struct DailySummary *sum = sm;
+    return &sum->min_rh;
+}
+
+static double *
+daily_summary_access_max_rh(void *sm)
+{
+    struct DailySummary *sum = sm;
+    return &sum->max_rh;
 }
 
 static double *
@@ -193,6 +211,14 @@ build_daily_summaries(NBMData const *nbm)
                                      summary_date_06z, change_in_kelvin_to_change_in_fahrenheit,
                                      accum_last, daily_summary_new, daily_summary_access_min_t_std);
 
+    extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", keep_all,
+                                     summary_date_06z, id_func,
+                                     accum_last, daily_summary_new, daily_summary_access_min_rh);
+
+    extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", keep_all,
+                                     summary_date_06z, id_func,
+                                     accum_last, daily_summary_new, daily_summary_access_max_rh);
+
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_06z,
                                      mm_to_in, accum_last, daily_summary_new,
                                      daily_summary_access_precip);
@@ -251,13 +277,15 @@ add_row_to_table(void *key, void *value, void *state)
     table_set_string_value(tbl, 0, row, strlen(datebuf), datebuf);
     table_set_avg_std(tbl, 1, row, sum->min_t_f, sum->min_t_std);
     table_set_avg_std(tbl, 2, row, sum->max_t_f, sum->max_t_std);
-    table_set_value(tbl, 3, row, sum->max_wind_dir);
-    table_set_avg_std(tbl, 4, row, sum->max_wind_mph, sum->max_wind_std);
-    table_set_avg_std(tbl, 5, row, sum->max_wind_gust, sum->max_wind_gust_std);
-    table_set_avg_std(tbl, 6, row, sum->mrn_sky, sum->aft_sky);
-    table_set_value(tbl, 7, row, sum->prob_ltg);
-    table_set_value(tbl, 8, row, sum->precip);
-    table_set_value(tbl, 9, row, sum->snow);
+    table_set_value(tbl, 3, row, sum->max_rh);
+    table_set_value(tbl, 4, row, sum->min_rh);
+    table_set_value(tbl, 5, row, sum->max_wind_dir);
+    table_set_avg_std(tbl, 6, row, sum->max_wind_mph, sum->max_wind_std);
+    table_set_avg_std(tbl, 7, row, sum->max_wind_gust, sum->max_wind_gust_std);
+    table_set_avg_std(tbl, 8, row, sum->mrn_sky, sum->aft_sky);
+    table_set_value(tbl, 9, row, sum->prob_ltg);
+    table_set_value(tbl, 10, row, sum->precip);
+    table_set_value(tbl, 11, row, sum->snow);
 
     tbl_state->row++;
 
@@ -273,7 +301,7 @@ show_daily_summary(NBMData const *nbm)
     GTree *sums = build_daily_summaries(nbm);
 
     // --
-    Table *tbl = table_new(10, g_tree_nnodes(sums));
+    Table *tbl = table_new(12, g_tree_nnodes(sums));
 
     build_title(nbm, tbl);
 
@@ -281,18 +309,20 @@ show_daily_summary(NBMData const *nbm)
     table_add_column(tbl, 0, Table_ColumnType_TEXT,      "Day/Date",  "%s",                  17);
     table_add_column(tbl, 1, Table_ColumnType_AVG_STDEV, "MinT (F)",  " %3.0lf° ±%4.1lf ",   12);
     table_add_column(tbl, 2, Table_ColumnType_AVG_STDEV, "MaxT (F)",  " %3.0lf° ±%4.1lf ",   12);
-    table_add_column(tbl, 3, Table_ColumnType_VALUE,     "Dir",       " %3.0lf ",             5);
-    table_add_column(tbl, 4, Table_ColumnType_AVG_STDEV, "Spd (mph)", " %3.0lf ±%2.0lf ",     9);
-    table_add_column(tbl, 5, Table_ColumnType_AVG_STDEV, "Gust",      " %3.0lf ±%2.0lf ",     9);
-    table_add_column(tbl, 6, Table_ColumnType_AVG_STDEV, "Sky Pct",   "%3.0lf%% /%3.0lf%% ", 12);
-    table_add_column(tbl, 7, Table_ColumnType_VALUE,     "Ltg (%)",   "%3.0lf%% ",            7);
-    table_add_column(tbl, 8, Table_ColumnType_VALUE,     "Precip",    "%5.2lf ",              6);
-    table_add_column(tbl, 9, Table_ColumnType_VALUE,     "Snow",      "%5.1lf ",              6);
+    table_add_column(tbl, 3, Table_ColumnType_VALUE,     "Max RH",    " %3.0lf ",             6);
+    table_add_column(tbl, 4, Table_ColumnType_VALUE,     "Min RH",    " %3.0lf ",             6);
+    table_add_column(tbl, 5, Table_ColumnType_VALUE,     "Dir",       " %3.0lf ",             5);
+    table_add_column(tbl, 6, Table_ColumnType_AVG_STDEV, "Spd (mph)", " %3.0lf ±%2.0lf ",     9);
+    table_add_column(tbl, 7, Table_ColumnType_AVG_STDEV, "Gust",      " %3.0lf ±%2.0lf ",     9);
+    table_add_column(tbl, 8, Table_ColumnType_AVG_STDEV, "Sky Pct",   "%3.0lf%% /%3.0lf%% ", 12);
+    table_add_column(tbl, 9, Table_ColumnType_VALUE,     "Ltg (%)",   "%3.0lf%% ",            7);
+    table_add_column(tbl, 10, Table_ColumnType_VALUE,     "Precip",    "%5.2lf ",              6);
+    table_add_column(tbl, 11, Table_ColumnType_VALUE,     "Snow",      "%5.1lf ",              6);
     // clang-format on
 
-    table_set_blank_value(tbl, 7, 0.0);
-    table_set_blank_value(tbl, 8, 0.0);
     table_set_blank_value(tbl, 9, 0.0);
+    table_set_blank_value(tbl, 10, 0.0);
+    table_set_blank_value(tbl, 11, 0.0);
 
     struct TableFillerState state = {.row = 0, .tbl = tbl};
     g_tree_foreach(sums, add_row_to_table, &state);
