@@ -16,6 +16,7 @@ struct OptArgs {
     int accum_hours[4];
 
     bool show_summary;
+    bool show_hourly;
     bool show_rain;
     bool show_snow;
     bool show_ice;

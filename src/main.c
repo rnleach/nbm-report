@@ -9,6 +9,7 @@
 #include "cache.h"
 #include "daily_summary.h"
 #include "download.h"
+#include "hourly.h"
 #include "ice_summary.h"
 #include "options.h"
 #include "precip_summary.h"
@@ -80,6 +81,9 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
 
     if (opt_args.show_summary)
         show_daily_summary(nbm);
+
+    if (opt_args.show_hourly)
+        show_hourly(nbm);
 
     if (opt_args.show_temperature || opt_args.show_temperature_scenarios) {
         TempSum *tsum = temp_sum_build(nbm);

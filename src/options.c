@@ -45,6 +45,14 @@ static GOptionEntry entries[] = {
      .description = "skip the overall summary",
      .arg_description = 0},
 
+    {.long_name = "hourly",
+     .short_name = 'H',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "output hourly forecasts",
+     .arg_description = 0},
+
     {.long_name = "precipitation",
      .short_name = 'r',
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -145,6 +153,8 @@ option_callback(const char *name, const char *value, void *data, GError **unused
 
     if (strcmp(name, "--no-summary") == 0 || strcmp(name, "-n") == 0) {
         opts->show_summary = false;
+    } else if (strcmp(name, "--hourly") == 0 || strcmp(name, "-H") == 0) {
+        opts->show_hourly = true;
     } else if (strcmp(name, "--precipitation") == 0 || strcmp(name, "-r") == 0) {
         opts->show_rain = true;
     } else if (strcmp(name, "--snow") == 0 || strcmp(name, "-s") == 0) {
@@ -191,6 +201,7 @@ parse_cmd_line(int argc, char *argv[argc + 1])
     struct OptArgs result = {
         .site = 0,
         .show_summary = true,
+        .show_hourly = false,
         .show_rain = false,
         .show_snow = false,
         .show_ice = false,

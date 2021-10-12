@@ -252,7 +252,7 @@ nbm_data_row_wind_iterator_next(struct NBMDataRowIteratorWind *it)
     return view;
 }
 /*-------------------------------------------------------------------------------------------------
- *                                           CSVParserState - internal only
+ *                                  CSVParserState - internal only
  *-----------------------------------------------------------------------------------------------*/
 /** State for keeping track parsing CSV files. */
 struct CSVParserState {
