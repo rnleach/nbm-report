@@ -212,12 +212,12 @@ build_daily_summaries(NBMData const *nbm)
                                      accum_last, daily_summary_new, daily_summary_access_min_t_std);
 
     extract_daily_summary_for_column(sums, nbm, "MINRH12hr_2 m above ground", keep_all,
-                                     summary_date_06z, id_func,
-                                     accum_last, daily_summary_new, daily_summary_access_min_rh);
+                                     summary_date_06z, id_func, accum_last, daily_summary_new,
+                                     daily_summary_access_min_rh);
 
     extract_daily_summary_for_column(sums, nbm, "MAXRH12hr_2 m above ground", keep_all,
-                                     summary_date_06z, id_func,
-                                     accum_last, daily_summary_new, daily_summary_access_max_rh);
+                                     summary_date_06z, id_func, accum_last, daily_summary_new,
+                                     daily_summary_access_max_rh);
 
     extract_daily_summary_for_column(sums, nbm, "APCP24hr_surface", keep_all, summary_date_06z,
                                      mm_to_in, accum_last, daily_summary_new,
