@@ -6,8 +6,8 @@ BUILDDIR := $(PROJDIR)/build
 
 # Target executable
 TARGET = $(BUILDDIR)/nbm
-CFLAGS = -g -fPIC -flto -Wall -Werror -O3 -std=c11 -I$(SOURCEDIR)
-LDLIBS = -flto -fPIC -lm
+CFLAGS = -g -fPIC -Wall -Werror -O3 -std=c11 -I$(SOURCEDIR)
+LDLIBS = -fPIC -lm
 
 # -------------------------------------------------------------------------------------------------
 # enable some time functions for POSIX
