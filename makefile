@@ -16,7 +16,7 @@ CFLAGS += -D_DEFAULT_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 # glib
 CFLAGS += `pkg-config --cflags glib-2.0`
 LDLIBS += `pkg-config --libs glib-2.0`
-#
+
 # cURL library
 CFLAGS += `curl-config --cflags`
 LDLIBS += `curl-config --libs`
@@ -49,6 +49,9 @@ SOURCES = $(wildcard $(SOURCEDIR)/*.c)
 # Define object files for all sources, and dependencies for all objects
 OBJS := $(subst $(SOURCEDIR), $(OBJDIR), $(SOURCES:.c=.o))
 DEPS = $(OBJS:.o=.d)
+
+# Add header files to the sources - must be done AFTER objects are defined.
+SOURCES += $(wildcard $(SOURCEDIR)/*.h)
 
 # Hide or not the calls depending on VERBOSE
 ifeq ($(VERBOSE),TRUE)
