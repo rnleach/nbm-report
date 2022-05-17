@@ -267,7 +267,7 @@ build_hourlies(NBMData const *nbm)
     extract_hourly_values_for_column(hrs, nbm, "APCP1hr_surface_prob >0.254", id_func, hourly_new,
                                      hourly_access_pop);
 
-    extract_hourly_values_for_column(hrs, nbm, "APCP1hr_surface", id_func, hourly_new,
+    extract_hourly_values_for_column(hrs, nbm, "APCP1hr_surface", mm_to_in, hourly_new,
                                      hourly_access_qpf_1hr);
 
     extract_hourly_values_for_column(hrs, nbm, "TSTM1hr_surface_probability forecast", id_func,
