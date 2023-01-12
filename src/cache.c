@@ -110,7 +110,7 @@ get_or_create_cache_path()
         mkdir(path, 0774);
     }
 
-    sprintf(path, "%s/.local/share/nbm-report/cache.sqlite", home);
+    sprintf(path, "%s/.local/share/nbm-report/cache41.sqlite", home);
 
     return path;
 }

@@ -1,5 +1,5 @@
-#include "download.h"
 #include "cache.h"
+#include "download.h"
 
 #include <curl/curl.h>
 
@@ -69,7 +69,15 @@ build_download_url(char const file_name[static 1], time_t data_init_time)
     struct tm nbm_version_4_starts_tm = {.tm_year = 2020 - 1900, .tm_mon = 9 - 1, .tm_mday = 23};
     time_t nbm_version_4_starts = timegm(&nbm_version_4_starts_tm);
 
-    if (data_init_time > nbm_version_4_starts) {
+    // NBM 4.1 started on 1/11/2023
+    struct tm nbm_version_41_starts_tm = {.tm_year = 2023 - 1900, .tm_mon = 1 - 1, .tm_mday = 11};
+    time_t nbm_version_41_starts = timegm(&nbm_version_41_starts_tm);
+
+    if (data_init_time > nbm_version_41_starts) {
+        // NBM 4.1
+        sprintf(url, "%s%4d/%02d/%02d/NBM4.1/%02d/%s", base_url, year, month, day, hour,
+                url_file_name);
+    } else if (data_init_time > nbm_version_4_starts) {
         // NBM 4.0
         sprintf(url, "%s%4d/%02d/%02d/NBM4.0/%02d/%s", base_url, year, month, day, hour,
                 url_file_name);
