@@ -1,5 +1,5 @@
-#include "cache.h"
 #include "download.h"
+#include "cache.h"
 
 #include <curl/curl.h>
 

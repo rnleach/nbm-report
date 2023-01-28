@@ -14,9 +14,9 @@
 #include "options.h"
 #include "precip_summary.h"
 #include "snow_summary.h"
-#include "wind_summary.h"
 #include "temp_summary.h"
 #include "utils.h"
+#include "wind_summary.h"
 
 /*-------------------------------------------------------------------------------------------------
  *                                    Program Setup and Teardown.
@@ -164,7 +164,6 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
 
         wind_sum_free(&wsum);
     }
-
 }
 /*-------------------------------------------------------------------------------------------------
  *                                    Main Program

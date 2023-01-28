@@ -1,7 +1,7 @@
+#include "wind_summary.h"
 #include "distributions.h"
 #include "table.h"
 #include "utils.h"
-#include "wind_summary.h"
 
 #include <assert.h>
 #include <math.h>
