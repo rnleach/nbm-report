@@ -140,3 +140,5 @@ show_ice_summary(NBMData const *nbm, int hours)
 
     table_free(&tbl);
 }
+
+#undef NUM_PROB_EXC_VALS

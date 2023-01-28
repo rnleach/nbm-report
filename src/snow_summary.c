@@ -456,3 +456,7 @@ snow_sum_free(struct SnowSum **ssum)
 
     free(ptr);
 }
+
+#undef NUM_PROB_EXC_VALS
+#undef SUMMARY
+#undef SCENARIOS

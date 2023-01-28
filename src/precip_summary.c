@@ -454,3 +454,7 @@ precip_sum_free(struct PrecipSum **psum)
 
     free(ptr);
 }
+
+#undef NUM_PROB_EXC_VALS
+#undef SUMMARY
+#undef SCENARIOS
