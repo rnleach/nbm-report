@@ -14,6 +14,7 @@
 #include "options.h"
 #include "precip_summary.h"
 #include "snow_summary.h"
+#include "wind_summary.h"
 #include "temp_summary.h"
 #include "utils.h"
 
@@ -146,6 +147,24 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
             show_ice_summary(nbm, opt_args.accum_hours[i]);
         }
     }
+
+    if (opt_args.show_wind || opt_args.show_wind_scenarios) {
+        WindSum *wsum = wind_sum_build(nbm);
+
+        if (opt_args.show_wind) {
+            show_wind_summary(wsum);
+        }
+        if (opt_args.show_wind_scenarios) {
+            show_wind_scenarios(wsum);
+        }
+
+        if (opt_args.save_dir) {
+            wind_sum_save(wsum, opt_args.save_dir, opt_args.save_prefix);
+        }
+
+        wind_sum_free(&wsum);
+    }
+
 }
 /*-------------------------------------------------------------------------------------------------
  *                                    Main Program
