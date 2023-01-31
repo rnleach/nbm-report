@@ -212,7 +212,11 @@ retrieve_data_for_site(char const site[static 1], char const site_nm[static 1],
     char *data_name = malloc(strlen(site_nm) + 1);
     strcpy(data_name, site_nm);
 
-    return raw_nbm_data_new(init_time, data_site, data_name, buf.text_data, buf.size);
+    size_t buf_size = buf.size;
+    char *text_data = text_buffer_steal_text(&buf);
+    text_buffer_clear(&buf);
+
+    return raw_nbm_data_new(init_time, data_site, data_name, text_data, buf_size);
 
 ERR_RETURN:
     text_buffer_clear(&buf);
