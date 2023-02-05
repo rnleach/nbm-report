@@ -85,6 +85,22 @@ static GOptionEntry entries[] = {
      .description = "show summary of 24hr max wind speeds",
      .arg_description = 0},
 
+    {.long_name = "gust",
+     .short_name = 'g',
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show summary of 24hr max wind gusts",
+     .arg_description = 0},
+
+    {.long_name = "gust-scenarios",
+     .short_name = 0,
+     .flags = G_OPTION_FLAG_NO_ARG,
+     .arg = G_OPTION_ARG_CALLBACK,
+     .arg_data = option_callback,
+     .description = "show 24 hour max wind gust scenarios",
+     .arg_description = 0},
+
     {.long_name = "wind-scenarios",
      .short_name = 0,
      .flags = G_OPTION_FLAG_NO_ARG,
@@ -181,6 +197,10 @@ option_callback(const char *name, const char *value, void *data, GError **unused
         opts->show_temperature = true;
     } else if (strcmp(name, "--wind") == 0 || strcmp(name, "-w") == 0) {
         opts->show_wind = true;
+    } else if (strcmp(name, "--gust") == 0 || strcmp(name, "-g") == 0) {
+        opts->show_gust = true;
+    } else if (strcmp(name, "--gust-scenarios") == 0) {
+        opts->show_gust_scenarios = true;
     } else if (strcmp(name, "--wind-scenarios") == 0) {
         opts->show_wind_scenarios = true;
     } else if (strcmp(name, "--temp-scenarios") == 0) {
@@ -229,6 +249,8 @@ parse_cmd_line(int argc, char *argv[argc + 1])
         .accum_hours = {24, 0, 0, 0},
         .show_temperature = false,
         .show_wind = false,
+        .show_gust = false,
+        .show_gust_scenarios = false,
         .show_wind_scenarios = false,
         .show_temperature_scenarios = false,
         .show_precip_scenarios = false,

@@ -9,6 +9,7 @@
 #include "cache.h"
 #include "daily_summary.h"
 #include "download.h"
+#include "gust_summary.h"
 #include "hourly.h"
 #include "ice_summary.h"
 #include "options.h"
@@ -163,6 +164,23 @@ do_output(NBMData const *nbm, struct OptArgs opt_args)
         }
 
         wind_sum_free(&wsum);
+    }
+
+    if (opt_args.show_gust || opt_args.show_gust_scenarios) {
+        GustSum *gsum = gust_sum_build(nbm);
+
+        if (opt_args.show_gust) {
+            show_gust_summary(gsum);
+        }
+        if (opt_args.show_gust_scenarios) {
+            show_gust_scenarios(gsum);
+        }
+
+        if (opt_args.save_dir) {
+            gust_sum_save(gsum, opt_args.save_dir, opt_args.save_prefix);
+        }
+
+        gust_sum_free(&gsum);
     }
 }
 /*-------------------------------------------------------------------------------------------------

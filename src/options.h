@@ -22,7 +22,9 @@ struct OptArgs {
     bool show_ice;
     bool show_temperature;
     bool show_wind;
+    bool show_gust;
 
+    bool show_gust_scenarios;
     bool show_wind_scenarios;
     bool show_temperature_scenarios;
     bool show_precip_scenarios;
