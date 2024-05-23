@@ -73,7 +73,15 @@ build_download_url(char const file_name[static 1], time_t data_init_time)
     struct tm nbm_version_41_starts_tm = {.tm_year = 2023 - 1900, .tm_mon = 1 - 1, .tm_mday = 11};
     time_t nbm_version_41_starts = timegm(&nbm_version_41_starts_tm);
 
-    if (data_init_time > nbm_version_41_starts) {
+    // NBM 4.2 started on 5/15/2024
+    struct tm nbm_version_42_starts_tm = {.tm_year = 2024 - 1900, .tm_mon = 5 - 1, .tm_mday = 15, .tm_hour = 11};
+    time_t nbm_version_42_starts = timegm(&nbm_version_42_starts_tm);
+
+    if (data_init_time > nbm_version_42_starts) {
+        // NBM 4.2
+        sprintf(url, "%s%4d/%02d/%02d/NBM4.2/%02d/%s", base_url, year, month, day, hour,
+                url_file_name);
+    } else if (data_init_time > nbm_version_41_starts) {
         // NBM 4.1
         sprintf(url, "%s%4d/%02d/%02d/NBM4.1/%02d/%s", base_url, year, month, day, hour,
                 url_file_name);
