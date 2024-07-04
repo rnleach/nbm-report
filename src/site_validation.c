@@ -220,31 +220,31 @@ process_row(int finish_flag, void *state)
         sqlite3_stmt *stmt = st->stmt;
 
         int sqlite_res = sqlite3_bind_text(stmt, 1, st->id, -1, 0);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite bind error: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite bind error: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_bind_text(stmt, 2, st->name, -1, 0);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite bind error: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite bind error: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_bind_text(stmt, 3, st->state, -1, 0);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite bind error: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite bind error: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_bind_double(stmt, 4, st->lat);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite bind error: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite bind error: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_bind_double(stmt, 5, st->lon);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite bind error: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite bind error: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_step(stmt);
-        Stopif(sqlite_res != SQLITE_DONE, exit(EXIT_FAILURE), "sqlite not done: %s",
+        Stopif(sqlite_res != SQLITE_DONE, goto ERR, "sqlite not done: %s",
                sqlite3_errstr(sqlite_res));
 
         sqlite_res = sqlite3_reset(stmt);
-        Stopif(sqlite_res != SQLITE_OK, exit(EXIT_FAILURE), "sqlite unable to reset: %s",
+        Stopif(sqlite_res != SQLITE_OK, goto ERR, "sqlite unable to reset: %s",
                sqlite3_errstr(sqlite_res));
     }
 
@@ -256,6 +256,12 @@ process_row(int finish_flag, void *state)
     st->lon = NAN;
     st->col = 0;
     st->invalid_record = false;
+
+    return;
+
+ERR:
+    fprintf(stderr, "\"%s\" \"%s\" \"%s\" \"%lf\" \"%lf\"\n\n", st->id, st->name, st->state, st->lat, st->lon);
+    exit(EXIT_FAILURE);
 }
 
 static sqlite3 *

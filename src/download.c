@@ -49,7 +49,7 @@ build_download_url(char const file_name[static 1], time_t data_init_time)
 {
     assert(file_name);
 
-    static char const *base_url = "https://hwp-viz.gsd.esrl.noaa.gov/wave1d/data/archive/";
+    static char const *base_url = "https://apps.gsl.noaa.gov/nbmviewer/data/archive/";
     static char url[URL_LENGTH] = {0};
     // Clear the memory before starting over
     memset(url, 0, URL_LENGTH);
