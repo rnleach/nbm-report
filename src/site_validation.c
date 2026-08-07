@@ -367,6 +367,36 @@ create_record_from_row(sqlite3_stmt *stmt)
 }
 
 static GSList *
+find_exact_case_sensitive_match(sqlite3 *db, char const site[static 1])
+{
+    GSList *ret = 0;
+
+    char *query = 0;
+    int num_bytes = asprintf(&query, "SELECT id, name, state, lat, lon FROM locations WHERE id = '%s'", site);
+    Stopif(num_bytes < 1, exit(EXIT_FAILURE), "out of memory");
+
+    sqlite3_stmt *stmt = 0;
+    int res = sqlite3_prepare_v2(db, query, -1, &stmt, 0);
+    Stopif(res != SQLITE_OK, goto ERR_RETURN, "error preparing exact case statement: %s",
+           sqlite3_errstr(res));
+
+    res = sqlite3_step(stmt);
+    if (res == SQLITE_ROW) {
+        ret = g_slist_append(ret, create_record_from_row(stmt));
+    }
+
+ERR_RETURN:
+
+    if (stmt) {
+        sqlite3_finalize(stmt);
+    }
+
+    free(query);
+
+    return ret;
+}
+
+static GSList *
 find_exact_case_insensitive_match(sqlite3 *db, char const site[static 1])
 {
     GSList *ret = 0;
@@ -555,7 +585,10 @@ site_validation_create(char const site[static 1], time_t request_time)
     text_buffer_clear(&buf); // We're done with the text.
     assert(db);
 
-    GSList *matches = find_exact_case_insensitive_match(db, site);
+    GSList *matches = find_exact_case_sensitive_match(db, site);
+    if (!matches) {
+        matches = find_exact_case_insensitive_match(db, site);
+    }
     if (!matches) {
         matches = find_similar_sites(db, site);
     }
